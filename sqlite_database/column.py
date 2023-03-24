@@ -243,4 +243,3 @@ def blob(name: str) -> BuilderColumn:
 def real(name: str) -> BuilderColumn:
     """Create a real column with name"""
     return BuilderColumn().real(name)
-
