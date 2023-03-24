@@ -1,0 +1,97 @@
+"""Core database utility"""
+
+# This module must not import anything from this package except errors.
+
+from inspect import get_annotations
+from re import Pattern
+from re import compile as re_compile
+from re import escape as re_escape
+from sqlite3 import Cursor, connect
+from string import punctuation
+from typing import Any, Iterable, Type
+
+from .errors import SecurityError
+
+null = object()
+
+_INVALID_STR = punctuation.replace("_", "")
+_re_valid = re_compile(f"[{re_escape(_INVALID_STR)}]+")
+
+# I hate it when i can't import stuff
+
+
+class AttrDict(dict):
+    """Attribute Dictionary"""
+
+    def __getattr__(self, __name: str) -> Any:
+        try:
+            return super().__getattribute__(__name)
+        except AttributeError:
+            return self[__name]
+
+
+def dict_factory(cursor, row):
+    """dict factory"""
+    fields = [column[0] for column in cursor.description]
+    return AttrDict(zip(fields, row))
+    # return {key: value for key, value in zip(fields, row)}
+
+
+def sqlite_multithread_check():
+    """sqlite mulththread check"""
+    thread_safe = {0: 0, 2: 1, 1: 3}
+    conn = connect(":memory:", check_same_thread=False)
+    data = conn.execute("select * from pragma_compile_options where compile_options \
+like 'THREADSAFE=%'")\
+        .fetchone()[0]
+    conn.close()
+
+    threadsafety_value = int(data.split("=")[1])
+    return thread_safe[threadsafety_value]
+
+
+def matches(pattern: Pattern, value: str):
+    """matches"""
+    if len(pattern.findall(value)) == 0:
+        return False
+    return True
+
+
+def check_one(data: str):
+    """check one to check if a string contains illegal character"""
+    if matches(_re_valid, data) is True:
+        raise SecurityError("Cannot parse unsafe data.")
+    return data
+
+
+def check_iter(data: Iterable[str]):
+    """An iterable checks as it's check_one"""
+    for val in data:
+        yield check_one(val)
+
+
+class WithCursor(Cursor):
+    """With cursor"""
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_type and exc_value and traceback:
+            return True
+        self.connection.commit()
+        return True
+
+    def __repr__(self) -> str:
+        return type(self).__name__
+
+
+def future_class_var_isdefined(type_: Type[Any], future_attr: str):
+    """Is a future class var defined?"""
+    annotations = get_annotations(type_)
+    if future_attr in annotations:
+        try:
+            getattr(type_, future_attr)
+        except AttributeError:
+            return True
+    return False
