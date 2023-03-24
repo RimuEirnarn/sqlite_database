@@ -133,6 +133,6 @@ class Database:
         """SQL Connection"""
         return self._database
 
-
+__version__ = "0.1.0"
 __all__ = ["Database", "Table", "this", "op", "WithCursor",
            "Column", "null", 'AttrDict', 'text', 'integer', 'real', 'blob']
