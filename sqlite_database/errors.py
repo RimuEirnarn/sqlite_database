@@ -11,3 +11,11 @@ class UnexpectedResultError(Exception):
 
 class TableRemovedError(Exception):
     """Table is removed"""
+
+
+class DatabaseExistsError(UnexpectedResultError):
+    """Database that would be created is already exists."""
+
+
+class DatabaseMissingError(UnexpectedResultError):
+    """Database that would be accessed is missing."""

@@ -10,7 +10,11 @@ from .locals import this
 from .query_builder import extract_table_creations
 from .signature import op
 from .table import Table
+from .errors import DatabaseExistsError, DatabaseMissingError
 Columns = Iterable[Column] | Iterable[BuilderColumn]
+
+IGNORE_TABLE_CHECKS = (
+    "sqlite_master", "sqlite_temp_schema", "sqlite_temp_master")
 
 
 class Database:
@@ -51,7 +55,8 @@ class Database:
         Returns:
             Table: Newly created table
         """
-        check_one(table)
+        if self.check_table(table):
+            raise DatabaseExistsError(f"table {table} already exists.")
         columns = (column.to_column() if isinstance(
             column, BuilderColumn) else column for column in columns)
         tbquery = extract_table_creations(columns)
@@ -82,17 +87,19 @@ class Database:
         """fetch table"""
         if self._table_instances.get(table, None) is not None:
             return self._table_instances[table]
+
+        # Undefined behavior? Something else? idk.
+        if self.check_table(table) is False:
+            raise DatabaseMissingError(f"table {table} doesn't exists.")
+
         this_table = Table(self, table, __columns)
         self._table_instances[table] = this_table
         return this_table
 
     def reset_table(self, table: str, columns: Columns) -> Table:
         """Reset existing table with new, this rewrote entire table than altering it."""
-        try:
-            self.table(table)
+        if self.check_table(table):
             self.delete_table(table)
-        except OperationalError:
-            pass
         return self.create_table(table, columns)
 
     def rename_table(self, old_table: str, new_table: str) -> Table:
@@ -101,6 +108,17 @@ class Database:
         self.sql.execute(f"alter table {old_table} rename to {new_table}")
         self.sql.commit()
         return self.table(new_table)
+
+    def check_table(self, table: str):
+        """Check if table is exists or not."""
+        check_one(table)
+        if table in IGNORE_TABLE_CHECKS:
+            return True  # Let's return true.
+        cursor = self.sql.execute(
+            "select name from sqlite_master where type='table' and name=?", (table,))
+        if cursor.fetchone():
+            return True
+        return False
 
     def __repr__(self) -> str:
         return f"<Database {id(self)}>"
@@ -133,6 +151,7 @@ class Database:
         """SQL Connection"""
         return self._database
 
-__version__ = "0.1.0"
+
+__version__ = "0.1.1"
 __all__ = ["Database", "Table", "this", "op", "WithCursor",
            "Column", "null", 'AttrDict', 'text', 'integer', 'real', 'blob']
