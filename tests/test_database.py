@@ -218,4 +218,4 @@ def test_06_paginate_select():
     nums.insert_many(data)
 
     for i in nums.paginate_select():
-        print(i)
+        assert i
