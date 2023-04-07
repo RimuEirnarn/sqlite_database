@@ -3,7 +3,6 @@
 from sqlite3 import OperationalError
 from typing import Any, Generator, Iterable, NamedTuple, Optional, Type
 
-import sqlite_database
 from ._utils import WithCursor, check_iter, check_one
 from .column import BuilderColumn, Column
 from .errors import TableRemovedError, UnexpectedResultError
@@ -29,10 +28,10 @@ class Table:
     _ns: dict[str, Type[NamedTuple]] = {}
 
     def __init__(self,
-                 parent: 'Database',  # type: ignore
+                 parent,  # type: ignore
                  table: str,
                  __columns: Optional[Iterable[Column]] = None) -> None:
-        self._parent: sqlite_database.Database = parent
+        self._parent = parent
         self._deleted = False
         self._table = check_one(table)
         self._columns: Optional[list[Column]] = list(
@@ -249,7 +248,10 @@ values ({', '.join(val for _,val in converged.items())})"
         with self._parent.sql:
             return self._parent.sql.execute(query, data).fetchall()
 
-    def paginate_select(self, filter_: Condition = None, length: int = 10, order: Optional[Orders] = None) -> Generator[Queries, None, None]:
+    def paginate_select(self,
+                        filter_: Condition = None,
+                        length: int = 10,
+                        order: Optional[Orders] = None) -> Generator[Queries, None, None]:
         """Paginate select
 
         Args:

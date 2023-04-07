@@ -8,8 +8,7 @@ from types import SimpleNamespace
 from pytest import fixture, raises
 
 
-from sqlite_database.column import BuilderColumn
-from sqlite_database import Column, Database, integer
+from sqlite_database import Column, Database, integer, BuilderColumn
 from sqlite_database.signature import op
 from sqlite_database.errors import TableRemovedError
 
@@ -208,7 +207,7 @@ def test_06_paginate_select():
     """Pagination select"""
     data = []
     for a, b in zip(range(0, 100), range(1000, 1100)):
-        data.append(dict(x=a, y=b))
+        data.append({"x": a, "y": b})
 
     database = Database(":memory:")
     nums = database.create_table("nums", [
