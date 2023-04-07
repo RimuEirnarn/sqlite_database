@@ -9,7 +9,7 @@ from pytest import fixture, raises
 
 
 from sqlite_database.column import BuilderColumn
-from sqlite_database import Column, Database
+from sqlite_database import Column, Database, integer
 from sqlite_database.signature import op
 from sqlite_database.errors import TableRemovedError
 
@@ -202,3 +202,21 @@ def test_05_builder_pattern():
     groups = database.table('groups')
     assert users.select() == USER_BASE
     assert groups.select() == GROUP_BASE
+
+
+def test_06_paginate_select():
+    """Pagination select"""
+    data = []
+    for a, b in zip(range(0, 100), range(1000, 1100)):
+        data.append(dict(x=a, y=b))
+
+    database = Database(":memory:")
+    nums = database.create_table("nums", [
+        integer("x"),
+        integer("y")
+    ])
+
+    nums.insert_many(data)
+
+    for i in nums.paginate_select():
+        print(i)

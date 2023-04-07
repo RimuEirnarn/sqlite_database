@@ -1,8 +1,9 @@
 """Table"""
 
 from sqlite3 import OperationalError
-from typing import Any, Iterable, NamedTuple, Optional, Type
+from typing import Any, Generator, Iterable, NamedTuple, Optional, Type
 
+import sqlite_database
 from ._utils import WithCursor, check_iter, check_one
 from .column import BuilderColumn, Column
 from .errors import TableRemovedError, UnexpectedResultError
@@ -31,7 +32,7 @@ class Table:
                  parent: 'Database',  # type: ignore
                  table: str,
                  __columns: Optional[Iterable[Column]] = None) -> None:
-        self._parent = parent
+        self._parent: sqlite_database.Database = parent
         self._deleted = False
         self._table = check_one(table)
         self._columns: Optional[list[Column]] = list(
@@ -69,11 +70,14 @@ class Table:
     def _mksquery(self,
                   filter_: Condition = None,
                   limit: int = 0,
+                  offset: int = 0,
                   order: Optional[Orders] = None):
         cond, data = extract_signature(filter_)
         query = f"select * from {self._table}{' '+cond if cond else ''}"
         if limit:
             query += f" limit {limit}"
+        if offset:
+            query += f" offset {offset}"
         if order:
             query += " order by"
             for ord_, order_by in order.items():
@@ -227,21 +231,49 @@ values ({', '.join(val for _,val in converged.items())})"
     def select(self,
                filter_: Condition = None,
                limit: int = 0,
+               offset: int = 0,
                order: Optional[Orders] = None) -> Queries:
         """Select data in current table. Bare .select() returns all data.
 
         Args:
             filter_ (Condition, optional): Conditions to used. Defaults to None.
             limit (int, optional): Limit of select. Defaults to 0.
+            offset (int, optional): Offset. Defaults to 0
             order (Optional[Orders], optional): Selection order. Defaults to None.
 
         Returns:
             Queries: Selected data
         """
         self._control()
-        query, data = self._mksquery(filter_, limit, order)
+        query, data = self._mksquery(filter_, limit, offset, order)
         with self._parent.sql:
             return self._parent.sql.execute(query, data).fetchall()
+
+    def paginate_select(self, filter_: Condition = None, length: int = 10, order: Optional[Orders] = None) -> Generator[Queries, None, None]:
+        """Paginate select
+
+        Args:
+            filter_ (Condition, optional): Confitions to use. Defaults to None.
+            length (int, optional): Pagination length. Defaults to 10.
+            order (Optional[Orders], optional): Order. Defaults to None.
+
+        Yields:
+            Generator[Queries, None, None]: Step-by-step paginated result.
+        """
+        self._control()
+        start = 0
+        while True:
+            query, data = self._mksquery(filter_, length, start, order)
+            with self._parent.sql:
+                fetched = self._parent.sql.execute(
+                    query, data).fetchmany(length)
+                if len(fetched) == 0:
+                    return
+                if len(fetched) != length:
+                    yield tuple(fetched)
+                    return
+                yield tuple(fetched)
+                start += length
 
     def select_one(self,
                    filter_: Condition = None,
