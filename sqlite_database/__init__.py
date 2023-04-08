@@ -152,6 +152,6 @@ class Database:
         return self._database
 
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 __all__ = ["Database", "Table", "op",
            "Column", "null", 'AttrDict', 'text', 'integer', 'real', 'blob']

@@ -33,7 +33,7 @@ Select a data from table
 
 ```python
 data = users.select({
-    "id": op == 3
+    "id": 3
 })
 ```
 
@@ -43,7 +43,7 @@ Update a data from table
 users.update({
     "name": "test"
 }, {
-    "id": op == 3
+    "id": 3
 })
 ```
 
@@ -51,7 +51,7 @@ Delete a data from table
 
 ```python
 users.delete({
-    "id": op == 3
+    "id": 3
 })
 ```
 
