@@ -153,5 +153,5 @@ class Database:
 
 
 __version__ = "0.1.1"
-__all__ = ["Database", "Table", "this", "op", "WithCursor",
+__all__ = ["Database", "Table", "op",
            "Column", "null", 'AttrDict', 'text', 'integer', 'real', 'blob']

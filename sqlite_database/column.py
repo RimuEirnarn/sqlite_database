@@ -228,18 +228,25 @@ class BuilderColumn:  # pylint: disable=too-many-instance-attributes
     def __eq__(self, __o: 'Column') -> bool:
         return self.to_column() == __o
 
+
 def text(name: str) -> BuilderColumn:
     """Create a text column with name"""
     return BuilderColumn().text(name)
+
 
 def integer(name: str) -> BuilderColumn:
     """Create a integer column with name"""
     return BuilderColumn().integer(name)
 
+
 def blob(name: str) -> BuilderColumn:
     """Create a blob column with name"""
     return BuilderColumn().blob(name)
 
+
 def real(name: str) -> BuilderColumn:
     """Create a real column with name"""
     return BuilderColumn().real(name)
+
+
+__all__ = ['Column', 'BuilderColumn', 'text', 'integer', 'blob', 'real']

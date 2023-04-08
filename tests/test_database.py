@@ -8,8 +8,9 @@ from types import SimpleNamespace
 from pytest import fixture, raises
 
 
-from sqlite_database import Column, Database, integer, BuilderColumn
+from sqlite_database import Column, Database, integer, BuilderColumn, text
 from sqlite_database.signature import op
+from sqlite_database.operators import eq
 from sqlite_database.errors import TableRemovedError
 
 
@@ -84,25 +85,14 @@ def setup_database(database: Database):
 def setup_database_builder(database: Database):
     """Setup database with builder pattern for column"""
     users = database.create_table("users", [
-        BuilderColumn()
-        .integer('id')
-        .unique()
-        .primary(),
-        BuilderColumn()
-        .text("username"),
-        BuilderColumn()
-        .text("role")
-        .default("user"),
-        BuilderColumn()
-        .integer('gid')
-        .foreign("groups/id")
+        integer('id').primary(),
+        text('username'),
+        text('role').default('user'),
+        integer('gid').foreign('groups/id')
     ])
     groups = database.create_table("groups", [
-        BuilderColumn()
-        .integer('id')
-        .primary(),
-        BuilderColumn()
-        .text('name')
+        integer('id').primary(),
+        text('name')
     ])
     groups.insert_many(GROUP_BASE)
     users.insert_many(USER_BASE)
@@ -149,6 +139,30 @@ def test_00_select(databasepath):
     assert groups.select_one({"id": op == 0}) == GROUP_BASE[0]
     assert groups.select() == GROUP_BASE
     assert users.select_one({"id": op == 0}) == USER_BASE[0]
+    assert users.select() == USER_BASE
+    assert save_report("00_test", database, groups, users)
+
+
+def test_001_select(databasepath):
+    """Test 001 select"""
+    database, groups, users = unload_again(databasepath)
+    config.xdatatabase = database
+    assert database is config.xdatatabase
+    assert groups.select_one([eq('id', 0)]) == GROUP_BASE[0]
+    assert groups.select() == GROUP_BASE
+    assert users.select_one([eq('id', 0)]) == USER_BASE[0]
+    assert users.select() == USER_BASE
+    assert save_report("00_test", database, groups, users)
+
+
+def test_002_select(databasepath):
+    """Test 002 select"""
+    database, groups, users = unload_again(databasepath)
+    config.xdatatabase = database
+    assert database is config.xdatatabase
+    assert groups.select_one({'id': 0}) == GROUP_BASE[0]
+    assert groups.select() == GROUP_BASE
+    assert users.select_one({'id': 0}) == USER_BASE[0]
     assert users.select() == USER_BASE
     assert save_report("00_test", database, groups, users)
 

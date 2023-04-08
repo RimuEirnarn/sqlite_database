@@ -54,19 +54,19 @@ class Signature:
     def __eq__(self, __o) -> 'Signature':
         return Signature(__o, "==")
 
-    def __lt__(self, __o):
+    def __lt__(self, __o) -> "Signature":
         return Signature(__o, "<")
 
-    def __le__(self, __o):
+    def __le__(self, __o) -> "Signature":
         return Signature(__o, "<=")
 
-    def __gt__(self, __o):
+    def __gt__(self, __o) -> "Signature":
         return Signature(__o, ">")
 
-    def __ge__(self, __o):
+    def __ge__(self, __o) -> "Signature":
         return Signature(__o, ">=")
 
-    def __ne__(self, __o):
+    def __ne__(self, __o) -> "Signature":
         return Signature(__o, "!=")
 
     def like(self, str_condition: str):

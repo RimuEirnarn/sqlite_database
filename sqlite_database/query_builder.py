@@ -7,8 +7,12 @@ from typing import Any, Iterable
 from ._utils import check_one, null
 from .column import Column
 from .locals import _SQLITETYPES
-from .signature import op
-from .typings import Condition, _MasterQuery
+from .signature import Signature, op
+from .typings import _MasterQuery
+
+ConditionDict = dict[str, Signature | Any]
+ConditionList = list[tuple[str, Signature]]
+Condition = ConditionDict | ConditionList | None
 
 
 def extract_table(table_creation: str):  # pylint: disable=too-many-locals
@@ -67,15 +71,19 @@ def fetch_columns(_master_query: _MasterQuery):
     return extract_table(sql)
 
 
-def extract_signature(filter_: Condition = None, suffix: str = '_check'):
+def extract_signature(filter_: Condition = None, suffix: str = '_check'):  # type: ignore
     """Extract filter signature."""
     if filter_ is None:
         return "", {}
+    if isinstance(filter_, list):
+        filter_: ConditionDict = dict(filter_)
     string = "where"
     data: dict[str, Any] = {}
     last = 1
     for key, value in filter_.items():
-        old_data = value.value if value.value is not null else null
+        if not isinstance(value, Signature):
+            value = Signature(value, "==")
+        old_data = value.value
         val = op == f":{key}{suffix}" if value.value is not null else value
         middle = val.generate()
         if val.normal_operator:
@@ -238,3 +246,10 @@ def extract_table_creations(columns: Iterable[Column]):
  on delete {column.on_delete} on update {column.on_update},"
         # ! This might be a buggy code, i'm not sure yet.
     return string[1:-1]
+
+
+__all__ = ['ConditionDict', 'ConditionList', 'Condition', "extract_table", 'fetch_columns',
+           'extract_signature', 'basic_extract', 'filter_extraction', 'build_update_data',
+           'format_paramable', 'combine_keyvals', 'extract_single_column',
+           'extract_table_creations'
+           ]

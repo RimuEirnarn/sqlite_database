@@ -12,12 +12,36 @@ from typing import Any, Iterable, Type
 
 from .errors import SecurityError
 
-null = object()
 
 _INVALID_STR = punctuation.replace("_", "")
 _re_valid = re_compile(f"[{re_escape(_INVALID_STR)}]+")
 
 # I hate it when i can't import stuff
+
+
+class NullObject:
+    """Null object"""
+    __obj = None
+
+    def __new__(cls):
+        if cls.__obj is None:
+            cls.__obj = object.__new__(cls)
+        return cls.__obj
+
+    def __init__(self) -> None:
+        pass
+
+    def __repr__(self) -> str:
+        return "null"
+
+    def __str__(self) -> str:
+        return repr(self)
+
+    def __int__(self) -> int:
+        return 0
+
+    def __float__(self) -> float:
+        return 0.0
 
 
 class AttrDict(dict):
@@ -95,3 +119,9 @@ def future_class_var_isdefined(type_: Type[Any], future_attr: str):
         except AttributeError:
             return True
     return False
+
+
+null = NullObject()
+
+__all__ = ['null', 'future_class_var_isdefined', 'WithCursor', 'check_iter', 'check_one',
+           'matches', 'AttrDict', 'NullObject', 'sqlite_multithread_check']

@@ -5,8 +5,6 @@ from typing import Any, Literal, Protocol, SupportsIndex, TypedDict
 
 from ._utils import AttrDict
 
-Condition = dict[str, 'Signature'] | None  # type: ignore
-NCondition = dict[str, 'Signature']  # type: ignore
 Orders = dict[str, Literal['asc'] | Literal['desc']]
 Data = dict[str, Any]
 Query = AttrDict[str, Any]  # type: ignore

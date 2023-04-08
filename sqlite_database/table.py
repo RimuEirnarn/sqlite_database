@@ -3,15 +3,15 @@
 from sqlite3 import OperationalError
 from typing import Any, Generator, Iterable, NamedTuple, Optional, Type
 
-from ._utils import WithCursor, check_iter, check_one
+from ._utils import WithCursor, check_iter, check_one, AttrDict
 from .column import BuilderColumn, Column
 from .errors import TableRemovedError, UnexpectedResultError
 from .locals import SQLITEPYTYPES
 from .query_builder import (build_update_data, combine_keyvals,
                             extract_signature, extract_single_column,
-                            fetch_columns, format_paramable)
+                            fetch_columns, format_paramable, Condition)
 from .signature import op
-from .typings import Condition, Data, Orders, Queries, Query, _MasterQuery, TypicalNamedTuple
+from .typings import Data, Orders, Queries, Query, _MasterQuery, TypicalNamedTuple
 
 # Let's add a little bit of 'black' magic here.
 
@@ -267,14 +267,14 @@ values ({', '.join(val for _,val in converged.items())})"
         while True:
             query, data = self._mksquery(filter_, length, start, order)
             with self._parent.sql:
-                fetched = self._parent.sql.execute(
+                fetched: list[AttrDict] = self._parent.sql.execute(
                     query, data).fetchmany(length)
                 if len(fetched) == 0:
                     return
                 if len(fetched) != length:
-                    yield tuple(fetched)
+                    yield fetched
                     return
-                yield tuple(fetched)
+                yield fetched
                 start += length
 
     def select_one(self,
@@ -290,7 +290,7 @@ values ({', '.join(val for _,val in converged.items())})"
             Query: Selected data
         """
         self._control()
-        query, data = self._mksquery(filter_, 1, order)
+        query, data = self._mksquery(filter_, 1, 0, order)
         with self._parent.sql:
             return self._parent.sql.execute(query, data).fetchone()
 
@@ -376,3 +376,6 @@ constraint is enabled.")
 
     def __repr__(self) -> str:
         return f"<Table({self._table}) -> {self._parent}>"
+
+
+__all__ = ['Table', 'get_table']
