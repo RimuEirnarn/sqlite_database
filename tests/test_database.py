@@ -8,7 +8,7 @@ from types import SimpleNamespace
 from pytest import fixture, raises
 
 
-from sqlite_database import Column, Database, integer, BuilderColumn, text
+from sqlite_database import Column, Database, integer, text
 from sqlite_database.signature import op
 from sqlite_database.operators import eq
 from sqlite_database.errors import TableRemovedError
