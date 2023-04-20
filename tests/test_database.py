@@ -1,5 +1,5 @@
 """test db"""
-# pylint: disable=redefined-outer-name
+# pylint: disable=redefined-outer-name,invalid-name
 from io import StringIO
 from json import dumps
 from os.path import abspath
@@ -12,6 +12,7 @@ from sqlite_database import Column, Database, integer, text
 from sqlite_database.signature import op
 from sqlite_database.operators import eq
 from sqlite_database.errors import TableRemovedError
+from sqlite_database.export import to_csv_string, to_csv_file
 
 
 def parse(data):
@@ -20,7 +21,7 @@ def parse(data):
 
 
 config = SimpleNamespace()
-file = abspath(f"{__file__}/../../reports.txt")
+file = abspath(f"{__file__}/../reports.txt")
 pstdout = StringIO()
 
 GROUP_BASE = [{
@@ -127,6 +128,10 @@ def databasepath(tmp_path_factory):
     database.close()
     return database_path
 
+@fixture(scope="session")
+def randdir(tmp_path_factory):
+    """Random directory"""
+    return tmp_path_factory.mktemp("test-01")
 
 config.xdatatabase = None
 
@@ -203,8 +208,6 @@ def test_04_finish(databasepath):
         assert database.delete_table("groups") is None
         assert database.delete_table("users") is None
         assert save_report("05_finish", database, groups, users)
-    with open(file, "w", encoding="utf-8") as xfile:
-        xfile.write(pstdout.getvalue())
 
 
 def test_05_builder_pattern():
@@ -233,3 +236,29 @@ def test_06_paginate_select():
 
     for i in nums.paginate_select():
         assert i
+
+def test_07_export_csv():
+    """Export to CSV"""
+    database = Database(":memory:")
+    setup_database(database)
+    csv = to_csv_string(database)
+    print("test_06_export_csv\n", csv, '\n', file=pstdout, flush=True)
+    assert csv
+
+
+def test_08_export_file(randdir):
+    """Export to CSV file"""
+    database = Database(":memory:")
+    setup_database(database)
+    assert to_csv_file(database.table('users'), randdir / "users.csv")
+
+def test_09_export_directory(randdir):
+    """Export to CSV as directory"""
+    database = Database(":memory:")
+    setup_database(database)
+    assert to_csv_file(database, randdir / "MemDB")
+
+def test_99_save_report():
+    """Save reports"""
+    with open(file, "w", encoding="utf-8") as xfile:
+        xfile.write(pstdout.getvalue())

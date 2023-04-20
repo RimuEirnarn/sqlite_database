@@ -129,6 +129,16 @@ class Database:
         self._closed = True
 
     @property
+    def tables(self) -> tuple[Table, ...]:
+        """Return tuple containing all table except internal tables"""
+        master = self.table("sqlite_master")
+        listed = []
+        for table in master.select():
+            if table.type == "table":
+                listed.append(self.table(table.name))
+        return tuple(listed)
+
+    @property
     def closed(self):
         """Is database closed?"""
         return self._closed
@@ -152,6 +162,6 @@ class Database:
         return self._database
 
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 __all__ = ["Database", "Table", "op",
            "Column", "null", 'AttrDict', 'text', 'integer', 'real', 'blob']
