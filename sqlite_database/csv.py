@@ -1,4 +1,4 @@
-"""Export Module, used to export database/table to csv"""
+"""CSV module, used to export database/table to csv"""
 from csv import DictWriter
 from io import StringIO
 from os import mkdir
