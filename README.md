@@ -57,4 +57,4 @@ users.delete({
 
 ## Installation
 
-Using pip and tag this repo should suffice, just get the raw archive, and it'll be done.
+Installation from pypi is now available, `pip install sqlite-database`
