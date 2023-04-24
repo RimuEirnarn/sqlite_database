@@ -12,7 +12,7 @@ from sqlite_database import Column, Database, integer, text
 from sqlite_database.signature import op
 from sqlite_database.operators import eq
 from sqlite_database.errors import TableRemovedError
-from sqlite_database.export import to_csv_string, to_csv_file
+from sqlite_database.csv import to_csv_string, to_csv_file
 
 
 def parse(data):
@@ -185,8 +185,8 @@ def test_02_update(databasepath):
     """test 02 update"""
     database, groups, users = unload_again(databasepath)
     assert database is config.xdatatabase
-    assert groups.update(GROUP_UNEW[0], {"id": op == 2}) == 1
-    assert users.update(USER_UNEW[0], {"id": op == 2}) == 1
+    assert groups.update({"id": op == 2}, GROUP_UNEW[0]) == 1
+    assert users.update({"id": op == 2}, USER_UNEW[0]) == 1
     assert save_report("02_update", database, groups, users)
 
 

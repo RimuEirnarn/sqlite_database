@@ -3,15 +3,16 @@
 from sqlite3 import OperationalError
 from typing import Any, Generator, Iterable, NamedTuple, Optional, Type
 
-from ._utils import WithCursor, check_iter, check_one, AttrDict
+from ._utils import AttrDict, WithCursor, check_iter, check_one
 from .column import BuilderColumn, Column
 from .errors import TableRemovedError, UnexpectedResultError
 from .locals import SQLITEPYTYPES
-from .query_builder import (build_update_data, combine_keyvals,
+from .query_builder import (Condition, build_update_data, combine_keyvals,
                             extract_signature, extract_single_column,
-                            fetch_columns, format_paramable, Condition)
+                            fetch_columns, format_paramable)
 from .signature import op
-from .typings import Data, Orders, Queries, Query, _MasterQuery, TypicalNamedTuple
+from .typings import (Data, Orders, Queries, Query, TypicalNamedTuple,
+                      _MasterQuery)
 
 # Let's add a little bit of 'black' magic here.
 
@@ -197,14 +198,14 @@ values ({', '.join(val for _,val in converged.items())})"
         return self.insert_multiple(datas)
 
     def update(self,
-               new_data: Data,
-               filter_: Condition = None,
+               filter_: Condition | None = None,
+               data: Data | None = None,
                limit: int = 0,
                order: Optional[Orders] = None):
         """Update rows of current table
 
         Args:
-            new_data (Data): New data to update
+            data (Data): New data to update
             filter_ (Condition, optional): Condition dictionary
             See `Signature` about how filter_ works. Defaults to None.
             limit (int, optional): Limit updates. Defaults to 0.
@@ -213,7 +214,9 @@ values ({', '.join(val for _,val in converged.items())})"
         Returns:
             int: Rows affected
         """
-        query, data = self._mkuquery(new_data, filter_, limit, order)
+        if data is None:
+            raise ValueError("data parameter must not be None")
+        query, data = self._mkuquery(data, filter_, limit, order)
         self._control()
         cursor = self._parent.sql.execute(query, data)
         rcount = cursor.rowcount
@@ -221,11 +224,11 @@ values ({', '.join(val for _,val in converged.items())})"
         return rcount
 
     def update_one(self,
-                   new_data: Data,
-                   filter_: Condition | None,
+                   filter_: Condition | None = None,
+                   new_data: Data | None = None,
                    order: Orders | None = None) -> int:
         """Update 1 data only"""
-        return self.update(new_data, filter_, 1, order)
+        return self.update(filter_, new_data, 1, order)
 
     def select(self,
                filter_: Condition = None,

@@ -41,9 +41,9 @@ Update a data from table
 
 ```python
 users.update({
-    "name": "test"
-}, {
     "id": 3
+}, {
+    "name": "test"
 })
 ```
 

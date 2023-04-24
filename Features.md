@@ -103,9 +103,9 @@ Meaning it loops, select (base on offset and limit), check if length is equal to
 
 ```python
 table.update({
-    'row': 2
+    'row': 1 # What data should change, param name: filter
 }, {
-    'row': 1
+    'row': 2 # New data
 })
 ```
 
@@ -183,7 +183,7 @@ You can export database/table to csv, for now, import functionality will not be 
 Make sure to add this line
 
 ```python
-from sqlite_database.export import to_csv_file, to_csv_string
+from sqlite_database.csv import to_csv_file, to_csv_string
 ```
 
 You can use `to_csv_string` than `to_csv_file`, all you need is to pass the table or database.
