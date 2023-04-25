@@ -47,7 +47,6 @@ def extract_table(table_creation: str):  # pylint: disable=too-many-locals
                 name = wrap[1:-1] if wrap.startswith('(') else wrap
                 tb_index = next_+3
                 tb_col = tb_index+1
-                print(dir(), pprint(locals()))
                 source_col_str = column_shlexed[tb_col+2][1:-1]
                 sources = f"{column_shlexed[tb_index]}/{source_col_str}"
                 upheld[name][3] = sources
