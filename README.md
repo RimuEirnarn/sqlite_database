@@ -24,11 +24,11 @@
 
 SQLite Database is a weird wrapper for SQLite Connection. It's intended to be easy to use and simple.
 
-I will (always) try to bring more simplifications and other what could be done with sql in general.
+I will (always) try to bring more simplifications and others that could be done with SQL in general.
 
 ## Installation
 
-Installation from pypi is now available, `pip install sqlite-database`
+Installation from PyPI is now available, `pip install sqlite-database`
 
 From previous versions, installations can be done using `https://github.com/RimuEirnarn/sqlite_database/archive/refs/tags/<latest version>.zip`
 
@@ -38,11 +38,11 @@ Feature overview can be found in [Features.md](https://github.com/RimuEirnarn/sq
 
 ## History & Pre-contributors
 
-You can read why is this library exists by reading [the history](https://github.com/RimuEirnarn/sqlite_database/blob/main/History.md). The pre-contributor is only ChatGPT.
+You can read why this library exists by reading [the history](https://github.com/RimuEirnarn/sqlite_database/blob/main/History.md). The pre-contributor is only ChatGPT.
 
 ## Contributing
 
-You can submit any issue if you found good issue. You can submit pull request as long as things you want comply with what this project aims.
+You can submit any issue if you found a good issue. You can submit a pull request as long as the thing you want complies with what this project aims for.
 
 ## License
 
