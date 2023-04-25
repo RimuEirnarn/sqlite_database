@@ -165,3 +165,4 @@ reports.txt
 /t_mem.py
 /profiled.prof
 /mprofile*
+/t_*
