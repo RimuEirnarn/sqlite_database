@@ -154,7 +154,7 @@ class Database:
     @property
     def path(self):
         """Path to SQL Connection"""
-        return "Memory" or self._path
+        return self._path or ":memory:"
 
     @property
     def sql(self):
