@@ -1,6 +1,5 @@
 """Query Builder"""
 
-from pprint import pprint
 from shlex import shlex
 from typing import Any, Iterable
 

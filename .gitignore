@@ -161,7 +161,7 @@ cython_debug/
 #.idea/
 
 reports.txt
-/test_perf.py
-/test_mem.py
+/t_perf.py
+/t_mem.py
 /profiled.prof
 /mprofile*
