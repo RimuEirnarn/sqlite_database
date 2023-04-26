@@ -14,10 +14,6 @@ from .signature import op
 from .typings import (Data, Orders, Queries, Query, TypicalNamedTuple,
                       _MasterQuery)
 
-## DEBUG IMPORT
-
-#from memory_profiler import profile
-
 # Let's add a little bit of 'black' magic here.
 
 
@@ -159,6 +155,7 @@ values ({', '.join(val for _,val in converged.items())})"
         self._control()
         cursor = self._parent.sql.execute(query, data)
         rcount = cursor.rowcount
+        self._parent.sql.commit()
         return rcount
 
     def delete_one(self, filter_: Condition = None, order: Optional[Orders] = None):
@@ -184,6 +181,7 @@ values ({', '.join(val for _,val in converged.items())})"
         self._control()
         cursor = self._parent.sql.execute(query, data)
         rlastrowid = cursor.lastrowid
+        self._parent.sql.commit()
         return rlastrowid
 
     def insert_multiple(self, datas: Iterable[Data]):
@@ -222,6 +220,7 @@ values ({', '.join(val for _,val in converged.items())})"
         self._control()
         cursor = self._parent.sql.execute(query, data)
         rcount = cursor.rowcount
+        self._parent.sql.commit()
         return rcount
 
     def update_one(self,
