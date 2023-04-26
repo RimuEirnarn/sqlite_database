@@ -59,8 +59,6 @@ class Database:
         Returns:
             Table: Newly created table
         """
-        if self.check_table(table):
-            raise DatabaseExistsError(f"table {table} already exists.")
         columns = (column.to_column() if isinstance(
             column, BuilderColumn) else column for column in columns)
         tbquery = extract_table_creations(columns)
@@ -84,8 +82,7 @@ class Database:
         """
         check_one(table)
         table_ = self.table(table)
-        with self._database as that:
-            that.execute(f"drop table {table}")
+        self._database.execute(f"drop table {table}")
         # pylint: disable-next=protected-access
         del self._table_instances[table]
         table_._delete_hook()  # pylint: disable=protected-access
@@ -95,18 +92,19 @@ class Database:
         if self._table_instances.get(table, None) is not None:
             return self._table_instances[table]
 
-        # Undefined behavior? Something else? idk.
-        if self.check_table(table) is False:
-            raise DatabaseMissingError(f"table {table} doesn't exists.")
-
-        this_table = Table(self, table, __columns)
+        try:
+            this_table = Table(self, table, __columns)
+        except OperationalError as exc:
+            raise DatabaseMissingError(f"table {table} does not exists") from exc
         self._table_instances[table] = this_table
         return this_table
 
     def reset_table(self, table: str, columns: Columns) -> Table:
         """Reset existing table with new, this rewrote entire table than altering it."""
-        if self.check_table(table):
+        try:
             self.delete_table(table)
+        except OperationalError:
+            pass
         return self.create_table(table, columns)
 
     def rename_table(self, old_table: str, new_table: str) -> Table:
