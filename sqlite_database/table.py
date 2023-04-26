@@ -3,7 +3,9 @@
 from sqlite3 import OperationalError
 from typing import Any, Generator, Iterable, NamedTuple, Optional, Type
 
-from ._utils import AttrDict, WithCursor, check_iter, check_one
+import weakref
+
+from ._utils import AttrDict, WithCursor, check_iter, check_one, Ref
 from .column import BuilderColumn, Column
 from .errors import TableRemovedError, UnexpectedResultError
 from .locals import SQLITEPYTYPES
@@ -27,6 +29,7 @@ class Table:
     """Table. Make sure you remember how the table goes."""
 
     _ns: dict[str, Type[NamedTuple]] = {}
+    _parent = Ref()
 
     def __init__(self,
                  parent,  # type: ignore
@@ -37,9 +40,13 @@ class Table:
         self._table = check_one(table)
         self._columns: Optional[list[Column]] = list(
             __columns) if __columns else None
+        weakref.finalize(self, self._finalize)
 
         if self._columns is None and table != "sqlite_master":
             self._fetch_columns()
+
+    def _finalize(self):
+        pass
 
     def _delete_hook(self):
         try:
@@ -190,8 +197,10 @@ values ({', '.join(val for _,val in converged.items())})"
         Args:
             datas (Iterable[Data]): Data to be inserted.
         """
-        for data in datas:
-            self.insert(data)
+        self._control()
+        query, _ = self._mkiquery(datas[0])
+        self._parent.sql.executemany(query, datas)
+        self._parent.sql.commit()
 
     def insert_many(self, datas: Iterable[Data]):
         """Alias to `insert_multiple`"""

@@ -19,3 +19,6 @@ class DatabaseExistsError(UnexpectedResultError):
 
 class DatabaseMissingError(UnexpectedResultError):
     """Database that would be accessed is missing."""
+
+class ObjectRemovedError(BaseException):
+    """Object is deleted from memory and cannot be obtained"""

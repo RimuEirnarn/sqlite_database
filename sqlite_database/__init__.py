@@ -1,7 +1,8 @@
 """Database"""
 from atexit import register as atexit_register
+from weakref import finalize, WeakValueDictionary
 from sqlite3 import OperationalError, connect
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Mapping
 
 from ._utils import (WithCursor, check_iter, check_one, dict_factory, null,
                      sqlite_multithread_check, AttrDict)
@@ -20,15 +21,14 @@ IGNORE_TABLE_CHECKS = (
 class Database:
     """Sqlite3 database, this provide basic integration."""
 
-    _active: dict[str, "Database"] = {}
+    _active: Mapping[str, "Database"] = WeakValueDictionary()
 
-    def __new__(cls, path: str, **kwargs):
+    def __new__(cls, path: str, **kwargs): # pylint: disable=unused-argument
         if path in cls._active:
             return cls._active[path]
         self = object.__new__(cls)
-        self.__init__(path, **kwargs)
         if path != ":memory:":
-            cls._active[path] = self
+            cls._active[str(path)] = self
         return self
 
     def __init__(self, path: str, **kwargs) -> None:
@@ -38,8 +38,13 @@ class Database:
         self._database.row_factory = dict_factory
         self._closed = False
         self._table_instances: dict[str, Table] = {}
-        # pylint: disable-next=unnecessary-lambda
-        atexit_register(lambda: self.close())  # type: ignore
+        if not self._closed or self.__dict__.get("_initiated", False) is False:
+            self._finalizer_fn = finalize(self, self.close)
+            self._initiated = True
+
+    def _finalizer(self):
+        print("Finalizer called")
+        self.close()
 
     def cursor(self) -> WithCursor:
         """Create cursor"""
@@ -62,8 +67,11 @@ class Database:
         tbquery = extract_table_creations(columns)
         query = f"create table {table} ({tbquery})"
 
-        with self._database as that:
-            that.execute(query)
+        try:
+            self._database.execute(query)
+            self._database.commit()
+        except OperationalError as error:
+            raise DatabaseExistsError(f"table {table} already exists.") from error
         table_ = self.table(table, columns)
         table_._deleted = False  # pylint: disable=protected-access
         self._table_instances[table] = table_
@@ -125,7 +133,14 @@ class Database:
 
     def close(self):
         """Close database"""
+        if self._closed:
+            return
         self._database.close()
+        if self.path == ":memory:":
+            self._closed = True
+            return
+        if self.path in self._active:
+            del type(self)._active[self.path]
         self._closed = True
 
     @property

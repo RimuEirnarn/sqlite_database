@@ -4,8 +4,10 @@ from io import StringIO
 from json import dumps
 from os.path import abspath
 from types import SimpleNamespace
+from tempfile import mkdtemp
+from pathlib import Path
 
-from pytest import fixture, raises
+from pytest import raises
 
 
 from sqlite_database import Column, Database, integer, text
@@ -19,6 +21,7 @@ def parse(data):
     """parse"""
     return dumps(data, indent=2)
 
+temp_dir = Path(mkdtemp())
 
 config = SimpleNamespace()
 file = abspath(f"{__file__}/../reports.txt")
@@ -98,13 +101,10 @@ def setup_database_builder(database: Database):
     groups.insert_many(GROUP_BASE)
     users.insert_many(USER_BASE)
 
-
-def unload_again(databasepath):
-    """unload again"""
-    database = Database(databasepath)
-    groups = database.table("groups")
-    users = database.table("users")
-    return database, groups, users
+database = Database(temp_dir / "test.db")
+setup_database_builder(database)
+users = database.table('users')
+groups = database.table('groups')
 
 
 def save_report(tid, database, grouptb, usertb):
@@ -119,28 +119,8 @@ def save_report(tid, database, grouptb, usertb):
     return True
 
 
-@fixture(scope="session")
-def databasepath(tmp_path_factory):
-    """datahase path"""
-    database_path = tmp_path_factory.mktemp("test") / "test.db"
-    database = Database(database_path)
-    setup_database(database)
-    database.close()
-    return database_path
-
-@fixture(scope="session")
-def randdir(tmp_path_factory):
-    """Random directory"""
-    return tmp_path_factory.mktemp("test-01")
-
-config.xdatatabase = None
-
-
-def test_00_select(databasepath):
+def test_00_select():
     """test 00 select"""
-    database, groups, users = unload_again(databasepath)
-    config.xdatatabase = database
-    assert database is config.xdatatabase
     assert groups.select_one({"id": op == 0}) == GROUP_BASE[0]
     assert groups.select() == GROUP_BASE
     assert users.select_one({"id": op == 0}) == USER_BASE[0]
@@ -148,11 +128,8 @@ def test_00_select(databasepath):
     assert save_report("00_test", database, groups, users)
 
 
-def test_001_select(databasepath):
+def test_001_select():
     """Test 001 select"""
-    database, groups, users = unload_again(databasepath)
-    config.xdatatabase = database
-    assert database is config.xdatatabase
     assert groups.select_one([eq('id', 0)]) == GROUP_BASE[0]
     assert groups.select() == GROUP_BASE
     assert users.select_one([eq('id', 0)]) == USER_BASE[0]
@@ -160,11 +137,8 @@ def test_001_select(databasepath):
     assert save_report("00_test", database, groups, users)
 
 
-def test_002_select(databasepath):
+def test_002_select():
     """Test 002 select"""
-    database, groups, users = unload_again(databasepath)
-    config.xdatatabase = database
-    assert database is config.xdatatabase
     assert groups.select_one({'id': 0}) == GROUP_BASE[0]
     assert groups.select() == GROUP_BASE
     assert users.select_one({'id': 0}) == USER_BASE[0]
@@ -172,38 +146,30 @@ def test_002_select(databasepath):
     assert save_report("00_test", database, groups, users)
 
 
-def test_01_insert(databasepath):
+def test_01_insert():
     """test 01 insert"""
-    database, groups, users = unload_again(databasepath)
-    assert database is config.xdatatabase
     assert groups.insert_many(GROUP_NEW) is None
     assert users.insert_many(USER_NEW) is None
     assert save_report("01_insert", database, groups, users)
 
 
-def test_02_update(databasepath):
+def test_02_update():
     """test 02 update"""
-    database, groups, users = unload_again(databasepath)
-    assert database is config.xdatatabase
     assert groups.update({"id": op == 2}, GROUP_UNEW[0]) == 1
     assert users.update({"id": op == 2}, USER_UNEW[0]) == 1
     assert save_report("02_update", database, groups, users)
 
 
-def test_03_delete(databasepath):
+def test_03_delete():
     """test 03 delete"""
-    database, groups, users = unload_again(databasepath)
-    assert database is config.xdatatabase
     assert save_report("03_delete", database, groups, users)
     assert groups.delete({"id": op == 3}) == 1
     assert users.delete({"id": op == 3}) == 1
 
 
-def test_04_finish(databasepath):
+def test_04_finish():
     """test 04 finish"""
-    database, groups, users = unload_again(databasepath)
     with raises(TableRemovedError):
-        assert database is config.xdatatabase
         assert save_report("04_finish", database, groups, users)
         assert database.delete_table("groups") is None
         assert database.delete_table("users") is None
@@ -246,17 +212,17 @@ def test_07_export_csv():
     assert csv
 
 
-def test_08_export_file(randdir):
+def test_08_export_file():
     """Export to CSV file"""
     database = Database(":memory:")
     setup_database(database)
-    assert to_csv_file(database.table('users'), randdir / "users.csv")
+    assert to_csv_file(database.table('users'), temp_dir / "users.csv")
 
-def test_09_export_directory(randdir):
+def test_09_export_directory():
     """Export to CSV as directory"""
     database = Database(":memory:")
     setup_database(database)
-    assert to_csv_file(database, randdir / "MemDB")
+    assert to_csv_file(database, temp_dir / "MemDB")
 
 def test_99_save_report():
     """Save reports"""

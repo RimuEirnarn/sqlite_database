@@ -9,8 +9,9 @@ from re import escape as re_escape
 from sqlite3 import Cursor, connect
 from string import punctuation
 from typing import Any, Iterable, Type
+from weakref import ref
 
-from .errors import SecurityError
+from .errors import SecurityError, ObjectRemovedError
 
 
 _INVALID_STR = punctuation.replace("_", "")
@@ -109,6 +110,22 @@ class WithCursor(Cursor):
     def __repr__(self) -> str:
         return type(self).__name__
 
+
+class Ref:
+    """Weakref object Referece (descriptor)"""
+    _null = object()
+    def __init__(self):
+        self._ref = self._null
+
+    def __get__(self, obj, objtype=None):
+        if self._ref is self._null:
+            raise ValueError("Reference is null, no object is specified")
+        if (object_ := self._ref()):
+            return object_
+        raise ObjectRemovedError("object is removed")
+
+    def __set__(self, obj, value):
+        self._ref = ref(value)
 
 def future_class_var_isdefined(type_: Type[Any], future_attr: str):
     """Is a future class var defined?"""
