@@ -20,7 +20,7 @@ from .typings import (Data, Orders, Queries, Query, TypicalNamedTuple,
 
 
 @classmethod
-def get_table(cls):
+def get_table(cls): # pylint: disable=missing-function-docstring
     return getattr(cls, '_table', None)
 
 
