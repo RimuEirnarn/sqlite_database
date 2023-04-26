@@ -10,7 +10,7 @@ from .locals import _NO_UNLIKE
 class Signature:
     """Signature
 
-    This class is used at most filter_ parameters at `Table` class.
+    This class is used at most filter parameters at `Table` class.
 
     You can use variable op (operator) to do all conditional logic or operator.
     There are ==, <=, <, !=, >, and >=
@@ -23,23 +23,17 @@ class Signature:
     .between() is a ranging operator, there's low and high value.
 
     Example of everything:
-        op == 5
+        >>> op == 5
+        >>> op <= 2
+        >>> op < 2
+        >>> op != 5
+        >>> op > 7
+        >>> op >= 7
+        >>> op.like('Ar%')
+        >>> op.like('Ar_')
+        >>>op.between(1, 10)
 
-        op <= 2
-
-        op < 2
-
-        op != 5
-
-        op > 7
-
-        op >= 7
-
-        op.like('Ar%')
-
-        op.like('Ar_')
-
-        op.between(1, 10)"""
+    You can now use function from :operators:"""
 
     def __init__(self,
                  value: Any = null,

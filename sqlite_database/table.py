@@ -21,7 +21,6 @@ from .typings import (Data, Orders, Queries, Query, TypicalNamedTuple,
 
 @classmethod
 def get_table(cls):
-    """Get table"""
     return getattr(cls, '_table', None)
 
 
@@ -75,11 +74,11 @@ class Table:
         return cursor
 
     def _mksquery(self,
-                  filter_: Condition = None,
+                  condition: Condition = None,
                   limit: int = 0,
                   offset: int = 0,
                   order: Optional[Orders] = None):
-        cond, data = extract_signature(filter_)
+        cond, data = extract_signature(condition)
         query = f"select * from {self._table}{' '+cond if cond else ''}"
         if limit:
             query += f" limit {limit}"
@@ -95,10 +94,10 @@ class Table:
 
     def _mkuquery(self,
                   new_data: Data,
-                  filter_: Condition = None,
+                  condition: Condition = None,
                   limit: int = 0,
                   order: Optional[Orders] = None):
-        cond, data = extract_signature(filter_)
+        cond, data = extract_signature(condition)
         new_str, updated = build_update_data(new_data)
         query = f"update {self._table} set {new_str} {cond}"
         if limit:
@@ -112,10 +111,10 @@ class Table:
         return query, data | combine_keyvals(updated, new_data)
 
     def _mkdquery(self,
-                  filter_: Condition = None,
+                  condition: Condition = None,
                   limit: int = 0,
                   order: Optional[Orders] = None):
-        cond, data = extract_signature(filter_)
+        cond, data = extract_signature(condition)
         query = f"delete from {self._table} {cond}"
         if limit:
             query += f" limit {limit}"
@@ -146,34 +145,34 @@ values ({', '.join(val for _,val in converged.items())})"
         deleted."""
         self._deleted = True
 
-    def delete(self, filter_: Condition = None, limit: int = 0, order: Optional[Orders] = None):
+    def delete(self, condition: Condition = None, limit: int = 0, order: Optional[Orders] = None):
         """Delete row or rows
 
         Args:
-            filter_ (Condition, optional): Condition to determine deletion
-            See `Signature` class about conditional stuff. Defaults to None.
+            condition (Condition, optional): Condition to determine deletion
+                See `Signature` class about conditional stuff. Defaults to None.
             limit (int, optional): Limit deletion by integer. Defaults to 0.
             order (Optional[Orders], optional): Order of deletion. Defaults to None.
 
         Returns:
             int: Rows affected
         """
-        query, data = self._mkdquery(filter_, limit, order)
+        query, data = self._mkdquery(condition, limit, order)
         self._control()
         cursor = self._parent.sql.execute(query, data)
         rcount = cursor.rowcount
         self._parent.sql.commit()
         return rcount
 
-    def delete_one(self, filter_: Condition = None, order: Optional[Orders] = None):
+    def delete_one(self, condition: Condition = None, order: Optional[Orders] = None):
         """Delete a row
 
         Args:
-            filter_ (Condition, optional): Conditional to determine deletion.
+            condition (Condition, optional): Conditional to determine deletion.
             Defaults to None.
             order (Optional[Orders], optional): Order of deletion. Defaults to None.
         """
-        return self.delete(filter_, 1, order)
+        return self.delete(condition, 1, order)
 
     def insert(self, data: Data):
         """Insert data to current table
@@ -207,7 +206,7 @@ values ({', '.join(val for _,val in converged.items())})"
         return self.insert_multiple(datas)
 
     def update(self,
-               filter_: Condition | None = None,
+               condition: Condition | None = None,
                data: Data | None = None,
                limit: int = 0,
                order: Optional[Orders] = None):
@@ -215,8 +214,8 @@ values ({', '.join(val for _,val in converged.items())})"
 
         Args:
             data (Data): New data to update
-            filter_ (Condition, optional): Condition dictionary
-            See `Signature` about how filter_ works. Defaults to None.
+            condition (Condition, optional): Condition dictionary. 
+                See `Signature` about how condition works. Defaults to None.
             limit (int, optional): Limit updates. Defaults to 0.
             order (Optional[Orders], optional): Order of change. Defaults to None.
 
@@ -225,7 +224,7 @@ values ({', '.join(val for _,val in converged.items())})"
         """
         if data is None:
             raise ValueError("data parameter must not be None")
-        query, data = self._mkuquery(data, filter_, limit, order)
+        query, data = self._mkuquery(data, condition, limit, order)
         self._control()
         cursor = self._parent.sql.execute(query, data)
         rcount = cursor.rowcount
@@ -233,21 +232,21 @@ values ({', '.join(val for _,val in converged.items())})"
         return rcount
 
     def update_one(self,
-                   filter_: Condition | None = None,
+                   condition: Condition | None = None,
                    new_data: Data | None = None,
                    order: Orders | None = None) -> int:
         """Update 1 data only"""
-        return self.update(filter_, new_data, 1, order)
+        return self.update(condition, new_data, 1, order)
 
     def select(self,
-               filter_: Condition = None,
+               condition: Condition = None,
                limit: int = 0,
                offset: int = 0,
                order: Optional[Orders] = None) -> Queries:
         """Select data in current table. Bare .select() returns all data.
 
         Args:
-            filter_ (Condition, optional): Conditions to used. Defaults to None.
+            condition (Condition, optional): Conditions to used. Defaults to None.
             limit (int, optional): Limit of select. Defaults to 0.
             offset (int, optional): Offset. Defaults to 0
             order (Optional[Orders], optional): Selection order. Defaults to None.
@@ -256,18 +255,18 @@ values ({', '.join(val for _,val in converged.items())})"
             Queries: Selected data
         """
         self._control()
-        query, data = self._mksquery(filter_, limit, offset, order)
+        query, data = self._mksquery(condition, limit, offset, order)
         with self._parent.sql:
             return self._parent.sql.execute(query, data).fetchall()
 
     def paginate_select(self,
-                        filter_: Condition = None,
+                        condition: Condition = None,
                         length: int = 10,
                         order: Optional[Orders] = None) -> Generator[Queries, None, None]:
         """Paginate select
 
         Args:
-            filter_ (Condition, optional): Confitions to use. Defaults to None.
+            condition (Condition, optional): Confitions to use. Defaults to None.
             length (int, optional): Pagination length. Defaults to 10.
             order (Optional[Orders], optional): Order. Defaults to None.
 
@@ -277,7 +276,7 @@ values ({', '.join(val for _,val in converged.items())})"
         self._control()
         start = 0
         while True:
-            query, data = self._mksquery(filter_, length, start, order)
+            query, data = self._mksquery(condition, length, start, order)
             with self._parent.sql:
                 fetched: list[AttrDict] = self._parent.sql.execute(
                     query, data).fetchmany(length)
@@ -290,29 +289,29 @@ values ({', '.join(val for _,val in converged.items())})"
                 start += length
 
     def select_one(self,
-                   filter_: Condition = None,
+                   condition: Condition = None,
                    order: Optional[Orders] = None) -> Query | None:
         """Select one data
 
         Args:
-            filter_ (Condition, optional): Condition to use. Defaults to None.
+            condition (Condition, optional): Condition to use. Defaults to None.
             order (Optional[Orders], optional): Order of selection. Defaults to None.
 
         Returns:
             Query: Selected data
         """
         self._control()
-        query, data = self._mksquery(filter_, 1, 0, order)
+        query, data = self._mksquery(condition, 1, 0, order)
         with self._parent.sql:
             return self._parent.sql.execute(query, data).fetchone()
 
-    def exists(self, filter_: Condition = None):
+    def exists(self, condition: Condition = None):
         """Check if data is exists or not.
 
         Args:
-            filter_ (Condition, optional): Condition to use. Defaults to None.
+            condition (Condition, optional): Condition to use. Defaults to None.
         """
-        data = self.select_one(filter_)
+        data = self.select_one(condition)
         if data is None:
             return False
         return True
@@ -390,4 +389,4 @@ constraint is enabled.")
         return f"<Table({self._table}) -> {self._parent}>"
 
 
-__all__ = ['Table', 'get_table']
+__all__ = ['Table']
