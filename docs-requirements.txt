@@ -1,2 +1,2 @@
-sphinx==6.2.1
+sphinx
 myst_parser
