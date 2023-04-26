@@ -103,7 +103,7 @@ Meaning it loops, select (base on offset and limit), check if length is equal to
 
 ```python
 table.update({
-    'row': 1 # What data should change, param name: filter
+    'row': 1 # What data should change
 }, {
     'row': 2 # New data
 })
@@ -188,7 +188,7 @@ from sqlite_database.csv import to_csv_file, to_csv_string
 
 You can use `to_csv_string` than `to_csv_file`, all you need is to pass the table or database.
 
-**Note**: Return type for database is tuple indicating `(name, csv)`,and by that, to_csv_file would make sure that filename passed is a directory and the content will be all table files. E.g: `/path/database/table.csv`
+**Note**: Return type for database is tuple indicating `(name, csv)`,and by that, `to_csv_file` would make sure that filename passed is a directory and the content will be all table files. E.g: `/path/database/table.csv`
 
 ### Export Table
 
