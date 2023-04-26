@@ -1,0 +1,27 @@
+.. sqlite_database documentation master file, created by
+   sphinx-quickstart on Wed Apr 26 14:53:11 2023.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
+sqlite-database Documentation
+=============================
+
+**note** this documentation is in beta version!
+
+SQLite Database
+---------------
+
+.. toctree::
+   :maxdepth: 4
+   :caption: SQLite Database
+
+   usage
+   api_reference
+
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
