@@ -43,7 +43,6 @@ class Database:
             self._initiated = True
 
     def _finalizer(self):
-        print("Finalizer called")
         self.close()
 
     def cursor(self) -> WithCursor:
