@@ -1,0 +1,23 @@
+# TODO
+
+**NOTE**: This TODO need to be written in markdown. use `[ ]` or `[x]` to mark todos
+
+## SQLite API
+
+What API should we bring?
+
+[ ] sqlite function support
+[ ] sqlite aggregate function support
+[ ] sqlite window function support
+[ ] sqlite collation support
+[ ] sqlite pragma
+[ ] sqlite branching subquery (??)
+[ ] sqlite 'as' keyword (??)
+[ ] sqlite non-table operation
+
+## Other functionality
+
+[ ] YAML/JSON/TOML/CUSTOM scheme/table include
+[x] CSV Export
+[ ] CSV Import
+[ ] Other method of Import
