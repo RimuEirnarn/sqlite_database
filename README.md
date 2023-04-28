@@ -41,7 +41,7 @@ Feature overview can be found in [Features.md](https://github.com/RimuEirnarn/sq
 
 ## History & Pre-contributors
 
-You can read why this library exists by reading [the history](https://github.com/RimuEirnarn/sqlite_database/blob/main/History.md). The pre-contributor is only ChatGPT.
+You can read why this library exists by reading [the history](History.md). The pre-contributor is only ChatGPT.
 
 ## Contributing
 
