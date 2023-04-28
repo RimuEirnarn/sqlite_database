@@ -5,9 +5,11 @@
 ![GitHub forks](https://img.shields.io/github/forks/RimuEirnarn/sqlite_database?style=social)
 ![GitHub Repo stars](https://img.shields.io/github/stars/RimuEirnarn/sqlite_database?style=social)
 
+![GitHub commits difference between two branches/tags/commits](https://img.shields.io/github/commits-difference/RimuEirnarn/sqlite_database?base=main&head=development&label=dev%20-%3E%20main%20%28commits%29)
 ![GitHub closed issues](https://img.shields.io/github/issues-closed-raw/RimuEirnarn/sqlite_database)
 ![GitHub closed pull requests](https://img.shields.io/github/issues-pr-closed/RimuEirnarn/sqlite_database)
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/RimuEirnarn/sqlite_database)
+![Lines of code](https://img.shields.io/tokei/lines/github/RimuEirnarn/sqlite_database)
 ![GitHub all releases](https://img.shields.io/github/downloads/RimuEirnarn/sqlite_database/total)
 ![GitHub Workflow(pylint) Status](https://img.shields.io/github/actions/workflow/status/RimuEirnarn/sqlite_database/pylint.yml?label=lint)
 ![GitHub Workflow(pytest) Status](https://img.shields.io/github/actions/workflow/status/RimuEirnarn/sqlite_database/python-app.yml?label=tests)
