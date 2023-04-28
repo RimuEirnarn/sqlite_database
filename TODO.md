@@ -16,6 +16,8 @@ What API should we bring? These todo's is for simplification; you can do anythin
 - [ ] sqlite branching subquery (??)
 - [ ] sqlite 'as' keyword (??)
 - [ ] sqlite non-table operation
+- [ ] sqlite select data crunching[^1] by using Database config option (crunch=True)
+- [ ] sqlite select 'only' data. Instead of using `select *`, we should also have `only`. Bring up few data than select everything.[^2]
 
 ## Other functionality
 
@@ -25,3 +27,6 @@ The functionality here is outside of sqlite features such as export and import.
 - [x] CSV Export
 - [ ] CSV Import
 - [ ] Other method of Import
+
+[^1]: The term data crunching is when `select*` is used, typically the functions returns list of `AttrDict`, by using `crunch=True`, the return value should be `AttrDict[str, tuple[Any]]`
+[^2]: If `only` parameter is specified to 1, we should return `tuple[Any, ...]` instead of `list[AttrDict[str, Any]]` or `AttrDict[str, Any]`
