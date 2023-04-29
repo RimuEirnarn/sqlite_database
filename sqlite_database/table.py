@@ -34,7 +34,9 @@ class Table:
                  parent,  # type: ignore
                  table: str,
                  __columns: Optional[Iterable[Column]] = None) -> None:
-        self._parent = parent
+        self._parent_repr = repr(parent)
+        self._sqlitemaster = None
+        self._sql = parent.sql
         self._deleted = False
         self._table = check_one(table)
         self._columns: Optional[list[Column]] = list(
@@ -42,7 +44,7 @@ class Table:
         weakref.finalize(self, self._finalize)
 
         if self._columns is None and table != "sqlite_master":
-            self._fetch_columns()
+            self._fetch_columns(parent)
 
     def _finalize(self):
         pass
@@ -53,10 +55,14 @@ class Table:
         except OperationalError:
             self._deleted = True
 
-    def _fetch_columns(self):
+    def _fetch_columns(self, parent=None):
         table = self._table
         try:
-            master = self._parent.table("sqlite_master")
+            if not self._sqlitemaster and parent is not None:
+                master = parent.table("sqlite_master")
+                self._sqlitemaster = master
+            else:
+                master: 'Table' = self._sqlitemaster # type: ignore
             tabl = master.select_one(
                 {"type": op == "table", "name": op == table})
             if tabl is None:
@@ -159,9 +165,9 @@ values ({', '.join(val for _,val in converged.items())})"
         """
         query, data = self._mkdquery(condition, limit, order)
         self._control()
-        cursor = self._parent.sql.execute(query, data)
+        cursor = self._sql.execute(query, data)
         rcount = cursor.rowcount
-        self._parent.sql.commit()
+        self._sql.commit()
         return rcount
 
     def delete_one(self, condition: Condition = None, order: Optional[Orders] = None):
@@ -185,12 +191,12 @@ values ({', '.join(val for _,val in converged.items())})"
         """
         query, _ = self._mkiquery(data)
         self._control()
-        cursor = self._parent.sql.execute(query, data)
+        cursor = self._sql.execute(query, data)
         rlastrowid = cursor.lastrowid
-        self._parent.sql.commit()
+        self._sql.commit()
         return rlastrowid
 
-    def insert_multiple(self, datas: Iterable[Data]):
+    def insert_multiple(self, datas: list[Data]):
         """Insert multiple values
 
         Args:
@@ -198,10 +204,10 @@ values ({', '.join(val for _,val in converged.items())})"
         """
         self._control()
         query, _ = self._mkiquery(datas[0])
-        self._parent.sql.executemany(query, datas)
-        self._parent.sql.commit()
+        self._sql.executemany(query, datas)
+        self._sql.commit()
 
-    def insert_many(self, datas: Iterable[Data]):
+    def insert_many(self, datas: list[Data]):
         """Alias to `insert_multiple`"""
         return self.insert_multiple(datas)
 
@@ -226,9 +232,9 @@ values ({', '.join(val for _,val in converged.items())})"
             raise ValueError("data parameter must not be None")
         query, data = self._mkuquery(data, condition, limit, order)
         self._control()
-        cursor = self._parent.sql.execute(query, data)
+        cursor = self._sql.execute(query, data)
         rcount = cursor.rowcount
-        self._parent.sql.commit()
+        self._sql.commit()
         return rcount
 
     def update_one(self,
@@ -256,8 +262,8 @@ values ({', '.join(val for _,val in converged.items())})"
         """
         self._control()
         query, data = self._mksquery(condition, limit, offset, order)
-        with self._parent.sql:
-            return self._parent.sql.execute(query, data).fetchall()
+        with self._sql:
+            return self._sql.execute(query, data).fetchall()
 
     def paginate_select(self,
                         condition: Condition = None,
@@ -277,8 +283,8 @@ values ({', '.join(val for _,val in converged.items())})"
         start = 0
         while True:
             query, data = self._mksquery(condition, length, start, order)
-            with self._parent.sql:
-                fetched: list[AttrDict] = self._parent.sql.execute(
+            with self._sql:
+                fetched: list[AttrDict] = self._sql.execute(
                     query, data).fetchmany(length)
                 if len(fetched) == 0:
                     return
@@ -302,8 +308,8 @@ values ({', '.join(val for _,val in converged.items())})"
         """
         self._control()
         query, data = self._mksquery(condition, 1, 0, order)
-        with self._parent.sql:
-            return self._parent.sql.execute(query, data).fetchone()
+        with self._sql:
+            return self._sql.execute(query, data).fetchone()
 
     def exists(self, condition: Condition = None):
         """Check if data is exists or not.
@@ -363,7 +369,7 @@ values ({', '.join(val for _,val in converged.items())})"
 
     def add_column(self, column: Column | BuilderColumn):
         """Add column to table"""
-        sql = self._parent.sql
+        sql = self._sql
         column = column.to_column() if isinstance(column, BuilderColumn) else column
         if column.primary or column.unique:
             raise OperationalError(
@@ -383,10 +389,10 @@ constraint is enabled.")
         """Rename existing column to new column"""
         check_iter((old_column, new_column))
         query = f"alter table {self._table} rename column {old_column} to {new_column}"
-        self._parent.sql.execute(query)
+        self._sql.execute(query)
 
     def __repr__(self) -> str:
-        return f"<Table({self._table}) -> {self._parent}>"
+        return f"<Table({self._table}) -> {self._parent_repr}>"
 
 
 __all__ = ['Table']
