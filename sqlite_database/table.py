@@ -196,7 +196,7 @@ class Table:
         """Update 1 data only"""
         return self.update(condition, new_data, 1, order)
 
-    def select(self,
+    def select(self, # pylint: disable=too-many-arguments
                condition: Condition = None,
                only: tuple[str, ...] | None = None,
                limit: int = 0,
