@@ -37,7 +37,6 @@ class Table:
                  db_config: Config | None = None,
                  __columns: Optional[Iterable[Column]] = None) -> None:
         self._parent_repr = repr(parent)
-        self._sqlitemaster = None
         self._sql: Connection = parent.sql
         self._deleted = False
         self._table = check_one(table)
@@ -47,7 +46,7 @@ class Table:
         weakref.finalize(self, self._finalize)
 
         if self._columns is None and table != "sqlite_master":
-            self._fetch_columns(parent)
+            self._fetch_columns()
 
     def _finalize(self):
         pass
@@ -58,16 +57,11 @@ class Table:
         except OperationalError:
             self._deleted = True
 
-    def _fetch_columns(self, parent=None):
+    def _fetch_columns(self):
         table = self._table
         try:
-            if not self._sqlitemaster and parent is not None:
-                master = parent.table("sqlite_master")
-                self._sqlitemaster = master
-            else:
-                master: 'Table' = self._sqlitemaster  # type: ignore
-            tabl = master.select_one(
-                {"type": op == "table", "name": op == table})
+            query, data = build_select("sqlite_master", {"type": op == "table", "name": op == table})
+            tabl = self._sql.execute(query, data).fetchone()
             if tabl is None:
                 raise ValueError("What the hell?")
             cols = fetch_columns(_MasterQuery(**tabl))
@@ -319,11 +313,11 @@ class Table:
         self._ns[self._table] = namedtupled
         return namedtupled
 
-    @property
     def columns(self):
         """Table columns"""
         if self._columns is None:
             raise AttributeError("columns is undefined.")
+        
         return tuple(self._columns)
 
     @property
