@@ -4,11 +4,11 @@ from functools import lru_cache
 from shlex import shlex
 from typing import Any, Iterable, Literal, Optional
 
-from ._utils import check_one, null
+from ._utils import check_one, null, check_iter
 from .column import Column
 from .locals import _SQLITETYPES
 from .signature import Signature, op
-from .typings import _MasterQuery, Data, Orders
+from .typings import _MasterQuery, Data, Orders, OnlyColumn
 
 ConditionDict = dict[str, Signature | Any]
 ConditionList = list[tuple[str, Signature]]
@@ -73,7 +73,7 @@ def fetch_columns(_master_query: _MasterQuery):
     return extract_table(sql)
 
 
-def extract_signature(filter_: Condition | CacheCond = None, # type: ignore
+def extract_signature(filter_: Condition | CacheCond = None,  # type: ignore
                       suffix: str = '_check'):
     """Extract filter signature."""
     if filter_ is None:
@@ -259,6 +259,7 @@ def extract_table_creations(columns: Iterable[Column]):
         # ! This might be a buggy code, i'm not sure yet.
     return string[1:-1]
 
+
 def _setup_hashable(condition: Condition, order: Optional[Orders] = None, data: Data | None = None):
     cond = None
     order_ = None
@@ -275,15 +276,21 @@ def _setup_hashable(condition: Condition, order: Optional[Orders] = None, data: 
         data_ = tuple(data.keys())
     return cond, order_, data_
 
+
 @lru_cache
 def _build_select(table_name: str,
                   condition: CacheCond,
+                  only: OnlyColumn = None,
                   limit: int = 0,
                   offset: int = 0,
                   order: CacheOrders = None):
     check_one(table_name)
     cond, data = extract_signature(condition)
-    query = f"select * from {table_name}{' '+cond if cond else ''}"
+    check_iter(only or ())
+    only_ = "*"
+    if only:
+        only_ = f"({', '.join((column_name for column_name in only))})"
+    query = f"select {only_} from {table_name}{' '+cond if cond else ''}"
     if limit:
         query += f" limit {limit}"
     if offset:
@@ -295,6 +302,7 @@ def _build_select(table_name: str,
         query = query[:-1]
     print(query, data)
     return query, data
+
 
 @lru_cache
 def _build_update(table_name: str,
@@ -314,9 +322,11 @@ def _build_update(table_name: str,
             query += f" {ord_} {order_by},"
         query = query[:-1]
     print(query, data)
-    return query, data, updated # ? Require manual intervention to make sure updated is sync as
+    # ? Require manual intervention to make sure updated is sync as
+    return query, data, updated
     # ? ... combine_keyvals(updated, NEW DATA)
     # ? our cache data only contain keys not values (v0.3.0)
+
 
 @lru_cache
 def _build_delete(table_name: str,
@@ -336,6 +346,7 @@ def _build_delete(table_name: str,
     print(query, data)
     return query, data
 
+
 @lru_cache
 def _build_insert(table_name: str,
                   data: CacheData):
@@ -346,16 +357,19 @@ values ({', '.join(val for val in converged.values())})"
     print(query, data)
     return query, data
 
-def build_select(table_name: str,
-              condition: Condition = None,
-              limit: int = 0,
-              offset: int = 0,
-              order: Optional[Orders] = None) -> tuple[str, dict[str, Any]]:
+
+def build_select(table_name: str,  # pylint: disable=too-many-arguments
+                 condition: Condition = None,
+                 only: tuple[str, ...] | None = None,
+                 limit: int = 0,
+                 offset: int = 0,
+                 order: Optional[Orders] = None) -> tuple[str, dict[str, Any]]:
     """Build select query (this function (backendly) cache!)
 
     Args:
         table_name (str): Table name
         condition (Condition, optional): Condition to use. Defaults to None.
+        only: (OnlyColumn, optional): Select what you want. Default to None.
         limit (int, optional): Limit query (this also limits DB-API 2 `.fetchall`). Defaults to 0.
         offset (int, optional): Offset. Defaults to 0.
         order (Optional[Orders], optional): Order. Defaults to None.
@@ -364,14 +378,14 @@ def build_select(table_name: str,
         tuple[str, dict[str, Any]]: query and query data
     """
     cond, order_, _ = _setup_hashable(condition, order)
-    return _build_select(table_name, cond, limit, offset, order_)
+    return _build_select(table_name, cond, only, limit, offset, order_)
 
 
 def build_update(table_name: str,
-              new_data: Data,
-              condition: Condition = None,
-              limit: int = 0,
-              order: Optional[Orders] = None) -> tuple[str, dict[str, Any]]:
+                 new_data: Data,
+                 condition: Condition = None,
+                 limit: int = 0,
+                 order: Optional[Orders] = None) -> tuple[str, dict[str, Any]]:
     """Build update query (once again, this function backendly cache)
 
     Args:
@@ -385,14 +399,15 @@ def build_update(table_name: str,
         tuple[str, dict[str, Any]]: query, query data
     """
     cond, order_, ndata = _setup_hashable(condition, order, new_data)
-    query, check, updated = _build_update(table_name, ndata, cond, limit, order_)
+    query, check, updated = _build_update(
+        table_name, ndata, cond, limit, order_)
     return query, check | combine_keyvals(updated, new_data)
 
 
 def build_delete(table_name: str,
-              condition: Condition = None,
-              limit: int = 0,
-              order: Optional[Orders] = None) -> tuple[str, dict[str, Any]]:
+                 condition: Condition = None,
+                 limit: int = 0,
+                 order: Optional[Orders] = None) -> tuple[str, dict[str, Any]]:
     """Build delete query
 
     Args:
@@ -407,6 +422,7 @@ def build_delete(table_name: str,
 
     cond, order_, _ = _setup_hashable(condition, order)
     return _build_delete(table_name, cond, limit, order_)
+
 
 def build_insert(table_name: str, data: Data) -> tuple[str, dict[str, Any]]:
     """Build insert query

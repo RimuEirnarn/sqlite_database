@@ -34,6 +34,13 @@ GROUP_BASE = [{
     "id": 1,
     "name": "user"
 }]
+
+GROUP_NAMEBASE = [{
+    "name": "root"
+}, {
+    "name": "user"
+}]
+
 USER_BASE = [{
     "id": 0,
     "username": "root",
@@ -101,7 +108,7 @@ def setup_database_builder(database: Database):
     groups.insert_many(GROUP_BASE)
     users.insert_many(USER_BASE)
 
-database = Database(temp_dir / "test.db")
+database = Database(temp_dir / "test.db") # type: ignore
 setup_database_builder(database)
 users = database.table('users')
 groups = database.table('groups')
@@ -145,6 +152,10 @@ def test_002_select():
     assert users.select() == USER_BASE
     assert save_report("00_test", database, groups, users)
 
+def test_003_select_only():
+    """Test 003 select only"""
+    assert groups.select_one({"id": 0}, ('name',)) == GROUP_NAMEBASE[0]
+    assert save_report("00_test", database, groups, users)
 
 def test_01_insert():
     """test 01 insert"""
@@ -216,13 +227,13 @@ def test_08_export_file():
     """Export to CSV file"""
     database = Database(":memory:")
     setup_database(database)
-    assert to_csv_file(database.table('users'), temp_dir / "users.csv")
+    assert to_csv_file(database.table('users'), temp_dir / "users.csv") # type: ignore
 
 def test_09_export_directory():
     """Export to CSV as directory"""
     database = Database(":memory:")
     setup_database(database)
-    assert to_csv_file(database, temp_dir / "MemDB")
+    assert to_csv_file(database, temp_dir / "MemDB") # type: ignore
 
 def test_99_save_report():
     """Save reports"""

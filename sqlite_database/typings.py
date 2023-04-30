@@ -8,6 +8,7 @@ from ._utils import AttrDict
 Orders = dict[str, Literal['asc'] | Literal['desc']]
 Data = dict[str, Any]
 Query = AttrDict[str, Any]  # type: ignore
+OnlyColumn = tuple[str, ...] | None
 Queries = list[Query]
 null = object()
 

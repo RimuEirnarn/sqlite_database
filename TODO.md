@@ -17,7 +17,7 @@ What API should we bring? These todo's is for simplification; you can do anythin
 - [ ] sqlite 'as' keyword (??)
 - [ ] sqlite non-table operation
 - [ ] sqlite select data crunching[^1] by using Database config option (crunch=True)
-- [ ] sqlite select 'only' data. Instead of using `select *`, we should also have `only`. Bring up few data than select everything.[^2]
+- [x] sqlite select 'only' data. Instead of using `select *`, we should also have `only`. Bring up few data than select everything.[^2]
 - [x] Provide caching functions; not to cache sql returns but sql query, etc.[^3]
 
 ## Other functionality
