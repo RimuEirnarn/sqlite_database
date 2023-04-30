@@ -1,17 +1,21 @@
 """Query Builder"""
 
+from functools import lru_cache
 from shlex import shlex
-from typing import Any, Iterable
+from typing import Any, Iterable, Literal, Optional
 
 from ._utils import check_one, null
 from .column import Column
 from .locals import _SQLITETYPES
 from .signature import Signature, op
-from .typings import _MasterQuery
+from .typings import _MasterQuery, Data, Orders
 
 ConditionDict = dict[str, Signature | Any]
 ConditionList = list[tuple[str, Signature]]
 Condition = ConditionDict | ConditionList | None
+CacheCond = tuple[tuple[str, Signature], ...] | None
+CacheOrders = tuple[str, Literal['asc', 'desc']] | None
+CacheData = tuple[str, ...]
 
 
 def extract_table(table_creation: str):  # pylint: disable=too-many-locals
@@ -69,11 +73,12 @@ def fetch_columns(_master_query: _MasterQuery):
     return extract_table(sql)
 
 
-def extract_signature(filter_: Condition = None, suffix: str = '_check'):  # type: ignore
+def extract_signature(filter_: Condition | CacheCond = None, # type: ignore
+                      suffix: str = '_check'):
     """Extract filter signature."""
     if filter_ is None:
         return "", {}
-    if isinstance(filter_, list):
+    if isinstance(filter_, (list, tuple)):
         filter_: ConditionDict = dict(filter_)
     string = "where"
     data: dict[str, Any] = {}
@@ -161,7 +166,7 @@ def filter_extraction(string: str, shlexed: list[str]):
     return quoted_wrap, paren_wrap, new_string
 
 
-def build_update_data(data: dict[str, Any], suffix: str = '_set'):
+def build_update_data(data: dict[str, Any] | CacheData, suffix: str = '_set'):
     """Build update data, used to parameterized update data.
     Suffix is used to make sure there's no collisions with others. Use this with caution."""
     string = ""
@@ -173,16 +178,21 @@ def build_update_data(data: dict[str, Any], suffix: str = '_set'):
     return string[:-2], that
 
 
-def format_paramable(data: dict[str, Any]):
+def format_paramable(data: dict[str, Any] | tuple[str, ...]):
     """Format a data to parameterized data."""
     that: dict[str, str] = {}
-    for key in data:
-        check_one(key)
-        that[key] = f":{key}"
+    if isinstance(data, dict):
+        for key in data:
+            check_one(key)
+            that[key] = f":{key}"
+    else:
+        for key in data:
+            check_one(key)
+            that[key] = ":key"
     return that
 
 
-def combine_keyvals(keydict: dict[str, Any], valuedict: dict[str, Any]):
+def combine_keyvals(keydict: dict[str, Any], valuedict: dict[str, Any] | CacheData):
     """Combine key dictionary with value dictionary. The first dictionary will only
     ignore the values while value dict ignore the keys.
     Mapping[key, _] -> keydict
@@ -190,8 +200,12 @@ def combine_keyvals(keydict: dict[str, Any], valuedict: dict[str, Any]):
     if len(keydict) != len(valuedict):
         raise IndexError("One dictionary is larger. It must be equal.")
     new: dict[str, Any] = {}
-    for key0, key1 in zip(keydict, valuedict):
-        new[key0] = valuedict[key1]
+    if isinstance(valuedict, dict):
+        for key0, key1 in zip(keydict, valuedict):
+            new[key0] = valuedict[key1]
+    else:
+        for key0, val1 in zip(keydict, valuedict):
+            new[key0] = val1
     return new
 
 
@@ -244,6 +258,166 @@ def extract_table_creations(columns: Iterable[Column]):
  on delete {column.on_delete} on update {column.on_update},"
         # ! This might be a buggy code, i'm not sure yet.
     return string[1:-1]
+
+def _setup_hashable(condition: Condition, order: Optional[Orders] = None, data: Data | None = None):
+    cond = None
+    order_ = None
+    data_ = ()
+    if isinstance(condition, dict):
+        cond = condition.items()
+    if isinstance(condition, list):
+        cond = tuple(condition)
+
+    if isinstance(order, dict):
+        order_ = order.items()
+
+    if data:
+        data_ = data.keys()
+    return cond, order_, data_
+
+@lru_cache
+def _build_select(table_name: str,
+                  condition: CacheCond,
+                  limit: int = 0,
+                  offset: int = 0,
+                  order: CacheOrders = None):
+    check_one(table_name)
+    cond, data = extract_signature(condition)
+    query = f"select * from {table_name}{' '+cond if cond else ''}"
+    if limit:
+        query += f" limit {limit}"
+    if offset:
+        query += f" offset {offset}"
+    if order:
+        query += " order by"
+        for ord_, order_by in order:
+            query += f" {ord_} {order_by},"
+        query = query[:-1]
+    # print(query, data)
+    return query, data
+
+@lru_cache
+def _build_update(table_name: str,
+                  new_data: CacheData,
+                  condition: CacheCond = None,
+                  limit: int = 0,
+                  order: CacheOrders = None):
+    check_one(table_name)
+    cond, data = extract_signature(condition)
+    new_str, updated = build_update_data(new_data)
+    query = f"update {table_name} set {new_str} {cond}"
+    if limit:
+        query += f" limit {limit}"
+    if order:
+        query += " order by"
+        for ord_, order_by in order:
+            query += f" {ord_} {order_by},"
+        query = query[:-1]
+    return query, data, updated # ? Require manual intervention to make sure updated is sync as
+    # ? ... combine_keyvals(updated, NEW DATA)
+    # ? our cache data only contain keys not values (v0.3.0)
+
+@lru_cache
+def _build_delete(table_name: str,
+                  condition: CacheCond = None,
+                  limit: int = 0,
+                  order: CacheOrders = None):
+    check_one(table_name)
+    cond, data = extract_signature(condition)
+    query = f"delete from {table_name} {cond}"
+    if limit:
+        query += f" limit {limit}"
+    if order:
+        query += " order by"
+        for ord_, order_by in order:
+            query += f" {ord_} {order_by}"
+        query = query[:-1]
+    return query, data
+
+@lru_cache
+def _build_insert(table_name: str,
+                  data: CacheData):
+    check_one(table_name)
+    converged = format_paramable(data)
+    query = f"insert into {table_name} ({', '.join(val for val in converged)}) \
+values ({', '.join(val for val in converged.values())})"
+    return query, data
+
+def build_select(table_name: str,
+              condition: Condition = None,
+              limit: int = 0,
+              offset: int = 0,
+              order: Optional[Orders] = None) -> tuple[str, dict[str, Any]]:
+    """Build select query (this function (backendly) cache!)
+
+    Args:
+        table_name (str): Table name
+        condition (Condition, optional): Condition to use. Defaults to None.
+        limit (int, optional): Limit query (this also limits DB-API 2 `.fetchall`). Defaults to 0.
+        offset (int, optional): Offset. Defaults to 0.
+        order (Optional[Orders], optional): Order. Defaults to None.
+
+    Returns:
+        tuple[str, dict[str, Any]]: query and query data
+    """
+    cond, order_, _ = _setup_hashable(condition, order)
+    return _build_select(table_name, cond, limit, offset, order_)
+
+
+def build_update(table_name: str,
+              new_data: Data,
+              condition: Condition = None,
+              limit: int = 0,
+              order: Optional[Orders] = None) -> tuple[str, dict[str, Any]]:
+    """Build update query (once again, this function backendly cache)
+
+    Args:
+        table_name (str): Table name
+        new_data (Data): New data to update
+        condition (Condition, optional): Condition to limit what to update. Defaults to None.
+        limit (int, optional): limit chanes. Defaults to 0.
+        order (Optional[Orders], optional): What order of change?. Defaults to None.
+
+    Returns:
+        tuple[str, dict[str, Any]]: query, query data
+    """
+    cond, order_, ndata = _setup_hashable(condition, order, new_data)
+    query, check, updated = _build_update(table_name, ndata, cond, limit, order_)
+    return query, check | combine_keyvals(updated, new_data)
+
+
+def build_delete(table_name: str,
+              condition: Condition = None,
+              limit: int = 0,
+              order: Optional[Orders] = None) -> tuple[str, dict[str, Any]]:
+    """Build delete query
+
+    Args:
+        table_name (str): Table name
+        condition (Condition, optional): Condition to limit deletion. Defaults to None.
+        limit (int, optional): Limit to limit deletion. Defaults to 0.
+        order (Optional[Orders], optional): Order. Defaults to None.
+
+    Returns:
+        tuple[str, dict[str, Any]]: query, query data
+    """
+
+    cond, order_, _ = _setup_hashable(condition, order)
+    return _build_delete(table_name, cond, limit, order_)
+
+def build_insert(table_name: str, data: Data) -> tuple[str, dict[str, Any]]:
+    """Build insert query
+
+    Args:
+        table_name (str): table name
+        data (Data): Data to insert
+
+    Returns:
+        tuple[str, dict[str, Any]]: query, query data
+    """
+    _, _, ndata = _setup_hashable(None, None, data)
+    query, _ = _build_insert(table_name, ndata)
+    return query, data
 
 
 __all__ = ['ConditionDict', 'ConditionList', 'Condition', "extract_table", 'fetch_columns',
