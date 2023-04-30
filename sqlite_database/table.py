@@ -1,26 +1,30 @@
 """Table"""
 
-from sqlite3 import OperationalError
+from sqlite3 import Connection, OperationalError
 from typing import Any, Generator, Iterable, NamedTuple, Optional, Type
 
 import weakref
 
-from ._utils import AttrDict, WithCursor, check_iter, check_one, Ref
+
+from .utils import crunch
+from ._utils import check_iter, check_one
 from .column import BuilderColumn, Column
 from .errors import TableRemovedError, UnexpectedResultError
 from .locals import SQLITEPYTYPES
-from .query_builder import (Condition, build_update_data, combine_keyvals,
-                            extract_signature, extract_single_column,
-                            fetch_columns, format_paramable)
+from .query_builder import (Condition, extract_single_column,
+                            fetch_columns, build_select,
+                            build_insert, build_delete,
+                            build_update)
 from .signature import op
 from .typings import (Data, Orders, Queries, Query, TypicalNamedTuple,
-                      _MasterQuery)
+                      _MasterQuery, OnlyColumn)
+from .config import Config
 
 # Let's add a little bit of 'black' magic here.
 
 
 @classmethod
-def get_table(cls): # pylint: disable=missing-function-docstring
+def get_table(cls):  # pylint: disable=missing-function-docstring
     return getattr(cls, '_table', None)
 
 
@@ -28,15 +32,17 @@ class Table:
     """Table. Make sure you remember how the table goes."""
 
     _ns: dict[str, Type[NamedTuple]] = {}
-    _parent = Ref()
 
     def __init__(self,
                  parent,  # type: ignore
                  table: str,
+                 db_config: Config | None = None,
                  __columns: Optional[Iterable[Column]] = None) -> None:
-        self._parent = parent
+        self._parent_repr = repr(parent)
+        self._sql: Connection = parent.sql
         self._deleted = False
         self._table = check_one(table)
+        self._config = db_config or Config(crunch=False)
         self._columns: Optional[list[Column]] = list(
             __columns) if __columns else None
         weakref.finalize(self, self._finalize)
@@ -56,9 +62,9 @@ class Table:
     def _fetch_columns(self):
         table = self._table
         try:
-            master = self._parent.table("sqlite_master")
-            tabl = master.select_one(
-                {"type": op == "table", "name": op == table})
+            query, data = build_select("sqlite_master",
+                                       {"type": op == "table", "name": op == table})
+            tabl = self._sql.execute(query, data).fetchone()
             if tabl is None:
                 raise ValueError("What the hell?")
             cols = fetch_columns(_MasterQuery(**tabl))
@@ -67,78 +73,16 @@ class Table:
         except Exception:  # pylint: disable=broad-except
             return 1
 
-    def _raw_exec(self, query: str, data: dict[str, Any]) -> WithCursor:
+    def _raw_exec(self, query: str, data: dict[str, Any]):
         """No thread safe :("""
-        cursor = self._parent.cursor()
+        cursor = self._sql.cursor()
         cursor.execute(query, data)
         return cursor
 
-    def _mksquery(self,
-                  condition: Condition = None,
-                  limit: int = 0,
-                  offset: int = 0,
-                  order: Optional[Orders] = None):
-        cond, data = extract_signature(condition)
-        query = f"select * from {self._table}{' '+cond if cond else ''}"
-        if limit:
-            query += f" limit {limit}"
-        if offset:
-            query += f" offset {offset}"
-        if order:
-            query += " order by"
-            for ord_, order_by in order.items():
-                query += f" {ord_} {order_by},"
-            query = query[:-1]
-        # print(query, data)
-        return query, data
-
-    def _mkuquery(self,
-                  new_data: Data,
-                  condition: Condition = None,
-                  limit: int = 0,
-                  order: Optional[Orders] = None):
-        cond, data = extract_signature(condition)
-        new_str, updated = build_update_data(new_data)
-        query = f"update {self._table} set {new_str} {cond}"
-        if limit:
-            query += f" limit {limit}"
-        if order:
-            query += " order by"
-            for ord_, order_by in order.items():
-                query += f" {ord_} {order_by},"
-            query = query[:-1]
-        # print(query, data | _combine_keyvals(updated, new_data))
-        return query, data | combine_keyvals(updated, new_data)
-
-    def _mkdquery(self,
-                  condition: Condition = None,
-                  limit: int = 0,
-                  order: Optional[Orders] = None):
-        cond, data = extract_signature(condition)
-        query = f"delete from {self._table} {cond}"
-        if limit:
-            query += f" limit {limit}"
-        if order:
-            query += " order by"
-            for ord_, order_by in order.items():
-                query += f" {ord_} {order_by}"
-            query = query[:-1]
-        # print(query, data)
-        return query, data
-
-    def _mkiquery(self, data: Data):
-        converged = format_paramable(data)
-        query = f"insert into {self._table} ({', '.join(val for val in converged)}) \
-values ({', '.join(val for _,val in converged.items())})"
-        # print(query, data)
-        return query, data
 
     def _control(self):
         if self._deleted:
             raise TableRemovedError(f"{self._table} is already removed")
-        if self._parent.closed:
-            raise ConnectionError("Connection to database was closed.\
- A operation was held but database is already closed.")
 
     def force_nodelete(self):
         """Force "undelete" table. Used if table was mistakenly assigned as
@@ -157,11 +101,12 @@ values ({', '.join(val for _,val in converged.items())})"
         Returns:
             int: Rows affected
         """
-        query, data = self._mkdquery(condition, limit, order)
+        query, data = build_delete(
+            self._table, condition, limit, order)  # type: ignore
         self._control()
-        cursor = self._parent.sql.execute(query, data)
+        cursor = self._sql.execute(query, data)
         rcount = cursor.rowcount
-        self._parent.sql.commit()
+        self._sql.commit()
         return rcount
 
     def delete_one(self, condition: Condition = None, order: Optional[Orders] = None):
@@ -183,25 +128,25 @@ values ({', '.join(val for _,val in converged.items())})"
         Returns:
             int: Last rowid
         """
-        query, _ = self._mkiquery(data)
+        query, _ = build_insert(self._table, data)  # type: ignore
         self._control()
-        cursor = self._parent.sql.execute(query, data)
+        cursor = self._sql.execute(query, data)
         rlastrowid = cursor.lastrowid
-        self._parent.sql.commit()
+        self._sql.commit()
         return rlastrowid
 
-    def insert_multiple(self, datas: Iterable[Data]):
+    def insert_multiple(self, datas: list[Data]):
         """Insert multiple values
 
         Args:
             datas (Iterable[Data]): Data to be inserted.
         """
         self._control()
-        query, _ = self._mkiquery(datas[0])
-        self._parent.sql.executemany(query, datas)
-        self._parent.sql.commit()
+        query, _ = build_insert(self._table, datas[0])  # type: ignore
+        self._sql.executemany(query, datas)
+        self._sql.commit()
 
-    def insert_many(self, datas: Iterable[Data]):
+    def insert_many(self, datas: list[Data]):
         """Alias to `insert_multiple`"""
         return self.insert_multiple(datas)
 
@@ -224,11 +169,12 @@ values ({', '.join(val for _,val in converged.items())})"
         """
         if data is None:
             raise ValueError("data parameter must not be None")
-        query, data = self._mkuquery(data, condition, limit, order)
+        query, data = build_update(
+            self._table, data, condition, limit, order)  # type: ignore
         self._control()
-        cursor = self._parent.sql.execute(query, data)
+        cursor = self._sql.execute(query, data)
         rcount = cursor.rowcount
-        self._parent.sql.commit()
+        self._sql.commit()
         return rcount
 
     def update_one(self,
@@ -238,8 +184,9 @@ values ({', '.join(val for _,val in converged.items())})"
         """Update 1 data only"""
         return self.update(condition, new_data, 1, order)
 
-    def select(self,
+    def select(self, # pylint: disable=too-many-arguments
                condition: Condition = None,
+               only: tuple[str, ...] | None = None,
                limit: int = 0,
                offset: int = 0,
                order: Optional[Orders] = None) -> Queries:
@@ -247,6 +194,7 @@ values ({', '.join(val for _,val in converged.items())})"
 
         Args:
             condition (Condition, optional): Conditions to used. Defaults to None.
+            only: (OnlyColumn, optional): Select what you want. Default to None.
             limit (int, optional): Limit of select. Defaults to 0.
             offset (int, optional): Offset. Defaults to 0
             order (Optional[Orders], optional): Selection order. Defaults to None.
@@ -255,18 +203,28 @@ values ({', '.join(val for _,val in converged.items())})"
             Queries: Selected data
         """
         self._control()
-        query, data = self._mksquery(condition, limit, offset, order)
-        with self._parent.sql:
-            return self._parent.sql.execute(query, data).fetchall()
+        query, data = build_select(self._table,
+                                   condition,
+                                   only,
+                                   limit,
+                                   offset,
+                                   order)  # type: ignore
+        with self._sql:
+            data = self._sql.execute(query, data).fetchall()
+            if self._config['crunch']:
+                return crunch(data)
+            return data
 
     def paginate_select(self,
                         condition: Condition = None,
+                        only: OnlyColumn = None,
                         length: int = 10,
                         order: Optional[Orders] = None) -> Generator[Queries, None, None]:
         """Paginate select
 
         Args:
             condition (Condition, optional): Confitions to use. Defaults to None.
+            only: (OnlyColumn, optional): Select what you want. Default to None.
             length (int, optional): Pagination length. Defaults to 10.
             order (Optional[Orders], optional): Order. Defaults to None.
 
@@ -276,12 +234,20 @@ values ({', '.join(val for _,val in converged.items())})"
         self._control()
         start = 0
         while True:
-            query, data = self._mksquery(condition, length, start, order)
-            with self._parent.sql:
-                fetched: list[AttrDict] = self._parent.sql.execute(
+            query, data = build_select(self._table,
+                                       condition,
+                                       only,
+                                       length,
+                                       start,
+                                       order)  # type: ignore
+            crunched = self._config["crunch"]
+            with self._sql:
+                fetched = self._sql.execute(
                     query, data).fetchmany(length)
                 if len(fetched) == 0:
                     return
+                if crunched:
+                    fetched = crunch(fetched)
                 if len(fetched) != length:
                     yield fetched
                     return
@@ -290,20 +256,23 @@ values ({', '.join(val for _,val in converged.items())})"
 
     def select_one(self,
                    condition: Condition = None,
+                   only: OnlyColumn = None,
                    order: Optional[Orders] = None) -> Query | None:
         """Select one data
 
         Args:
             condition (Condition, optional): Condition to use. Defaults to None.
+            only: (OnlyColumn, optional): Select what you want. Default to None.
             order (Optional[Orders], optional): Order of selection. Defaults to None.
 
         Returns:
             Query: Selected data
         """
         self._control()
-        query, data = self._mksquery(condition, 1, 0, order)
-        with self._parent.sql:
-            return self._parent.sql.execute(query, data).fetchone()
+        query, data = build_select(
+            self._table, condition, only, 1, 0, order)  # type: ignore
+        with self._sql:
+            return self._sql.execute(query, data).fetchone()
 
     def exists(self, condition: Condition = None):
         """Check if data is exists or not.
@@ -344,11 +313,11 @@ values ({', '.join(val for _,val in converged.items())})"
         self._ns[self._table] = namedtupled
         return namedtupled
 
-    @property
     def columns(self):
         """Table columns"""
         if self._columns is None:
             raise AttributeError("columns is undefined.")
+
         return tuple(self._columns)
 
     @property
@@ -363,7 +332,7 @@ values ({', '.join(val for _,val in converged.items())})"
 
     def add_column(self, column: Column | BuilderColumn):
         """Add column to table"""
-        sql = self._parent.sql
+        sql = self._sql
         column = column.to_column() if isinstance(column, BuilderColumn) else column
         if column.primary or column.unique:
             raise OperationalError(
@@ -383,10 +352,10 @@ constraint is enabled.")
         """Rename existing column to new column"""
         check_iter((old_column, new_column))
         query = f"alter table {self._table} rename column {old_column} to {new_column}"
-        self._parent.sql.execute(query)
+        self._sql.execute(query)
 
     def __repr__(self) -> str:
-        return f"<Table({self._table}) -> {self._parent}>"
+        return f"<Table({self._table}) -> {self._parent_repr}>"
 
 
 __all__ = ['Table']

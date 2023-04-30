@@ -12,6 +12,7 @@ from .query_builder import extract_table_creations
 from .signature import op
 from .table import Table
 from .errors import DatabaseExistsError, DatabaseMissingError
+from .config import Config
 Columns = Iterable[Column] | Iterable[BuilderColumn]
 
 IGNORE_TABLE_CHECKS = (
@@ -23,19 +24,20 @@ class Database:
 
     _active: Mapping[str, "Database"] = WeakValueDictionary()
 
-    def __new__(cls, path: str, **kwargs): # pylint: disable=unused-argument
+    def __new__(cls, path: str, _config: Config | None = None, **kwargs): # pylint: disable=unused-argument
         if path in cls._active:
             return cls._active[path]
         self = object.__new__(cls)
         if path != ":memory:":
-            cls._active[str(path)] = self
+            cls._active[str(path)] = self # type: ignore
         return self
 
-    def __init__(self, path: str, **kwargs) -> None:
+    def __init__(self, path: str, _config: Config | None = None, **kwargs) -> None:
         kwargs['check_same_thread'] = sqlite_multithread_check() != 3
         self._path = path
         self._database = connect(path, **kwargs)
         self._database.row_factory = dict_factory
+        self._config = _config or Config(crunch=False)
         self._closed = False
         self._table_instances: dict[str, Table] = {}
         if not self._closed or self.__dict__.get("_initiated", False) is False:
@@ -93,7 +95,7 @@ class Database:
             return self._table_instances[table]
 
         try:
-            this_table = Table(self, table, __columns)
+            this_table = Table(self, table, self._config, __columns)
         except OperationalError as exc:
             raise DatabaseMissingError(f"table {table} does not exists") from exc
         self._table_instances[table] = this_table
@@ -137,10 +139,9 @@ class Database:
             self._closed = True
             return
         if self.path in self._active:
-            del type(self)._active[self.path]
+            del type(self)._active[self.path] # type: ignore
         self._closed = True
 
-    @property
     def tables(self) -> tuple[Table, ...]:
         """Return tuple containing all table except internal tables"""
         master = self.table("sqlite_master")

@@ -25,7 +25,7 @@ def _export_table(table: Table) -> str:
 
 def _export_database(database: Database) -> list[tuple[str, str]]:
     exported = []
-    for table in database.tables:
+    for table in database.tables():
         exported.append((table.name, _export_table(table)))
     return exported
 

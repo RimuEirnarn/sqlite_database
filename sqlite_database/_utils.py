@@ -120,7 +120,7 @@ class Ref:
     def __get__(self, obj, objtype=None):
         if self._ref is self._null:
             raise ValueError("Reference is null, no object is specified")
-        if (object_ := self._ref()):
+        if (object_ := self._ref()): # type: ignore
             return object_
         raise ObjectRemovedError("object is removed")
 
