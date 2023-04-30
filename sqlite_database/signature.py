@@ -120,6 +120,9 @@ class Signature:
         string += self._operator
         return string
 
+    def __hash__(self):
+        return hash((self._value, self._data, self._negate, self._operator))
+
     def __repr__(self) -> str:
         return f"<Signature -> {self._operator}>"
 
