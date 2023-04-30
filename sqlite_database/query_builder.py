@@ -278,7 +278,7 @@ def _setup_hashable(condition: Condition, order: Optional[Orders] = None, data: 
 
 
 @lru_cache
-def _build_select(table_name: str,
+def _build_select(table_name: str, # pylint: disable=too-many-arguments
                   condition: CacheCond,
                   only: OnlyColumn = None,
                   limit: int = 0,
@@ -300,7 +300,6 @@ def _build_select(table_name: str,
         for ord_, order_by in order:
             query += f" {ord_} {order_by},"
         query = query[:-1]
-    print(query, data)
     return query, data
 
 
@@ -321,7 +320,6 @@ def _build_update(table_name: str,
         for ord_, order_by in order:
             query += f" {ord_} {order_by},"
         query = query[:-1]
-    print(query, data)
     # ? Require manual intervention to make sure updated is sync as
     return query, data, updated
     # ? ... combine_keyvals(updated, NEW DATA)
@@ -343,7 +341,6 @@ def _build_delete(table_name: str,
         for ord_, order_by in order:
             query += f" {ord_} {order_by}"
         query = query[:-1]
-    print(query, data)
     return query, data
 
 
@@ -354,7 +351,6 @@ def _build_insert(table_name: str,
     converged = format_paramable(data)
     query = f"insert into {table_name} ({', '.join(val for val in converged)}) \
 values ({', '.join(val for val in converged.values())})"
-    print(query, data)
     return query, data
 
 
