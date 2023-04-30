@@ -142,7 +142,6 @@ class Database:
             del type(self)._active[self.path] # type: ignore
         self._closed = True
 
-    @property
     def tables(self) -> tuple[Table, ...]:
         """Return tuple containing all table except internal tables"""
         master = self.table("sqlite_master")
