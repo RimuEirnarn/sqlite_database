@@ -188,7 +188,7 @@ def format_paramable(data: dict[str, Any] | tuple[str, ...]):
     else:
         for key in data:
             check_one(key)
-            that[key] = ":key"
+            that[key] = f":{key}"
     return that
 
 
@@ -264,15 +264,15 @@ def _setup_hashable(condition: Condition, order: Optional[Orders] = None, data: 
     order_ = None
     data_ = ()
     if isinstance(condition, dict):
-        cond = condition.items()
+        cond = tuple(condition.items())
     if isinstance(condition, list):
         cond = tuple(condition)
 
     if isinstance(order, dict):
-        order_ = order.items()
+        order_ = tuple(order.items())
 
     if data:
-        data_ = data.keys()
+        data_ = tuple(data.keys())
     return cond, order_, data_
 
 @lru_cache
@@ -293,7 +293,7 @@ def _build_select(table_name: str,
         for ord_, order_by in order:
             query += f" {ord_} {order_by},"
         query = query[:-1]
-    # print(query, data)
+    print(query, data)
     return query, data
 
 @lru_cache
@@ -313,6 +313,7 @@ def _build_update(table_name: str,
         for ord_, order_by in order:
             query += f" {ord_} {order_by},"
         query = query[:-1]
+    print(query, data)
     return query, data, updated # ? Require manual intervention to make sure updated is sync as
     # ? ... combine_keyvals(updated, NEW DATA)
     # ? our cache data only contain keys not values (v0.3.0)
@@ -332,6 +333,7 @@ def _build_delete(table_name: str,
         for ord_, order_by in order:
             query += f" {ord_} {order_by}"
         query = query[:-1]
+    print(query, data)
     return query, data
 
 @lru_cache
@@ -341,6 +343,7 @@ def _build_insert(table_name: str,
     converged = format_paramable(data)
     query = f"insert into {table_name} ({', '.join(val for val in converged)}) \
 values ({', '.join(val for val in converged.values())})"
+    print(query, data)
     return query, data
 
 def build_select(table_name: str,
