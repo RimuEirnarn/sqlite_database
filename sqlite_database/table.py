@@ -60,7 +60,8 @@ class Table:
     def _fetch_columns(self):
         table = self._table
         try:
-            query, data = build_select("sqlite_master", {"type": op == "table", "name": op == table})
+            query, data = build_select("sqlite_master",
+                                       {"type": op == "table", "name": op == table})
             tabl = self._sql.execute(query, data).fetchone()
             if tabl is None:
                 raise ValueError("What the hell?")
