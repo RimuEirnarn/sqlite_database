@@ -5,7 +5,9 @@ from typing import Any, Generator, Iterable, NamedTuple, Optional, Type
 
 import weakref
 
-from ._utils import AttrDict, check_iter, check_one
+
+from .utils import crunch
+from ._utils import check_iter, check_one
 from .column import BuilderColumn, Column
 from .errors import TableRemovedError, UnexpectedResultError
 from .locals import SQLITEPYTYPES
@@ -40,7 +42,7 @@ class Table:
         self._sql: Connection = parent.sql
         self._deleted = False
         self._table = check_one(table)
-        self._config = Config(crunch=False) if db_config is None else db_config
+        self._config = db_config or Config(crunch=False)
         self._columns: Optional[list[Column]] = list(
             __columns) if __columns else None
         weakref.finalize(self, self._finalize)
@@ -77,15 +79,6 @@ class Table:
         cursor.execute(query, data)
         return cursor
 
-    @staticmethod
-    def _crunch(query: Queries):
-        data: dict[str, list[Any]] = AttrDict()
-        for value in query:
-            for key, val in value.items():
-                if key not in data:
-                    data[key] = []
-                data[key].append(val)
-        return data
 
     def _control(self):
         if self._deleted:
@@ -217,7 +210,10 @@ class Table:
                                    offset,
                                    order)  # type: ignore
         with self._sql:
-            return self._sql.execute(query, data).fetchall()
+            data = self._sql.execute(query, data).fetchall()
+            if self._config['crunch']:
+                return crunch(data)
+            return data
 
     def paginate_select(self,
                         condition: Condition = None,
@@ -244,11 +240,14 @@ class Table:
                                        length,
                                        start,
                                        order)  # type: ignore
+            crunched = self._config["crunch"]
             with self._sql:
-                fetched: list[AttrDict] = self._sql.execute(
+                fetched = self._sql.execute(
                     query, data).fetchmany(length)
                 if len(fetched) == 0:
                     return
+                if crunched:
+                    fetched = crunch(fetched)
                 if len(fetched) != length:
                     yield fetched
                     return
@@ -318,7 +317,7 @@ class Table:
         """Table columns"""
         if self._columns is None:
             raise AttributeError("columns is undefined.")
-        
+
         return tuple(self._columns)
 
     @property

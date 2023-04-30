@@ -9,7 +9,7 @@ Orders = dict[str, Literal['asc'] | Literal['desc']]
 Data = dict[str, Any]
 Query = AttrDict[str, Any]  # type: ignore
 OnlyColumn = tuple[str, ...] | None
-Queries = list[Query]
+Queries = list[Query] | AttrDict[str, list[Any]] # type: ignore
 null = object()
 
 

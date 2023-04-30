@@ -37,7 +37,7 @@ class Database:
         self._path = path
         self._database = connect(path, **kwargs)
         self._database.row_factory = dict_factory
-        self._config = _config if _config else Config(crunch=False)
+        self._config = _config or Config(crunch=False)
         self._closed = False
         self._table_instances: dict[str, Table] = {}
         if not self._closed or self.__dict__.get("_initiated", False) is False:
