@@ -17,12 +17,11 @@
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/RimuEirnarn/sqlite_database)
 [![Documentation Status](https://readthedocs.org/projects/sqlite-database/badge/?version=latest)](https://sqlite-database.readthedocs.io/en/latest/?badge=latest)
 ![GitHub](https://img.shields.io/github/license/RimuEirnarn/sqlite_database)
-    ![PyPI - Downloads](https://img.shields.io/pypi/dm/sqlite-database?label=%28PyPI%29%20downloads)
     
 ![PyPI - Format](https://img.shields.io/pypi/format/sqlite-database)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/sqlite-database)
 ![PyPI - Implementation](https://img.shields.io/pypi/implementation/sqlite-database)
-![PyPI - Downloads](https://img.shields.io/pypi/dm/sqlite-database)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/sqlite-database?label=%28PyPI%29%20downloads)
 
 </div>
 
