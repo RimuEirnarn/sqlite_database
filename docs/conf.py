@@ -17,6 +17,8 @@ sys.path.insert(0, (
         )
     )
 ))
+import sqlite_database
+sqlite_database.test_installed()
 
 project = 'sqlite_database'
 copyright = '2023, RimuEirnarn'

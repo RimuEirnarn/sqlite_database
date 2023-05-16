@@ -5,7 +5,7 @@ from sqlite3 import OperationalError, connect
 from typing import Iterable, Optional, Mapping
 
 from ._utils import (WithCursor, check_iter, check_one, dict_factory, null,
-                     sqlite_multithread_check, AttrDict)
+                     sqlite_multithread_check, AttrDict, test_installed)
 from .column import BuilderColumn, Column, text, integer, blob, real
 from .locals import this
 from .query_builder import extract_table_creations

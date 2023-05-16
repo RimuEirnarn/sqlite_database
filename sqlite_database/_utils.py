@@ -137,6 +137,8 @@ def future_class_var_isdefined(type_: Type[Any], future_attr: str):
             return True
     return False
 
+def test_installed():
+    return True
 
 null = NullObject()
 
