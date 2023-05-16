@@ -138,6 +138,7 @@ def future_class_var_isdefined(type_: Type[Any], future_attr: str):
     return False
 
 def test_installed():
+    """Test if project is truly installed. It was meant for docs compatibility and thus, always returns true"""
     return True
 
 null = NullObject()
