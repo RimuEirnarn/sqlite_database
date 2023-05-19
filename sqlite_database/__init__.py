@@ -135,6 +135,8 @@ class Database:
         if self._closed:
             return
         self._database.close()
+        for table in self._table_instances.copy():
+            del self._table_instances[table]
         if self.path == ":memory:":
             self._closed = True
             return
