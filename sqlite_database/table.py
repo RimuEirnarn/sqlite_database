@@ -38,6 +38,8 @@ class Table:
                  table: str,
                  db_config: Config | None = None,
                  __columns: Optional[Iterable[Column]] = None) -> None:
+        if parent.closed:
+            raise ConnectionError("Connection to database is already closed.")
         self._parent_repr = repr(parent)
         self._sql: Connection = parent.sql
         self._deleted = False
