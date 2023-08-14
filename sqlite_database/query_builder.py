@@ -3,7 +3,9 @@
 from functools import lru_cache
 from shlex import shlex
 from typing import Any, Iterable, Literal, Optional
+from random import randint
 
+from .functions import ParsedFn
 from ._utils import check_one, null, check_iter
 from .column import Column
 from .locals import _SQLITETYPES
@@ -14,7 +16,7 @@ ConditionDict = dict[str, Signature | Any]
 ConditionList = list[tuple[str, Signature]]
 Condition = ConditionDict | ConditionList | None
 CacheCond = tuple[tuple[str, Signature], ...] | None
-CacheOrders = tuple[str, Literal['asc', 'desc']] | None
+CacheOrders = tuple[str, Literal['asc', 'desc']] | ParsedFn | None
 CacheData = tuple[str, ...]
 
 
@@ -143,6 +145,25 @@ def basic_extract(table_creation: str):  # pylint: disable=too-many-locals
                         primary, unique, not notnull, defaults if defaults else None]
     return cols, upheld
 
+
+def function_extract(parsed: ParsedFn) -> tuple[str, dict[str, Any]] | str:
+    """Extract function into SQL function syntax."""
+    check_one(parsed.name)
+    if len(parsed.values) == 1 and parsed.values in (None, ...):
+        return f"{parsed.name}(*)"
+    string = parsed.name + "("
+    data = {}
+    # ? we don't know how many same function calls at the same time, though we can use count param.
+    suffix = randint(0, 100000)
+    for i in enumerate(parsed.values):
+        key = f":{parsed.name}{suffix}_{i}"
+        if isinstance(i, ParsedFn):
+            data[key] = function_extract(i)
+            continue
+        data[key] = i
+        string += f"{key}, "
+    string = string[:-2] + ")"
+    return string
 
 def filter_extraction(string: str, shlexed: list[str]):
     """A function step of table extraction. Used to replace quoted and parens with parameter."""
