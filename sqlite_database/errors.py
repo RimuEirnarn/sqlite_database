@@ -1,5 +1,7 @@
 """Errors"""
 
+class DependencyError(ImportError):
+    """Specific dependency is missing"""
 
 class SecurityError(Exception):
     """SQLInjection ahead."""

@@ -16,6 +16,7 @@ __all__ = ['Database']
 IGNORE_TABLE_CHECKS = (
     "sqlite_master", "sqlite_temp_schema", "sqlite_temp_master")
 
+PLUGINS_PATH = ('--mysql')
 
 class Database:
     """Sqlite3 database, this provide basic integration."""
@@ -33,9 +34,12 @@ class Database:
     def __init__(self, path: str, _config: Config | None = None, **kwargs) -> None:
         kwargs['check_same_thread'] = sqlite_multithread_check() != 3
         self._path = path
-        self._database = connect(path, **kwargs)
-        self._database.row_factory = dict_factory
-        self._config = _config or Config(crunch=False)
+        if not path in PLUGINS_PATH:
+            self._database = connect(path, **kwargs)
+            self._database.row_factory = dict_factory
+            self._config = _config or Config(crunch=False)
+        else:
+            self._config = None
         self._closed = False
         self._table_instances: dict[str, Table] = {}
         if not self._closed or self.__dict__.get("_initiated", False) is False:
