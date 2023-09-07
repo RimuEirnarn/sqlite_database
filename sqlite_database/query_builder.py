@@ -10,14 +10,15 @@ from ._utils import check_one, null, check_iter
 from .column import Column
 from .locals import _SQLITETYPES
 from .signature import Signature, op
-from .typings import _MasterQuery, Data, Orders, OnlyColumn
+from .typings import _MasterQuery, Data, Orders
 
-ConditionDict = dict[str, Signature | Any]
-ConditionList = list[tuple[str, Signature]]
+ConditionDict = dict[str, Signature | ParsedFn | Any]
+ConditionList = list[tuple[str, Signature | ParsedFn]]
 Condition = ConditionDict | ConditionList | None
-CacheCond = tuple[tuple[str, Signature], ...] | None
+CacheCond = tuple[tuple[str, Signature | ParsedFn], ...] | None
 CacheOrders = tuple[str, Literal['asc', 'desc']] | ParsedFn | None
 CacheData = tuple[str, ...]
+OnlyColumn = tuple[str, ...] | ParsedFn
 
 
 def extract_table(table_creation: str):  # pylint: disable=too-many-locals
