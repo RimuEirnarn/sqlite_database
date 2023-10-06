@@ -1,3 +1,4 @@
+"""SQLite Database"""
 from weakref import finalize, WeakValueDictionary
 from sqlite3 import OperationalError, connect
 from typing import Iterable, Optional, Mapping
@@ -8,7 +9,6 @@ from .column import BuilderColumn, Column
 from .query_builder import extract_table_creations
 from .table import Table
 from .errors import DatabaseExistsError, DatabaseMissingError
-from .config import Config
 Columns = Iterable[Column] | Iterable[BuilderColumn]
 
 __all__ = ['Database']
@@ -16,14 +16,14 @@ __all__ = ['Database']
 IGNORE_TABLE_CHECKS = (
     "sqlite_master", "sqlite_temp_schema", "sqlite_temp_master")
 
-PLUGINS_PATH = ('--mysql')
+PLUGINS_PATH = ('--mysql',)
 
 class Database:
     """Sqlite3 database, this provide basic integration."""
 
     _active: Mapping[str, "Database"] = WeakValueDictionary()
 
-    def __new__(cls, path: str, _config: Config | None = None, **kwargs): # pylint: disable=unused-argument
+    def __new__(cls, path: str, **kwargs): # pylint: disable=unused-argument
         if path in cls._active:
             return cls._active[path]
         self = object.__new__(cls)
@@ -31,20 +31,21 @@ class Database:
             cls._active[str(path)] = self # type: ignore
         return self
 
-    def __init__(self, path: str, _config: Config | None = None, **kwargs) -> None:
+    def __init__(self, path: str, **kwargs) -> None:
         kwargs['check_same_thread'] = sqlite_multithread_check() != 3
         self._path = path
         if not path in PLUGINS_PATH:
             self._database = connect(path, **kwargs)
             self._database.row_factory = dict_factory
-            self._config = _config or Config(crunch=False)
         else:
-            self._config = None
+            pass
+        self._config = None
         self._closed = False
         self._table_instances: dict[str, Table] = {}
         if not self._closed or self.__dict__.get("_initiated", False) is False:
             self._finalizer_fn = finalize(self, self.close)
             self._initiated = True
+        self._kwargs = kwargs
 
     def _finalizer(self):
         self.close()
@@ -67,12 +68,15 @@ class Database:
             column, BuilderColumn) else column for column in columns)
         tbquery = extract_table_creations(columns)
         query = f"create table {table} ({tbquery})"
+        print(query)
 
         try:
             self._database.execute(query)
             self._database.commit()
         except OperationalError as error:
-            raise DatabaseExistsError(f"table {table} already exists.") from error
+            dberror = DatabaseExistsError(f"table {table} already exists.")
+            dberror.add_note(f"{type(error).__name__}: {error!s}")
+            raise dberror from error
         table_ = self.table(table, columns)
         table_._deleted = False  # pylint: disable=protected-access
         self._table_instances[table] = table_
@@ -97,7 +101,7 @@ class Database:
             return self._table_instances[table]
 
         try:
-            this_table = Table(self, table, self._config, __columns)
+            this_table = Table(self, table, __columns)
         except OperationalError as exc:
             raise DatabaseMissingError(f"table {table} does not exists") from exc
         self._table_instances[table] = this_table
@@ -177,4 +181,3 @@ class Database:
     def sql(self):
         """SQL Connection"""
         return self._database
-
