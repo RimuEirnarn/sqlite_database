@@ -2,11 +2,11 @@
 # pylint: disable=unused-import
 
 
-from .typings import NamedTuple, Literal
+from typing import NamedTuple, Literal
 from .functions import ParsedFn
 
 
-class SelectExpr(NamedTuple):
+class SelectExpr(NamedTuple): # pylint: disable=too-few-public-methods
     """Select (low level) expression"""
     what: "str | ParsedFn | SelectExpr | tuple[str, ...]"
     from_: str | None = None
