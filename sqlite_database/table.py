@@ -1,7 +1,7 @@
 """Table"""
 
 from sqlite3 import Connection, OperationalError
-from typing import Any, Generator, Iterable, NamedTuple, Optional, Type
+from typing import Any, Generator, Iterable, NamedTuple, Optional, Type, overload
 
 import weakref
 
@@ -17,8 +17,7 @@ from .query_builder import (Condition, extract_single_column,
                             build_update)
 from .signature import op
 from .typings import (Data, Orders, Queries, Query, TypicalNamedTuple,
-                      _MasterQuery, OnlyColumn)
-from .config import Config
+                      _MasterQuery, OnlyColumn, SquashedSqueries)
 
 # Let's add a little bit of 'black' magic here.
 
@@ -36,7 +35,6 @@ class Table:
     def __init__(self,
                  parent,  # type: ignore
                  table: str,
-                 db_config: Config | None = None,
                  __columns: Optional[Iterable[Column]] = None) -> None:
         if parent.closed:
             raise ConnectionError("Connection to database is already closed.")
@@ -44,7 +42,6 @@ class Table:
         self._sql: Connection = parent.sql
         self._deleted = False
         self._table = check_one(table)
-        self._config = db_config or Config(crunch=False)
         self._columns: Optional[list[Column]] = list(
             __columns) if __columns else None
         weakref.finalize(self, self._finalize)
@@ -186,12 +183,34 @@ class Table:
         """Update 1 data only"""
         return self.update(condition, new_data, 1, order)
 
+    @overload
+    def select(self,
+               condition: Condition = None,
+               only: tuple[str, ...] | None = None,
+               limit: int = 0,
+               offset: int = 0,
+               order: Optional[Orders] = None,
+               squash: bool = False) -> Queries:
+        pass
+
+    @overload
+    def select(self,
+               condition: Condition = None,
+               only: tuple[str, ...] | None = None,
+               limit: int = 0,
+               offset: int = 0,
+               order: Optional[Orders] = None,
+               squash: bool = True) -> SquashedSqueries:
+        pass
+
+
     def select(self, # pylint: disable=too-many-arguments
                condition: Condition = None,
                only: tuple[str, ...] | None = None,
                limit: int = 0,
                offset: int = 0,
-               order: Optional[Orders] = None) -> Queries:
+               order: Optional[Orders] = None,
+               squash: bool = False):
         """Select data in current table. Bare .select() returns all data.
 
         Args:
@@ -213,15 +232,34 @@ class Table:
                                    order)  # type: ignore
         with self._sql:
             data = self._sql.execute(query, data).fetchall()
-            if self._config['crunch']:
+            if squash:
                 return crunch(data)
             return data
+
+    @overload
+    def paginate_select(self,
+                        condition: Condition = None,
+                        only: OnlyColumn = None,
+                        length: int = 10,
+                        order: Optional[Orders] = None,
+                        squash: bool = False) -> Generator[Queries, None, None]:
+        pass
+
+    @overload
+    def paginate_select(self,
+                        condition: Condition = None,
+                        only: OnlyColumn = None,
+                        length: int = 10,
+                        order: Optional[Orders] = None,
+                        squash: bool = True) -> Generator[SquashedSqueries, None, None]:
+        pass
 
     def paginate_select(self,
                         condition: Condition = None,
                         only: OnlyColumn = None,
                         length: int = 10,
-                        order: Optional[Orders] = None) -> Generator[Queries, None, None]:
+                        order: Optional[Orders] = None,
+                        squash: bool = False):
         """Paginate select
 
         Args:
@@ -242,7 +280,7 @@ class Table:
                                        length,
                                        start,
                                        order)  # type: ignore
-            crunched = self._config["crunch"]
+            crunched = squash
             with self._sql:
                 fetched = self._sql.execute(
                     query, data).fetchmany(length)
