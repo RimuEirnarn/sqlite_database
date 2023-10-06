@@ -144,5 +144,13 @@ def test_installed():
 
 null = NullObject()
 
+
+def get_type_from_mapping(type: str, mapping: dict[str, str]) -> str:
+    """get type from mapping"""
+    if not type in mapping:
+        raise ValueError(f"{type} was not defined in the mapping.")
+    return mapping[type]
+
 __all__ = ['null', 'future_class_var_isdefined', 'WithCursor', 'check_iter', 'check_one',
-           'matches', 'AttrDict', 'NullObject', 'sqlite_multithread_check']
+           'matches', 'AttrDict', 'NullObject', 'sqlite_multithread_check',
+           'get_type_from_mapping']

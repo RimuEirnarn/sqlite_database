@@ -19,7 +19,7 @@ CacheCond = tuple[tuple[str, Signature | ParsedFn], ...] | None
 CacheOrders = tuple[str, Literal['asc', 'desc']] | ParsedFn | None
 CacheData = tuple[str, ...]
 OnlyColumn = tuple[str, ...] | ParsedFn
-
+DEFAULT_MAPPINGS = {value: value for value in _SQLITETYPES}
 
 def extract_table(table_creation: str):  # pylint: disable=too-many-locals
     """Extract SQLite table string"""
@@ -249,18 +249,18 @@ def extract_single_column(column: Column):
         string += f"foreign key references {column.source} ({column.source_column})"
     return string
 
-
-def extract_table_creations(columns: Iterable[Column]):
-    """Extract columns classes to sqlite table creation query."""
-    string = ''
-    primaries: list[Column] = []
-    foreigns: list[Column] = []
+def _iterate_etbc_step1(columns: Iterable[Column],
+                        string: str,
+                        primaries: list[Column],
+                        foreigns: list[Column],
+                        maps: dict[str, str]):
     for column in columns:
+        ctype = maps.get(column.type, column.type)
+        string += f" {column.name} {ctype}"
         if column.raw_source:
             foreigns.append(column)
         if column.primary:
             primaries.append(column)
-        string += f" {column.name} {column.type}"
         if not column.nullable:
             string += " not null"
         if column.unique:
@@ -268,6 +268,17 @@ def extract_table_creations(columns: Iterable[Column]):
         if column.default:
             string += f" default {repr(column.default)}"
         string += ','
+    return string
+
+def extract_table_creations(columns: Iterable[Column],
+                            type_mappings: dict[str, str] | None = None):
+    """Extract columns classes to sqlite table creation query."""
+    maps: dict[str, str] = DEFAULT_MAPPINGS.copy()
+    if type_mappings:
+        maps.update(type_mappings)
+    primaries: list[Column] = []
+    foreigns: list[Column] = []
+    string = _iterate_etbc_step1(columns, "", primaries, foreigns, maps)
 
     if primaries:
         string += f" primary key ({', '.join((col.name for col in primaries))}),"
