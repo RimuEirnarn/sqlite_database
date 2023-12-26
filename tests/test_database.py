@@ -47,6 +47,11 @@ GROUP_NAMEBASE = [{
     "name": "user"
 }]
 
+USER_NAMEBASE = [{
+    "username": 'root',
+    'role': 'root'
+}]
+
 USER_BASE = [{
     "id": 0,
     "username": "root",
@@ -192,6 +197,7 @@ def test_002_select():
 def test_003_select_only():
     """Test 003 select only"""
     assert groups.select_one({"id": 0}, ('name',)) == GROUP_NAMEBASE[0]
+    assert users.select_one({'id': 0}, ('username', 'role')) == USER_NAMEBASE[0]
     assert save_report("00_test", database, groups, users)
 
 def test_004_select_crunch():

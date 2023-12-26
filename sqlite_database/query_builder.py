@@ -314,7 +314,7 @@ def _build_select(table_name: str, # pylint: disable=too-many-arguments
     if only and isinstance(only, ParsedFn):
         only_ = only.parse_sql()
     elif only and only != '*':
-        only_ = f"({', '.join(column_name for column_name in only)})"
+        only_ = f"{', '.join(column_name for column_name in only)}"
 
     query = f"select {only_} from {table_name}{' '+cond if cond else ''}"
     if limit:
