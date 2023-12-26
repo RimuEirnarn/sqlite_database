@@ -26,3 +26,8 @@ repository = "https://github.com/RimuEirnarn/sqlite_database.git"
 [tool.setuptools]
 zip-safe = true
 packages = ["sqlite_database"]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+docs = ['sphinx', 'myst_parser']
+mysql = ['mysql-connector-python']

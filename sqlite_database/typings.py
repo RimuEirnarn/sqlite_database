@@ -3,13 +3,17 @@
 from sys import maxsize as sys_maxsize
 from typing import Any, Literal, Protocol, SupportsIndex, TypedDict
 
+from sqlite_database.functions import ParsedFn # pylint: disable=unused-import
+
 from ._utils import AttrDict
 
 Orders = dict[str, Literal['asc'] | Literal['desc']]
 Data = dict[str, Any]
 Query = AttrDict[str, Any]  # type: ignore
-OnlyColumn = tuple[str, ...] | None
+OnlyColumn = tuple[str, ...] | Literal['*']
 Queries = list[Query] | AttrDict[str, list[Any]] # type: ignore
+Queries = list[Query]
+SquashedSqueries = AttrDict[str, list[Any]] # type: ignore
 null = object()
 
 

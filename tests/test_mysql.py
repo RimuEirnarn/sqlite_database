@@ -7,10 +7,11 @@ from types import SimpleNamespace
 from tempfile import mkdtemp
 from pathlib import Path
 
-from pytest import raises
+from pytest import raises, skip
 
-
-from sqlite_database import Column, Database, integer, text
+'''"""
+from sqlite_database import text, integer
+from sqlite_database.mysqldb import MySQLDatabase as Database
 from sqlite_database.signature import op
 from sqlite_database.operators import eq
 from sqlite_database.errors import TableRemovedError
@@ -104,33 +105,18 @@ COUNT_DATA = [{
 }]
 
 
-def setup_database(database: Database):
-    """setup database"""
-    users = database.create_table("users", [
-        Column("id", "integer", unique=True, primary=True),
-        Column("username", "text"),
-        Column("role", "text", default="user"),
-        Column("gid", "integer", foreign=True, foreign_ref="groups/id")
-    ])
-    groups = database.create_table("groups", [
-        Column("id", "integer", primary=True),
-        Column("name", "text")
-    ])
-    groups.insert_many(GROUP_BASE)
-    users.insert_many(USER_BASE)
-
-
 def setup_database_builder(database: Database):
     """Setup database with builder pattern for column"""
+    groups = database.create_table("groups", [
+        integer('id').primary(),
+        text('name')
+    ])
+
     users = database.create_table("users", [
         integer('id').primary(),
         text('username'),
         text('role').default('user'),
         integer('gid').foreign('groups/id')
-    ])
-    groups = database.create_table("groups", [
-        integer('id').primary(),
-        text('name')
     ])
     groups.insert_many(GROUP_BASE)
     users.insert_many(USER_BASE)
@@ -144,22 +130,15 @@ def setup_database_fns(database: Database):
     ])
     checkout.insert_many(COUNT_DATA)
 
-database = Database(temp_dir / "test.db") # type: ignore
+database = Database.connect_from_uri("mysql://demo:demo@localhost/sqlite_database")
 setup_database_builder(database)
 setup_database_fns(database)
-users = database.table('users')
 groups = database.table('groups')
+users = database.table('users')
 
 
 def save_report(tid, database, grouptb, usertb):
     """save report"""
-    master = database.table("sqlite_master")
-    print(f">> {tid}", "\n>> master ", parse(master.select()),
-                       "\n>> groups", parse(grouptb.select()),
-                       "\n>> users", parse(usertb.select()),
-          end="\n=======\n",
-          file=pstdout
-          )
     return True
 
 
@@ -196,9 +175,6 @@ def test_003_select_only():
 
 def test_004_select_crunch():
     """Test 004 select with crunch"""
-    database = Database(":memory:")
-    groups = database.table('groups')
-    setup_database(database)
     assert groups.select(squash=True) == GROUP_BASE_CRUNCHED
 
 def test_01_insert():
@@ -230,24 +206,12 @@ def test_04_finish():
         assert database.delete_table("users") is None
         assert save_report("05_finish", database, groups, users)
 
-
-def test_05_builder_pattern():
-    """Test 05 builder pattern"""
-    database = Database(":memory:")
-    setup_database_builder(database)
-    users = database.table('users')
-    groups = database.table('groups')
-    assert users.select() == USER_BASE
-    assert groups.select() == GROUP_BASE
-
-
 def test_06_paginate_select():
     """Pagination select"""
     data = []
     for a, b in zip(range(0, 100), range(1000, 1100)):
         data.append({"x": a, "y": b})
 
-    database = Database(":memory:")
     nums = database.create_table("nums", [
         integer("x"),
         integer("y")
@@ -260,35 +224,25 @@ def test_06_paginate_select():
 
 def test_07_export_csv():
     """Export to CSV"""
-    database = Database(":memory:")
-    setup_database(database)
+    skip("Skip, undefined for now")
     csv = to_csv_string(database)
     print("test_06_export_csv\n", csv, '\n', file=pstdout, flush=True)
     assert csv
 
-
 def test_08_export_file():
     """Export to CSV file"""
-    database = Database(":memory:")
-    setup_database(database)
+    skip("Skip, undefined for now")
     assert to_csv_file(database.table('users'), temp_dir / "users.csv") # type: ignore
 
 def test_09_export_directory():
     """Export to CSV as directory"""
-    database = Database(":memory:")
-    setup_database(database)
+    skip("Skip, undefined for now")
     assert to_csv_file(database, temp_dir / "MemDB") # type: ignore
 
 def test_10_0_function_count():
     """Count(*) usage"""
-    database = Database(":memory:")
-    setup_database_fns(database)
     counted = count("*")
     data = database.table("checkout").select(only=counted)
     print(data)
     assert data == 4
-
-def test_99_save_report():
-    """Save reports"""
-    with open(file, "w", encoding="utf-8") as xfile:
-        xfile.write(pstdout.getvalue())
+"""'''

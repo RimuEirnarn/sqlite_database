@@ -1,7 +1,7 @@
 """Column"""
 
-from typing import Any, Self
-from .locals import _PATH, SQLACTION, SQLITETYPES
+from typing import Any, Self, Callable
+from .locals import _PATH, SQLACTION
 from ._utils import check_one, matches
 from .typings import null
 
@@ -14,7 +14,7 @@ class Column:  # pylint: disable=too-many-instance-attributes
 
     def __init__(self,  # pylint: disable=too-many-arguments
                  name: str,
-                 type_: SQLITETYPES,
+                 type_: str,
                  foreign: bool = False,
                  foreign_ref: str | None = None,
                  primary: bool = False,
@@ -129,39 +129,71 @@ class Column:  # pylint: disable=too-many-instance-attributes
 class BuilderColumn:  # pylint: disable=too-many-instance-attributes
     """Builder Column -- Column Implementation using Builder Column"""
 
-    def __init__(self) -> None:
+    def __init__(self, _from_typelist: list[str] | None = None) -> None:
         self._update: SQLACTION = "cascade"
         self._delete: SQLACTION = "cascade"
         self._primary = False
         self._default = None
         self._nullable = False
         self._unique = False
-        self._type: SQLITETYPES = None  # type: ignore
+        self._type: str | None = None  # type: ignore
         self._name = ""
         self._source = ""
         self._source_column = ""
         self._foreign = False
+        self._types: list[str] = _from_typelist or []
+        self._has_defined_type = False
+
+    def _check_then_define(self):
+        if self._has_defined_type:
+            error = ValueError(f"Cannot reset current type of {self._type}")
+            error.add_note("Consider removing calls that refer as types.")
+            raise error
+        self._has_defined_type = True
+
+    def _set_name(self, name: str) -> Self:
+        self._name = name
+        return self
+
+    def set_type(self, name: str) -> Callable[[str], Self]:
+        """Set type from name, this will be handled by class' type checking.
+        This is a setup function. You need to do .set_type(type_name)(name) to do
+        similiar effect to .integer(name) as for example"""
+        self._check_then_define()
+        if not self._types:
+            self._type = name
+            return self._set_name
+        if name not in self._types:
+            self._has_defined_type = False
+            self._type = None
+            raise TypeError(f"{name} was not defined.")
+        self._type = name
+        return self._set_name
 
     def integer(self, name: str) -> Self:
         """Set as type integer"""
+        self._check_then_define()
         self._name = name
         self._type = "integer"
         return self
 
     def text(self, name: str) -> Self:
         """Set as type text"""
+        self._check_then_define()
         self._name = name
         self._type = 'text'
         return self
 
     def blob(self,  name: str) -> Self:
         """Set as type blob"""
+        self._check_then_define()
         self._name = name
         self._type = 'blob'
         return self
 
     def real(self, name: str) -> Self:
         """Set as type real"""
+        self._check_then_define()
         self._name = name
         self._type = 'real'
         return self
@@ -213,6 +245,8 @@ class BuilderColumn:  # pylint: disable=too-many-instance-attributes
 
     def to_column(self):
         """Conver from BuilderColumn to Column"""
+        if not self._type:
+            raise ValueError("type must be defined first")
         return Column(self._name,
                       self._type,
                       self._foreign,
@@ -248,5 +282,9 @@ def real(name: str) -> BuilderColumn:
     """Create a real column with name"""
     return BuilderColumn().real(name)
 
+def create_calls(typename: str, types: list[str]) -> Callable[[str], BuilderColumn]:
+    """Create a dynamic call for types. This is intended to mimic
+    this module's real(), text(), ... with custom types."""
+    return BuilderColumn(types).set_type(typename)
 
 __all__ = ['Column', 'BuilderColumn', 'text', 'integer', 'blob', 'real']

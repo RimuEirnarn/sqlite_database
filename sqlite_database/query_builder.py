@@ -4,19 +4,21 @@ from functools import lru_cache
 from shlex import shlex
 from typing import Any, Iterable, Literal, Optional
 
+from .functions import ParsedFn, _function_extract
 from ._utils import check_one, null, check_iter
 from .column import Column
 from .locals import _SQLITETYPES
 from .signature import Signature, op
-from .typings import _MasterQuery, Data, Orders, OnlyColumn
+from .typings import _MasterQuery, Data, Orders
 
-ConditionDict = dict[str, Signature | Any]
-ConditionList = list[tuple[str, Signature]]
+ConditionDict = dict[str, Signature | ParsedFn | Any]
+ConditionList = list[tuple[str, Signature | ParsedFn]]
 Condition = ConditionDict | ConditionList | None
-CacheCond = tuple[tuple[str, Signature], ...] | None
-CacheOrders = tuple[str, Literal['asc', 'desc']] | None
+CacheCond = tuple[tuple[str, Signature | ParsedFn], ...] | None
+CacheOrders = tuple[str, Literal['asc', 'desc']] | ParsedFn | None
 CacheData = tuple[str, ...]
-
+OnlyColumn = tuple[str, ...] | ParsedFn
+DEFAULT_MAPPINGS = {value: value for value in _SQLITETYPES}
 
 def extract_table(table_creation: str):  # pylint: disable=too-many-locals
     """Extract SQLite table string"""
@@ -143,6 +145,9 @@ def basic_extract(table_creation: str):  # pylint: disable=too-many-locals
                         primary, unique, not notnull, defaults if defaults else None]
     return cols, upheld
 
+# Old place of function_extract
+function_extract = _function_extract
+
 
 def filter_extraction(string: str, shlexed: list[str]):
     """A function step of table extraction. Used to replace quoted and parens with parameter."""
@@ -227,18 +232,18 @@ def extract_single_column(column: Column):
         string += f"foreign key references {column.source} ({column.source_column})"
     return string
 
-
-def extract_table_creations(columns: Iterable[Column]):
-    """Extract columns classes to sqlite table creation query."""
-    string = ''
-    primaries: list[Column] = []
-    foreigns: list[Column] = []
+def _iterate_etbc_step1(columns: Iterable[Column],
+                        string: str,
+                        primaries: list[Column],
+                        foreigns: list[Column],
+                        maps: dict[str, str]):
     for column in columns:
+        ctype = maps.get(column.type, column.type)
+        string += f" {column.name} {ctype}"
         if column.raw_source:
             foreigns.append(column)
         if column.primary:
             primaries.append(column)
-        string += f" {column.name} {column.type}"
         if not column.nullable:
             string += " not null"
         if column.unique:
@@ -246,6 +251,17 @@ def extract_table_creations(columns: Iterable[Column]):
         if column.default:
             string += f" default {repr(column.default)}"
         string += ','
+    return string
+
+def extract_table_creations(columns: Iterable[Column],
+                            type_mappings: dict[str, str] | None = None):
+    """Extract columns classes to sqlite table creation query."""
+    maps: dict[str, str] = DEFAULT_MAPPINGS.copy()
+    if type_mappings:
+        maps.update(type_mappings)
+    primaries: list[Column] = []
+    foreigns: list[Column] = []
+    string = _iterate_etbc_step1(columns, "", primaries, foreigns, maps)
 
     if primaries:
         string += f" primary key ({', '.join((col.name for col in primaries))}),"
@@ -259,6 +275,13 @@ def extract_table_creations(columns: Iterable[Column]):
         # ! This might be a buggy code, i'm not sure yet.
     return string[1:-1]
 
+def _select_onlyparam_parse(data: str | ParsedFn):
+    if isinstance(data, str):
+        return data
+    x = function_extract(data)
+    if isinstance(x, tuple):
+        return x[0]
+    return x
 
 def _setup_hashable(condition: Condition, order: Optional[Orders] = None, data: Data | None = None):
     cond = None
@@ -280,16 +303,19 @@ def _setup_hashable(condition: Condition, order: Optional[Orders] = None, data: 
 @lru_cache
 def _build_select(table_name: str, # pylint: disable=too-many-arguments
                   condition: CacheCond,
-                  only: OnlyColumn = None,
+                  only: OnlyColumn = None, # type: ignore
                   limit: int = 0,
                   offset: int = 0,
                   order: CacheOrders = None):
     check_one(table_name)
     cond, data = extract_signature(condition)
-    check_iter(only or ())
+    check_iter(only or ()) # type: ignore
     only_ = "*"
-    if only:
-        only_ = f"({', '.join((column_name for column_name in only))})"
+    if only and isinstance(only, ParsedFn):
+        only_ = only.parse_sql()
+    elif only and only != '*':
+        only_ = f"({', '.join(column_name for column_name in only)})"
+
     query = f"select {only_} from {table_name}{' '+cond if cond else ''}"
     if limit:
         query += f" limit {limit}"
@@ -300,6 +326,7 @@ def _build_select(table_name: str, # pylint: disable=too-many-arguments
         for ord_, order_by in order:
             query += f" {ord_} {order_by},"
         query = query[:-1]
+    print(query)
     return query, data
 
 
@@ -356,7 +383,7 @@ values ({', '.join(val for val in converged.values())})"
 
 def build_select(table_name: str,  # pylint: disable=too-many-arguments
                  condition: Condition = None,
-                 only: tuple[str, ...] | None = None,
+                 only: tuple[str, ...] | ParsedFn | Literal['*'] = '*',
                  limit: int = 0,
                  offset: int = 0,
                  order: Optional[Orders] = None) -> tuple[str, dict[str, Any]]:

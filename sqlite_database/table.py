@@ -1,26 +1,28 @@
 """Table"""
 
 from sqlite3 import Connection, OperationalError
-from typing import Any, Generator, Iterable, NamedTuple, Optional, Type
+from typing import Any, Generator, Iterable, NamedTuple, Optional, Type, overload
 
 import weakref
+
+from sqlite_database.functions import ParsedFn, Function
 
 
 from .utils import crunch
 from ._utils import check_iter, check_one
 from .column import BuilderColumn, Column
 from .errors import TableRemovedError, UnexpectedResultError
-from .locals import SQLITEPYTYPES
+from .locals import SQLITEPYTYPES, PLUGINS_PATH
 from .query_builder import (Condition, extract_single_column,
                             fetch_columns, build_select,
                             build_insert, build_delete,
                             build_update)
 from .signature import op
 from .typings import (Data, Orders, Queries, Query, TypicalNamedTuple,
-                      _MasterQuery, OnlyColumn)
-from .config import Config
+                      _MasterQuery, OnlyColumn, SquashedSqueries)
 
 # Let's add a little bit of 'black' magic here.
+_null = Function("__NULL__")()
 
 
 @classmethod
@@ -36,13 +38,15 @@ class Table:
     def __init__(self,
                  parent,  # type: ignore
                  table: str,
-                 db_config: Config | None = None,
                  __columns: Optional[Iterable[Column]] = None) -> None:
+        if parent.closed:
+            raise ConnectionError("Connection to database is already closed.")
         self._parent_repr = repr(parent)
         self._sql: Connection = parent.sql
+        # pylint: disable-next=protected-access
+        self._sql_path = parent._path
         self._deleted = False
         self._table = check_one(table)
-        self._config = db_config or Config(crunch=False)
         self._columns: Optional[list[Column]] = list(
             __columns) if __columns else None
         weakref.finalize(self, self._finalize)
@@ -64,7 +68,9 @@ class Table:
         try:
             query, data = build_select("sqlite_master",
                                        {"type": op == "table", "name": op == table})
-            tabl = self._sql.execute(query, data).fetchone()
+            cursor = self._sql.cursor()
+            cursor.execute(query, data)
+            tabl = cursor.fetchone()
             if tabl is None:
                 raise ValueError("What the hell?")
             cols = fetch_columns(_MasterQuery(**tabl))
@@ -104,7 +110,8 @@ class Table:
         query, data = build_delete(
             self._table, condition, limit, order)  # type: ignore
         self._control()
-        cursor = self._sql.execute(query, data)
+        cursor = self._sql.cursor()
+        cursor.execute(query, data)
         rcount = cursor.rowcount
         self._sql.commit()
         return rcount
@@ -130,7 +137,8 @@ class Table:
         """
         query, _ = build_insert(self._table, data)  # type: ignore
         self._control()
-        cursor = self._sql.execute(query, data)
+        cursor = self._sql.cursor()
+        cursor.execute(query, data)
         rlastrowid = cursor.lastrowid
         self._sql.commit()
         return rlastrowid
@@ -143,7 +151,8 @@ class Table:
         """
         self._control()
         query, _ = build_insert(self._table, datas[0])  # type: ignore
-        self._sql.executemany(query, datas)
+        cursor = self._sql.cursor()
+        cursor.executemany(query, datas)
         self._sql.commit()
 
     def insert_many(self, datas: list[Data]):
@@ -172,7 +181,8 @@ class Table:
         query, data = build_update(
             self._table, data, condition, limit, order)  # type: ignore
         self._control()
-        cursor = self._sql.execute(query, data)
+        cursor = self._sql.cursor()
+        cursor.execute(query, data)
         rcount = cursor.rowcount
         self._sql.commit()
         return rcount
@@ -184,20 +194,52 @@ class Table:
         """Update 1 data only"""
         return self.update(condition, new_data, 1, order)
 
-    def select(self, # pylint: disable=too-many-arguments
+    @overload
+    def select(self,
                condition: Condition = None,
-               only: tuple[str, ...] | None = None,
+               only: OnlyColumn = '*',
                limit: int = 0,
                offset: int = 0,
-               order: Optional[Orders] = None) -> Queries:
+               order: Optional[Orders] = None,
+               squash: bool = False) -> Queries:
+        pass
+
+    @overload
+    def select(self,
+               condition: Condition = None,
+               only: OnlyColumn = '*',
+               limit: int = 0,
+               offset: int = 0,
+               order: Optional[Orders] = None,
+               squash: bool = True) -> SquashedSqueries:
+        pass
+
+    @overload
+    def select(self,
+               condition: Condition = None,
+               only: ParsedFn = _null,
+               limit: int = 0,
+               offset: int = 0,
+               order: Optional[Orders] = None,
+               squash: bool = False) -> Any:
+        pass
+
+    def select(self, # pylint: disable=too-many-arguments
+               condition: Condition = None,
+               only: OnlyColumn | ParsedFn = '*',
+               limit: int = 0,
+               offset: int = 0,
+               order: Optional[Orders] = None,
+               squash: bool = False):
         """Select data in current table. Bare .select() returns all data.
 
         Args:
             condition (Condition, optional): Conditions to used. Defaults to None.
-            only: (OnlyColumn, optional): Select what you want. Default to None.
+            only: (OnlyColumn, ParsedFn, optional): Select what you want. Default to None.
             limit (int, optional): Limit of select. Defaults to 0.
             offset (int, optional): Offset. Defaults to 0
             order (Optional[Orders], optional): Selection order. Defaults to None.
+            squash (bool): Is it squashed?
 
         Returns:
             Queries: Selected data
@@ -210,16 +252,39 @@ class Table:
                                    offset,
                                    order)  # type: ignore
         with self._sql:
-            data = self._sql.execute(query, data).fetchall()
-            if self._config['crunch']:
+            cursor = self._sql.cursor()
+            cursor.execute(query, data)
+            data = cursor.fetchall()
+            if squash:
                 return crunch(data)
+            if isinstance(only, ParsedFn):
+                return data[0][only.parse_sql()]
             return data
+
+    @overload
+    def paginate_select(self,
+                        condition: Condition = None,
+                        only: OnlyColumn = '*',
+                        length: int = 10,
+                        order: Optional[Orders] = None,
+                        squash: bool = False) -> Generator[Queries, None, None]:
+        pass
+
+    @overload
+    def paginate_select(self,
+                        condition: Condition = None,
+                        only: OnlyColumn = '*',
+                        length: int = 10,
+                        order: Optional[Orders] = None,
+                        squash: bool = True) -> Generator[SquashedSqueries, None, None]:
+        pass
 
     def paginate_select(self,
                         condition: Condition = None,
-                        only: OnlyColumn = None,
+                        only: OnlyColumn = '*',
                         length: int = 10,
-                        order: Optional[Orders] = None) -> Generator[Queries, None, None]:
+                        order: Optional[Orders] = None,
+                        squash: bool = False):
         """Paginate select
 
         Args:
@@ -240,10 +305,12 @@ class Table:
                                        length,
                                        start,
                                        order)  # type: ignore
-            crunched = self._config["crunch"]
+            crunched = squash
             with self._sql:
-                fetched = self._sql.execute(
-                    query, data).fetchmany(length)
+                cursor = self._sql.cursor()
+                cursor.execute(
+                    query, data)
+                fetched = cursor.fetchmany(length)
                 if len(fetched) == 0:
                     return
                 if crunched:
@@ -254,9 +321,23 @@ class Table:
                 yield fetched
                 start += length
 
+    @overload
     def select_one(self,
                    condition: Condition = None,
-                   only: OnlyColumn = None,
+                   only: ParsedFn = _null,
+                   order: Optional[Orders] = None) -> Any:
+        pass
+
+    @overload
+    def select_one(self,
+                   condition: Condition = None,
+                   only: OnlyColumn = '*',
+                   order: Optional[Orders] = None) -> Query | None:
+        pass
+
+    def select_one(self,
+                   condition: Condition = None,
+                   only: OnlyColumn | ParsedFn = '*',
                    order: Optional[Orders] = None) -> Query | None:
         """Select one data
 
@@ -272,7 +353,12 @@ class Table:
         query, data = build_select(
             self._table, condition, only, 1, 0, order)  # type: ignore
         with self._sql:
-            return self._sql.execute(query, data).fetchone()
+            cursor = self._sql.cursor()
+            cursor.execute(query, data)
+            data = cursor.fetchone()
+            if isinstance(only, ParsedFn):
+                return data[only.parse_sql()]
+            return data
 
     def exists(self, condition: Condition = None):
         """Check if data is exists or not.
@@ -287,6 +373,9 @@ class Table:
 
     def get_namespace(self) -> Type[TypicalNamedTuple]:
         """Generate or return pre-existed namespace/table."""
+        if self._sql_path in PLUGINS_PATH:
+            plugin = self._sql_path[2:]
+            raise ValueError(f"Redefining get_namespace required for plugin {plugin}")
         if self._ns.get(self._table, None):
             return self._ns[self._table]
         self._control()
