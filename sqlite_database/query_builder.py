@@ -326,7 +326,6 @@ def _build_select(table_name: str, # pylint: disable=too-many-arguments
         for ord_, order_by in order:
             query += f" {ord_} {order_by},"
         query = query[:-1]
-    print(query)
     return query, data
 
 
