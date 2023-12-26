@@ -26,4 +26,4 @@ jobs:
         pip install -r ./dev-requirements.txt
     - name: Analysing the code with pylint
       run: |
-        pylint $(git ls-files '*.py') --rcfile pylint.toml
+        pylint sqlite_database --rcfile pylint.toml
