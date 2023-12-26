@@ -11,6 +11,7 @@
     2. [Update](#update)
     3. [Delete](#delete)
     4. [Insert](#insert)
+    5. [Functions](#functions)
 3. [Database-related operation](#database-related-operation)
     1. [Create Table](#create-table)
     2. [Delete Table](#delete-table)
@@ -101,6 +102,44 @@ Meaning it loops, select (base on offset and limit), check if length is equal to
 
 `offset` isn't available as parameter yet but exists for `select` method.
 
+**New in v0.4.0**: parameter `only`.
+
+`only` is introduced so that you can select what column do you want on a select operation, use it as usual. However, `only` can also be used on [functions](#functions) too.
+
+So for example:
+
+```python
+person = table.select(only=('name', 'age'))
+```
+
+is the same as
+
+```sql
+select name, age from table
+```
+
+On the other hand, a function can also be used in `only`:
+
+```python
+table.select(only=count('*'))
+```
+
+which achieves the same as
+
+```sql
+select COUNT(*) from table
+```
+
+#### Crunchy Selection
+
+The result of select operation is usually list/tuples of `AttrDict` however, a `crunch` option can be used to 'inverse' it into returning a `AttrDict` where each values are lists.
+
+```python
+table.select(squash=True)
+```
+
+The example will do the trick.
+
 ### Update
 
 ```python
@@ -127,6 +166,16 @@ data = table.delete([
 table.insert({
     'row': 2
 })
+```
+
+### Functions
+
+You can now use function on latest version (from `0.4.0`) however for now, it's limited to only `.select()` queries. However, practically you can use any functions defined.
+
+```python
+from sqlite_database.functions import Function
+count = Function('COUNT')
+person.select(only=count('*'))
 ```
 
 ## Database-related operation
