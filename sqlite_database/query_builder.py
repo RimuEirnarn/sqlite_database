@@ -3,9 +3,8 @@
 from functools import lru_cache
 from shlex import shlex
 from typing import Any, Iterable, Literal, Optional
-from random import randint
 
-from .functions import ParsedFn
+from .functions import ParsedFn, _function_extract
 from ._utils import check_one, null, check_iter
 from .column import Column
 from .locals import _SQLITETYPES
@@ -146,25 +145,9 @@ def basic_extract(table_creation: str):  # pylint: disable=too-many-locals
                         primary, unique, not notnull, defaults if defaults else None]
     return cols, upheld
 
+# Old place of function_extract
+function_extract = _function_extract
 
-def function_extract(parsed: ParsedFn) -> tuple[str, dict[str, Any]] | str:
-    """Extract function into SQL function syntax."""
-    check_one(parsed.name)
-    if len(parsed.values) == 1 and parsed.values in (None, ...):
-        return f"{parsed.name}(*)"
-    string = parsed.name + "("
-    data = {}
-    # ? we don't know how many same function calls at the same time, though we can use count param.
-    suffix = randint(0, 100000)
-    for i in enumerate(parsed.values):
-        key = f":{parsed.name}{suffix}_{i}"
-        if isinstance(i, ParsedFn):
-            data[key] = function_extract(i)
-            continue
-        data[key] = i
-        string += f"{key}, "
-    string = string[:-2] + ")"
-    return string
 
 def filter_extraction(string: str, shlexed: list[str]):
     """A function step of table extraction. Used to replace quoted and parens with parameter."""
@@ -292,6 +275,13 @@ def extract_table_creations(columns: Iterable[Column],
         # ! This might be a buggy code, i'm not sure yet.
     return string[1:-1]
 
+def _select_onlyparam_parse(data: str | ParsedFn):
+    if isinstance(data, str):
+        return data
+    x = function_extract(data)
+    if isinstance(x, tuple):
+        return x[0]
+    return x
 
 def _setup_hashable(condition: Condition, order: Optional[Orders] = None, data: Data | None = None):
     cond = None
@@ -313,16 +303,19 @@ def _setup_hashable(condition: Condition, order: Optional[Orders] = None, data: 
 @lru_cache
 def _build_select(table_name: str, # pylint: disable=too-many-arguments
                   condition: CacheCond,
-                  only: OnlyColumn = None,
+                  only: OnlyColumn = None, # type: ignore
                   limit: int = 0,
                   offset: int = 0,
                   order: CacheOrders = None):
     check_one(table_name)
     cond, data = extract_signature(condition)
-    check_iter(only or ())
+    check_iter(only or ()) # type: ignore
     only_ = "*"
-    if only:
-        only_ = f"({', '.join((column_name for column_name in only))})"
+    if only and isinstance(only, ParsedFn):
+        only_ = only.parse_sql()
+    elif only and only != '*':
+        only_ = f"({', '.join(column_name for column_name in only)})"
+
     query = f"select {only_} from {table_name}{' '+cond if cond else ''}"
     if limit:
         query += f" limit {limit}"
@@ -333,6 +326,7 @@ def _build_select(table_name: str, # pylint: disable=too-many-arguments
         for ord_, order_by in order:
             query += f" {ord_} {order_by},"
         query = query[:-1]
+    print(query)
     return query, data
 
 
@@ -389,7 +383,7 @@ values ({', '.join(val for val in converged.values())})"
 
 def build_select(table_name: str,  # pylint: disable=too-many-arguments
                  condition: Condition = None,
-                 only: tuple[str, ...] | None = None,
+                 only: tuple[str, ...] | ParsedFn | Literal['*'] = '*',
                  limit: int = 0,
                  offset: int = 0,
                  order: Optional[Orders] = None) -> tuple[str, dict[str, Any]]:

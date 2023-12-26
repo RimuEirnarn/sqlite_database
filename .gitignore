@@ -166,3 +166,4 @@ reports.txt
 /profiled.prof
 /mprofile*
 /t_*
+/logs

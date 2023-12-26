@@ -5,12 +5,14 @@ from typing import Any, Generator, Iterable, NamedTuple, Optional, Type, overloa
 
 import weakref
 
+from sqlite_database.functions import ParsedFn, Function
+
 
 from .utils import crunch
 from ._utils import check_iter, check_one
 from .column import BuilderColumn, Column
 from .errors import TableRemovedError, UnexpectedResultError
-from .locals import SQLITEPYTYPES
+from .locals import SQLITEPYTYPES, PLUGINS_PATH
 from .query_builder import (Condition, extract_single_column,
                             fetch_columns, build_select,
                             build_insert, build_delete,
@@ -20,6 +22,7 @@ from .typings import (Data, Orders, Queries, Query, TypicalNamedTuple,
                       _MasterQuery, OnlyColumn, SquashedSqueries)
 
 # Let's add a little bit of 'black' magic here.
+_null = Function("__NULL__")()
 
 
 @classmethod
@@ -40,6 +43,8 @@ class Table:
             raise ConnectionError("Connection to database is already closed.")
         self._parent_repr = repr(parent)
         self._sql: Connection = parent.sql
+        # pylint: disable-next=protected-access
+        self._sql_path = parent._path
         self._deleted = False
         self._table = check_one(table)
         self._columns: Optional[list[Column]] = list(
@@ -63,7 +68,9 @@ class Table:
         try:
             query, data = build_select("sqlite_master",
                                        {"type": op == "table", "name": op == table})
-            tabl = self._sql.execute(query, data).fetchone()
+            cursor = self._sql.cursor()
+            cursor.execute(query, data)
+            tabl = cursor.fetchone()
             if tabl is None:
                 raise ValueError("What the hell?")
             cols = fetch_columns(_MasterQuery(**tabl))
@@ -103,7 +110,8 @@ class Table:
         query, data = build_delete(
             self._table, condition, limit, order)  # type: ignore
         self._control()
-        cursor = self._sql.execute(query, data)
+        cursor = self._sql.cursor()
+        cursor.execute(query, data)
         rcount = cursor.rowcount
         self._sql.commit()
         return rcount
@@ -129,7 +137,8 @@ class Table:
         """
         query, _ = build_insert(self._table, data)  # type: ignore
         self._control()
-        cursor = self._sql.execute(query, data)
+        cursor = self._sql.cursor()
+        cursor.execute(query, data)
         rlastrowid = cursor.lastrowid
         self._sql.commit()
         return rlastrowid
@@ -142,7 +151,8 @@ class Table:
         """
         self._control()
         query, _ = build_insert(self._table, datas[0])  # type: ignore
-        self._sql.executemany(query, datas)
+        cursor = self._sql.cursor()
+        cursor.executemany(query, datas)
         self._sql.commit()
 
     def insert_many(self, datas: list[Data]):
@@ -171,7 +181,8 @@ class Table:
         query, data = build_update(
             self._table, data, condition, limit, order)  # type: ignore
         self._control()
-        cursor = self._sql.execute(query, data)
+        cursor = self._sql.cursor()
+        cursor.execute(query, data)
         rcount = cursor.rowcount
         self._sql.commit()
         return rcount
@@ -186,7 +197,7 @@ class Table:
     @overload
     def select(self,
                condition: Condition = None,
-               only: tuple[str, ...] | None = None,
+               only: OnlyColumn = '*',
                limit: int = 0,
                offset: int = 0,
                order: Optional[Orders] = None,
@@ -196,17 +207,26 @@ class Table:
     @overload
     def select(self,
                condition: Condition = None,
-               only: tuple[str, ...] | None = None,
+               only: OnlyColumn = '*',
                limit: int = 0,
                offset: int = 0,
                order: Optional[Orders] = None,
                squash: bool = True) -> SquashedSqueries:
         pass
 
+    @overload
+    def select(self,
+               condition: Condition = None,
+               only: ParsedFn = _null,
+               limit: int = 0,
+               offset: int = 0,
+               order: Optional[Orders] = None,
+               squash: bool = False) -> Any:
+        pass
 
     def select(self, # pylint: disable=too-many-arguments
                condition: Condition = None,
-               only: tuple[str, ...] | None = None,
+               only: OnlyColumn | ParsedFn = '*',
                limit: int = 0,
                offset: int = 0,
                order: Optional[Orders] = None,
@@ -215,10 +235,11 @@ class Table:
 
         Args:
             condition (Condition, optional): Conditions to used. Defaults to None.
-            only: (OnlyColumn, optional): Select what you want. Default to None.
+            only: (OnlyColumn, ParsedFn, optional): Select what you want. Default to None.
             limit (int, optional): Limit of select. Defaults to 0.
             offset (int, optional): Offset. Defaults to 0
             order (Optional[Orders], optional): Selection order. Defaults to None.
+            squash (bool): Is it squashed?
 
         Returns:
             Queries: Selected data
@@ -231,15 +252,19 @@ class Table:
                                    offset,
                                    order)  # type: ignore
         with self._sql:
-            data = self._sql.execute(query, data).fetchall()
+            cursor = self._sql.cursor()
+            cursor.execute(query, data)
+            data = cursor.fetchall()
             if squash:
                 return crunch(data)
+            if isinstance(only, ParsedFn):
+                return data[0][only.parse_sql()]
             return data
 
     @overload
     def paginate_select(self,
                         condition: Condition = None,
-                        only: OnlyColumn = None,
+                        only: OnlyColumn = '*',
                         length: int = 10,
                         order: Optional[Orders] = None,
                         squash: bool = False) -> Generator[Queries, None, None]:
@@ -248,7 +273,7 @@ class Table:
     @overload
     def paginate_select(self,
                         condition: Condition = None,
-                        only: OnlyColumn = None,
+                        only: OnlyColumn = '*',
                         length: int = 10,
                         order: Optional[Orders] = None,
                         squash: bool = True) -> Generator[SquashedSqueries, None, None]:
@@ -256,7 +281,7 @@ class Table:
 
     def paginate_select(self,
                         condition: Condition = None,
-                        only: OnlyColumn = None,
+                        only: OnlyColumn = '*',
                         length: int = 10,
                         order: Optional[Orders] = None,
                         squash: bool = False):
@@ -282,8 +307,10 @@ class Table:
                                        order)  # type: ignore
             crunched = squash
             with self._sql:
-                fetched = self._sql.execute(
-                    query, data).fetchmany(length)
+                cursor = self._sql.cursor()
+                cursor.execute(
+                    query, data)
+                fetched = cursor.fetchmany(length)
                 if len(fetched) == 0:
                     return
                 if crunched:
@@ -294,9 +321,23 @@ class Table:
                 yield fetched
                 start += length
 
+    @overload
     def select_one(self,
                    condition: Condition = None,
-                   only: OnlyColumn = None,
+                   only: ParsedFn = _null,
+                   order: Optional[Orders] = None) -> Any:
+        pass
+
+    @overload
+    def select_one(self,
+                   condition: Condition = None,
+                   only: OnlyColumn = '*',
+                   order: Optional[Orders] = None) -> Query | None:
+        pass
+
+    def select_one(self,
+                   condition: Condition = None,
+                   only: OnlyColumn | ParsedFn = '*',
                    order: Optional[Orders] = None) -> Query | None:
         """Select one data
 
@@ -312,7 +353,12 @@ class Table:
         query, data = build_select(
             self._table, condition, only, 1, 0, order)  # type: ignore
         with self._sql:
-            return self._sql.execute(query, data).fetchone()
+            cursor = self._sql.cursor()
+            cursor.execute(query, data)
+            data = cursor.fetchone()
+            if isinstance(only, ParsedFn):
+                return data[only.parse_sql()]
+            return data
 
     def exists(self, condition: Condition = None):
         """Check if data is exists or not.
@@ -327,6 +373,9 @@ class Table:
 
     def get_namespace(self) -> Type[TypicalNamedTuple]:
         """Generate or return pre-existed namespace/table."""
+        if self._sql_path in PLUGINS_PATH:
+            plugin = self._sql_path[2:]
+            raise ValueError(f"Redefining get_namespace required for plugin {plugin}")
         if self._ns.get(self._table, None):
             return self._ns[self._table]
         self._control()

@@ -3,6 +3,7 @@ from weakref import finalize, WeakValueDictionary
 from sqlite3 import OperationalError, connect
 from typing import Iterable, Optional, Mapping
 
+from .locals import PLUGINS_PATH
 from ._utils import (WithCursor, check_iter, check_one, dict_factory,
                      sqlite_multithread_check)
 from .column import BuilderColumn, Column
@@ -16,7 +17,6 @@ __all__ = ['Database']
 IGNORE_TABLE_CHECKS = (
     "sqlite_master", "sqlite_temp_schema", "sqlite_temp_master")
 
-PLUGINS_PATH = ('--mysql',)
 
 class Database:
     """Sqlite3 database, this provide basic integration."""
@@ -27,7 +27,7 @@ class Database:
         if path in cls._active:
             return cls._active[path]
         self = object.__new__(cls)
-        if path != ":memory:":
+        if path != ":memory:" and cls == Database:
             cls._active[str(path)] = self # type: ignore
         return self
 
@@ -68,10 +68,10 @@ class Database:
             column, BuilderColumn) else column for column in columns)
         tbquery = extract_table_creations(columns)
         query = f"create table {table} ({tbquery})"
-        print(query)
 
         try:
-            self._database.execute(query)
+            cursor = self._database.cursor()
+            cursor.execute(query)
             self._database.commit()
         except OperationalError as error:
             dberror = DatabaseExistsError(f"table {table} already exists.")
@@ -90,7 +90,7 @@ class Database:
         """
         check_one(table)
         table_ = self.table(table)
-        self._database.execute(f"drop table {table}")
+        self._database.cursor().execute(f"drop table {table}")
         # pylint: disable-next=protected-access
         del self._table_instances[table]
         table_._delete_hook()  # pylint: disable=protected-access
@@ -103,7 +103,9 @@ class Database:
         try:
             this_table = Table(self, table, __columns)
         except OperationalError as exc:
-            raise DatabaseMissingError(f"table {table} does not exists") from exc
+            dberror = DatabaseMissingError(f"table {table} does not exists")
+            dberror.add_note(f"{type(exc).__name__}: {exc!s}")
+            raise dberror from None
         self._table_instances[table] = this_table
         return this_table
 
@@ -118,23 +120,28 @@ class Database:
     def rename_table(self, old_table: str, new_table: str) -> Table:
         """Rename existing table to a new one."""
         check_iter((old_table, new_table))
-        self.sql.execute(f"alter table {old_table} rename to {new_table}")
+        cursor = self.sql.cursor()
+        cursor.execute(f"alter table {old_table} rename to {new_table}")
         self.sql.commit()
         return self.table(new_table)
 
     def check_table(self, table: str):
         """Check if table is exists or not."""
+        if self._path in PLUGINS_PATH:
+            plugin = self._path[2:]
+            raise ValueError(f"Plugin {plugin} must redefine check_table.")
         check_one(table)
         if table in IGNORE_TABLE_CHECKS:
             return True  # Let's return true.
-        cursor = self.sql.execute(
+        cursor = self.sql.cursor()
+        cursor.execute(
             "select name from sqlite_master where type='table' and name=?", (table,))
         if cursor.fetchone():
             return True
         return False
 
     def __repr__(self) -> str:
-        return f"<Database {id(self)}>"
+        return f"<{type(self).__name__} {id(self)}>"
 
     def close(self):
         """Close database"""

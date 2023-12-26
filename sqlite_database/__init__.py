@@ -6,6 +6,10 @@ from .column import Column, text, integer, blob, real
 from .signature import op
 from .table import Table
 
+def test_installed():
+    """Is the module installed?"""
+    return True
+
 __version__ = "0.3.0"
 __all__ = ["Database", "Table", "op",
            "Column", "null", 'AttrDict', 'text', 'integer', 'real', 'blob']

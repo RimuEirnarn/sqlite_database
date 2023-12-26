@@ -13,6 +13,8 @@ _NPATH_STR = punctuation.replace("/", "")
 _NPATH = re_compile(f"[{re_escape(_NPATH_STR)}]+")
 _PATH = re_compile(f"[{re_escape('/')}]+")
 
+PLUGINS_PATH = ('--mysql',)
+
 _SQLITETYPES = [
     "blob", "null", "integer", "real", 'text'
 ]
