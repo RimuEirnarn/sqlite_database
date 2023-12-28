@@ -28,6 +28,9 @@ SQLite Database is a weird wrapper for SQLite Connection. It's intended to be ea
 
 I will (always) try to bring more simplifications and others that could be done with SQL in general.
 
+> [!WARNING]
+> This project as per version number (<1.0) is not either efficient (in term of memory usage) and speed. If you found a serious problem, please let us know.
+
 ## Installation
 
 Installation from PyPI is now available, `pip install sqlite-database`
