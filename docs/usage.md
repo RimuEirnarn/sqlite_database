@@ -32,7 +32,7 @@ from sqlite_database.operators import eq, like, between
 value = 0 # You can use almost anything.
 ```
 
-For table and database, you can create any dummy database but here's one (assuming you have paste above snippet):
+For table and database, you can create any dummy database but here's one (assuming you have pasted the above snippet):
 
 ```python
 from sqlite_database import Database, integer, text
@@ -69,7 +69,7 @@ data = table.select([
 ])
 ```
 
-Any other variations are just math operators, for list, operations can be obtained from `operators` module.
+Any other variations are just math operators, for the list, operations can be obtained from the `operators` module.
 
 ### Some constraints
 
@@ -93,18 +93,20 @@ data = table.select([
 
 ### Select
 
-[here](#more-filter)
+```python
+data = table.select({'row': 0})
+```
 
-`paginate_select` have same effect as `select` exxcept that it's paginate.
+`paginate_select` has the same effect as `select` except that it's paginate.
 
-As it stands, it only covers at length parameters for a iteration-turn.
-Meaning it loops, select (base on offset and limit), check if length is equal to length parameter, yield, and increment the offset by the length.
+As it stands, it only covers at-length parameters for an iteration-turn.
+This means it loops, selects (based on offset and limit), checks if the length is equal to the length parameter, yields, and increments the offset by the length.
 
-`offset` isn't available as parameter yet but exists for `select` method.
+`offset` isn't available as a parameter yet but exists for the `select` method.
 
 **New in v0.4.0**: parameter `only`.
 
-`only` is introduced so that you can select what column do you want on a select operation, use it as usual. However, `only` can also be used on [functions](#functions) too.
+`only` is introduced so that you can select what column you want on a select operation, and use it as usual. However, `only` can also be used on [functions](#functions) too.
 
 So for example:
 
@@ -132,7 +134,7 @@ select COUNT(*) from table
 
 #### Crunchy Selection
 
-The result of select operation is usually list/tuples of `AttrDict` however, a `crunch` option can be used to 'inverse' it into returning a `AttrDict` where each values are lists.
+The result of the select operation is usually a list/tuples of `AttrDict` however, a `crunch` option can be used to 'inverse' it into returning an `AttrDict` where each value are list.
 
 ```python
 table.select(squash=True)
@@ -150,7 +152,7 @@ table.update({
 })
 ```
 
-You can use `update_one` and `update`. The only difference is that, `update_one` have 3 parameters. (yes, excluding `limit` param.)
+You can use `update_one` and `update`. The only difference is that `update_one` has 3 parameters. (yes, excluding the `limit` param.)
 
 ### Delete
 
@@ -170,7 +172,7 @@ table.insert({
 
 ### Functions
 
-You can now use function on latest version (from `0.4.0`) however for now, it's limited to only `.select()` queries. However, practically you can use any functions defined.
+You can now use functions on the latest version (from `0.4.0`) however for now, it's limited to only `.select()` queries. However, practically you can use any functions defined.
 
 ```python
 from sqlite_database.functions import Function
@@ -180,13 +182,18 @@ person.select(only=count('*'))
 
 ## Database-related operation
 
-You can use `cursor` method to actually use raw SQLite Connection, or access the `sql` property to access **the** connection.
+You can use the `cursor` method to use raw SQLite Connection or access the `sql` property to access **the** connection.
 
-For connecting to database, you can pass any regular keyword args or args for connect (see `sqlite3.connect`)
+For connecting to the database, you can pass any regular keyword args or args for connect (see `sqlite3.connect`)
 
 ### Create Table
 
-At the top of this file should have something named `create_table`
+```python
+table = db.create_table('table', [
+    integer('row'),
+    text('row2')
+])
+```
 
 ### Delete table
 
@@ -229,7 +236,7 @@ db.tables
 
 ## Export
 
-You can export database/table to csv, for now, import functionality will not be added.
+You can export the database/table to CSV, for now, import functionality will not be added.
 
 Make sure to add this line
 
@@ -237,9 +244,9 @@ Make sure to add this line
 from sqlite_database.csv import to_csv_file, to_csv_string
 ```
 
-You can use `to_csv_string` than `to_csv_file`, all you need is to pass the table or database.
+You can use `to_csv_string` rather than `to_csv_file`, all you need is to pass the table or database.
 
-**Note**: Return type for database is tuple indicating `(name, csv)`,and by that, `to_csv_file` would make sure that filename passed is a directory and the content will be all table files. E.g: `/path/database/table.csv`
+**Note**: The return type for the database is a tuple indicating `(name, csv)`, and by that, `to_csv_file` would make sure that filename passed is a directory and the content will be all table files. E.g: `/path/database/table.csv`
 
 ### Export Table
 
