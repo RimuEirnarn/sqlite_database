@@ -9,7 +9,7 @@ from sqlite_database.functions import ParsedFn, Function
 
 
 from .utils import crunch
-from ._utils import check_iter, check_one
+from ._utils import check_iter, check_one, AttrDict
 from .column import BuilderColumn, Column
 from .errors import TableRemovedError, UnexpectedResultError
 from .locals import SQLITEPYTYPES, PLUGINS_PATH
@@ -332,13 +332,13 @@ class Table:
     def select_one(self,
                    condition: Condition = None,
                    only: OnlyColumn = '*',
-                   order: Optional[Orders] = None) -> Query | None:
+                   order: Optional[Orders] = None) -> Query:
         pass
 
     def select_one(self,
                    condition: Condition = None,
                    only: OnlyColumn | ParsedFn = '*',
-                   order: Optional[Orders] = None) -> Query | None:
+                   order: Optional[Orders] = None):
         """Select one data
 
         Args:
@@ -347,7 +347,7 @@ class Table:
             order (Optional[Orders], optional): Order of selection. Defaults to None.
 
         Returns:
-            Query: Selected data
+            Any: Selected data
         """
         self._control()
         query, data = build_select(
@@ -358,6 +358,8 @@ class Table:
             data = cursor.fetchone()
             if isinstance(only, ParsedFn):
                 return data[only.parse_sql()]
+            if not data:
+              return AttrDict()
             return data
 
     def exists(self, condition: Condition = None):
