@@ -259,7 +259,7 @@ class BuilderColumn:  # pylint: disable=too-many-instance-attributes
                       self._update
                       )
 
-    def __eq__(self, __o: 'Column') -> bool:
+    def __eq__(self, __o: 'Column') -> bool: # type: ignore
         return self.to_column() == __o
 
 

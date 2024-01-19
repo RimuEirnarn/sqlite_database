@@ -1,7 +1,7 @@
 """Table"""
 
 from sqlite3 import Connection, OperationalError
-from typing import Any, Generator, Iterable, NamedTuple, Optional, Type, overload
+from typing import Any, Generator, Iterable, Literal, NamedTuple, Optional, Type, overload
 
 import weakref
 
@@ -9,7 +9,7 @@ from sqlite_database.functions import ParsedFn, Function
 
 
 from .utils import crunch
-from ._utils import check_iter, check_one
+from ._utils import check_iter, check_one, AttrDict
 from .column import BuilderColumn, Column
 from .errors import TableRemovedError, UnexpectedResultError
 from .locals import SQLITEPYTYPES, PLUGINS_PATH
@@ -201,7 +201,7 @@ class Table:
                limit: int = 0,
                offset: int = 0,
                order: Optional[Orders] = None,
-               squash: bool = False) -> Queries:
+               squash: Literal[False] = False) -> Queries: # type: ignore
         pass
 
     @overload
@@ -211,7 +211,7 @@ class Table:
                limit: int = 0,
                offset: int = 0,
                order: Optional[Orders] = None,
-               squash: bool = True) -> SquashedSqueries:
+               squash: Literal[True] = True) -> SquashedSqueries:
         pass
 
     @overload
@@ -221,7 +221,7 @@ class Table:
                limit: int = 0,
                offset: int = 0,
                order: Optional[Orders] = None,
-               squash: bool = False) -> Any:
+               squash: Literal[False] = False) -> Any:
         pass
 
     def select(self, # pylint: disable=too-many-arguments
@@ -267,7 +267,7 @@ class Table:
                         only: OnlyColumn = '*',
                         length: int = 10,
                         order: Optional[Orders] = None,
-                        squash: bool = False) -> Generator[Queries, None, None]:
+                        squash: Literal[False] = False) -> Generator[Queries, None, None]: # type: ignore
         pass
 
     @overload
@@ -276,7 +276,7 @@ class Table:
                         only: OnlyColumn = '*',
                         length: int = 10,
                         order: Optional[Orders] = None,
-                        squash: bool = True) -> Generator[SquashedSqueries, None, None]:
+                        squash: Literal[True] = True) -> Generator[SquashedSqueries, None, None]:
         pass
 
     def paginate_select(self,
@@ -332,13 +332,13 @@ class Table:
     def select_one(self,
                    condition: Condition = None,
                    only: OnlyColumn = '*',
-                   order: Optional[Orders] = None) -> Query | None:
+                   order: Optional[Orders] = None) -> Query:
         pass
 
     def select_one(self,
                    condition: Condition = None,
                    only: OnlyColumn | ParsedFn = '*',
-                   order: Optional[Orders] = None) -> Query | None:
+                   order: Optional[Orders] = None):
         """Select one data
 
         Args:
@@ -347,7 +347,7 @@ class Table:
             order (Optional[Orders], optional): Order of selection. Defaults to None.
 
         Returns:
-            Query: Selected data
+            Any: Selected data
         """
         self._control()
         query, data = build_select(
@@ -358,6 +358,8 @@ class Table:
             data = cursor.fetchone()
             if isinstance(only, ParsedFn):
                 return data[only.parse_sql()]
+            if not data:
+              return AttrDict()
             return data
 
     def exists(self, condition: Condition = None):
