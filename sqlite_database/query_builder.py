@@ -27,6 +27,9 @@ def extract_table(table_creation: str):  # pylint: disable=too-many-locals
     shlexed = list(shlex(data))
     _, paren_wrap, filtered = filter_extraction(data, shlexed)
 
+    # for efficiency, is this part efficient though?
+    # although, can SOMEONE have a million columns on a sqlite table?
+    # So, the efficiency on this blob isn't a concern.
     for column_string in filtered.split(','):
         column_shlexed = list(shlex(column_string))
         for tindex, token in enumerate(column_shlexed):
@@ -312,7 +315,7 @@ def _build_select(table_name: str, # pylint: disable=too-many-arguments
     check_iter(only or ()) # type: ignore
     only_ = "*"
     if only and isinstance(only, ParsedFn):
-        only_ = only.parse_sql()
+        only_, _ = only.parse_sql()
     elif only and only != '*':
         only_ = f"{', '.join(column_name for column_name in only)}"
 

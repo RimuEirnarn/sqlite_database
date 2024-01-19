@@ -258,7 +258,7 @@ class Table:
             if squash:
                 return crunch(data)
             if isinstance(only, ParsedFn):
-                return data[0][only.parse_sql()]
+                return data[0][only.parse_sql()[0]]
             return data
 
     @overload
@@ -357,7 +357,7 @@ class Table:
             cursor.execute(query, data)
             data = cursor.fetchone()
             if isinstance(only, ParsedFn):
-                return data[only.parse_sql()]
+                return data[only.parse_sql()[0]]
             if not data:
               return AttrDict()
             return data
