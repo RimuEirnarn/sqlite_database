@@ -204,6 +204,7 @@ class BuilderColumn:  # pylint: disable=too-many-instance-attributes
     def allow_null(self):
         """Allow null"""
         self._nullable = True
+        return self
 
     def on_delete(self, action: SQLACTION):
         """Set on delete action"""
