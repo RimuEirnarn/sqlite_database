@@ -170,36 +170,10 @@ class BuilderColumn:  # pylint: disable=too-many-instance-attributes
         self._type = name
         return self._set_name
 
-    def integer(self, name: str) -> Self:
-        """Set as type integer"""
-        self._check_then_define()
-        self._name = name
-        self._type = "integer"
-        return self
-
-    def text(self, name: str) -> Self:
-        """Set as type text"""
-        self._check_then_define()
-        self._name = name
-        self._type = 'text'
-        return self
-
-    def blob(self,  name: str) -> Self:
-        """Set as type blob"""
-        self._check_then_define()
-        self._name = name
-        self._type = 'blob'
-        return self
-
-    def real(self, name: str) -> Self:
-        """Set as type real"""
-        self._check_then_define()
-        self._name = name
-        self._type = 'real'
-        return self
-
     def default(self, default_value: Any):
         """Set default value"""
+        if not default_value:
+            self._nullable = True
         self._default = default_value
         return self
 
@@ -226,6 +200,10 @@ class BuilderColumn:  # pylint: disable=too-many-instance-attributes
         """Set on update action"""
         self._update = action
         return self
+
+    def allow_null(self):
+        """Allow null"""
+        self._nullable = True
 
     def on_delete(self, action: SQLACTION):
         """Set on delete action"""
@@ -265,22 +243,21 @@ class BuilderColumn:  # pylint: disable=too-many-instance-attributes
 
 def text(name: str) -> BuilderColumn:
     """Create a text column with name"""
-    return BuilderColumn().text(name)
+    return BuilderColumn().set_type('text')(name)
 
 
 def integer(name: str) -> BuilderColumn:
     """Create a integer column with name"""
-    return BuilderColumn().integer(name)
-
+    return BuilderColumn().set_type('integer')(name)
 
 def blob(name: str) -> BuilderColumn:
     """Create a blob column with name"""
-    return BuilderColumn().blob(name)
+    return BuilderColumn().set_type('blob')(name)
 
 
 def real(name: str) -> BuilderColumn:
     """Create a real column with name"""
-    return BuilderColumn().real(name)
+    return BuilderColumn().set_type('blob')(name)
 
 def create_calls(typename: str, types: list[str]) -> Callable[[str], BuilderColumn]:
     """Create a dynamic call for types. This is intended to mimic
