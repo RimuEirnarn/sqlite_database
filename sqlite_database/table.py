@@ -1,7 +1,7 @@
 """Table"""
 
 from sqlite3 import Connection, OperationalError
-from typing import Any, Generator, Iterable, NamedTuple, Optional, Type, overload
+from typing import Any, Generator, Iterable, Literal, NamedTuple, Optional, Type, overload
 
 import weakref
 
@@ -201,7 +201,7 @@ class Table:
                limit: int = 0,
                offset: int = 0,
                order: Optional[Orders] = None,
-               squash: bool = False) -> Queries:
+               squash: Literal[False] = False) -> Queries: # type: ignore
         pass
 
     @overload
@@ -211,7 +211,7 @@ class Table:
                limit: int = 0,
                offset: int = 0,
                order: Optional[Orders] = None,
-               squash: bool = True) -> SquashedSqueries:
+               squash: Literal[True] = True) -> SquashedSqueries:
         pass
 
     @overload
@@ -221,7 +221,7 @@ class Table:
                limit: int = 0,
                offset: int = 0,
                order: Optional[Orders] = None,
-               squash: bool = False) -> Any:
+               squash: Literal[False] = False) -> Any:
         pass
 
     def select(self, # pylint: disable=too-many-arguments
@@ -267,7 +267,7 @@ class Table:
                         only: OnlyColumn = '*',
                         length: int = 10,
                         order: Optional[Orders] = None,
-                        squash: bool = False) -> Generator[Queries, None, None]:
+                        squash: Literal[False] = False) -> Generator[Queries, None, None]: # type: ignore
         pass
 
     @overload
@@ -276,7 +276,7 @@ class Table:
                         only: OnlyColumn = '*',
                         length: int = 10,
                         order: Optional[Orders] = None,
-                        squash: bool = True) -> Generator[SquashedSqueries, None, None]:
+                        squash: Literal[True] = True) -> Generator[SquashedSqueries, None, None]:
         pass
 
     def paginate_select(self,
