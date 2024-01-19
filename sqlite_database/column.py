@@ -243,22 +243,21 @@ class BuilderColumn:  # pylint: disable=too-many-instance-attributes
 
 def text(name: str) -> BuilderColumn:
     """Create a text column with name"""
-    return BuilderColumn().text(name)
+    return BuilderColumn().set_type('text')(name)
 
 
 def integer(name: str) -> BuilderColumn:
     """Create a integer column with name"""
-    return BuilderColumn().integer(name)
-
+    return BuilderColumn().set_type('integer')(name)
 
 def blob(name: str) -> BuilderColumn:
     """Create a blob column with name"""
-    return BuilderColumn().blob(name)
+    return BuilderColumn().set_type('blob')(name)
 
 
 def real(name: str) -> BuilderColumn:
     """Create a real column with name"""
-    return BuilderColumn().real(name)
+    return BuilderColumn().set_type('blob')(name)
 
 def create_calls(typename: str, types: list[str]) -> Callable[[str], BuilderColumn]:
     """Create a dynamic call for types. This is intended to mimic
