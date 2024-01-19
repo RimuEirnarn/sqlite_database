@@ -267,7 +267,8 @@ class Table:
                         only: OnlyColumn = '*',
                         length: int = 10,
                         order: Optional[Orders] = None,
-                        squash: Literal[False] = False) -> Generator[Queries, None, None]: # type: ignore
+                        squash: Literal[False] = False) -> \
+                            Generator[Queries, None, None]: # type: ignore
         pass
 
     @overload
@@ -359,7 +360,7 @@ class Table:
             if isinstance(only, ParsedFn):
                 return data[only.parse_sql()[0]]
             if not data:
-              return AttrDict()
+                return AttrDict()
             return data
 
     def exists(self, condition: Condition = None):

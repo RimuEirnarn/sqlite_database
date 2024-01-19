@@ -19,7 +19,7 @@ def _function_extract(parsed: 'ParsedFn') -> tuple[str, dict[str, Any]]:
     data = {}
     # ? we don't know how many same function calls at the same time, though we can use count param.
     suffix = randint(0, 100000)
-    for i, v in enumerate(parsed.values):
+    for i, _ in enumerate(parsed.values):
         key = f":{parsed.name}{suffix}_{i}"
         if isinstance(i, ParsedFn):
             data[key] = _function_extract(i)
