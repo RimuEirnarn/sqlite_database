@@ -10,6 +10,6 @@ def test_installed():
     """Is the module installed?"""
     return True
 
-__version__ = "0.4.3"
+__version__ = "0.4.4"
 __all__ = ["Database", "Table", "op",
            "Column", "null", 'AttrDict', 'text', 'integer', 'real', 'blob']
