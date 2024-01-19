@@ -20,7 +20,7 @@ CacheData = tuple[str, ...]
 OnlyColumn = tuple[str, ...] | ParsedFn
 DEFAULT_MAPPINGS = {value: value for value in _SQLITETYPES}
 
-def extract_table(table_creation: str):  # pylint: disable=too-many-locals
+def extract_table(table_creation: str) -> list[Column]:  # pylint: disable=too-many-locals
     """Extract SQLite table string"""
     data = table_creation[table_creation.find('(')+1:-1]
     cols, upheld = basic_extract(table_creation)
@@ -55,7 +55,7 @@ def extract_table(table_creation: str):  # pylint: disable=too-many-locals
                 name = wrap[1:-1] if wrap.startswith('(') else wrap
                 tb_index = next_+3
                 tb_col = tb_index+1
-                source_col_str = column_shlexed[tb_col+2][1:-1]
+                source_col_str = paren_wrap[f':{column_shlexed[tb_col+1]}'][1:-1]
                 sources = f"{column_shlexed[tb_index]}/{source_col_str}"
                 upheld[name][3] = sources
                 upheld[name][2] = True
