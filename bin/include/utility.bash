@@ -97,7 +97,7 @@ run-pytest(){
     else
         src="$1"
     fi
-    pytest --config-file ./dev-config/pytest.ini -q
+    pytest --config-file ./dev-config/pytest.ini -q --rootdir .
     check-result $? pytest
 }
 
