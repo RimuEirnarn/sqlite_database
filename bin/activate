@@ -1,0 +1,7 @@
+PROJECT_ROOT="/data/data/com.termux/files/home/Stuff/sqlite_database"
+
+
+if [ -d "$PROJECT_ROOT" ]; then
+	source $PROJECT_ROOT/.venv/bin/activate
+	PATH="$PATH:$PROJECT_ROOT/bin"
+fi

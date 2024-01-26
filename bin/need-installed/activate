@@ -1,0 +1,5 @@
+
+if [ -d "$PROJECT_ROOT" ]; then
+	source $PROJECT_ROOT/.venv/bin/activate
+	PATH="$PATH:$PROJECT_ROOT/bin"
+fi

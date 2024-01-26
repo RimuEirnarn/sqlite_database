@@ -28,6 +28,6 @@ zip-safe = true
 packages = ["sqlite_database"]
 
 [project.optional-dependencies]
-dev = ["pytest"]
+dev = ["pytest", "pylint", "black"]
 docs = ['sphinx', 'myst_parser']
 mysql = ['mysql-connector-python']
