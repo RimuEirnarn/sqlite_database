@@ -1,21 +1,27 @@
 """SQLite Database"""
+
 from weakref import finalize, WeakValueDictionary
 from sqlite3 import OperationalError, connect
 from typing import Iterable, Optional, Mapping
 
 from .locals import PLUGINS_PATH
-from ._utils import (WithCursor, check_iter, check_one, dict_factory,
-                     sqlite_multithread_check)
+from ._utils import (
+    WithCursor,
+    check_iter,
+    check_one,
+    dict_factory,
+    sqlite_multithread_check,
+)
 from .column import BuilderColumn, Column
 from .query_builder import extract_table_creations
 from .table import Table
 from .errors import DatabaseExistsError, DatabaseMissingError
+
 Columns = Iterable[Column] | Iterable[BuilderColumn]
 
-__all__ = ['Database']
+__all__ = ["Database"]
 
-IGNORE_TABLE_CHECKS = (
-    "sqlite_master", "sqlite_temp_schema", "sqlite_temp_master")
+IGNORE_TABLE_CHECKS = ("sqlite_master", "sqlite_temp_schema", "sqlite_temp_master")
 
 
 class Database:
@@ -23,16 +29,16 @@ class Database:
 
     _active: Mapping[str, "Database"] = WeakValueDictionary()
 
-    def __new__(cls, path: str, **kwargs): # pylint: disable=unused-argument
+    def __new__(cls, path: str, **kwargs):  # pylint: disable=unused-argument
         if path in cls._active:
             return cls._active[path]
         self = object.__new__(cls)
         if path != ":memory:" and cls == Database:
-            cls._active[str(path)] = self # type: ignore
+            cls._active[str(path)] = self  # type: ignore
         return self
 
     def __init__(self, path: str, **kwargs) -> None:
-        kwargs['check_same_thread'] = sqlite_multithread_check() != 3
+        kwargs["check_same_thread"] = sqlite_multithread_check() != 3
         self._path = path
         if not path in PLUGINS_PATH:
             self._database = connect(path, **kwargs)
@@ -64,8 +70,10 @@ class Database:
         Returns:
             Table: Newly created table
         """
-        columns = (column.to_column() if isinstance(
-            column, BuilderColumn) else column for column in columns)
+        columns = (
+            column.to_column() if isinstance(column, BuilderColumn) else column
+            for column in columns
+        )
         tbquery = extract_table_creations(columns)
         query = f"create table {table} ({tbquery})"
 
@@ -135,7 +143,8 @@ class Database:
             return True  # Let's return true.
         cursor = self.sql.cursor()
         cursor.execute(
-            "select name from sqlite_master where type='table' and name=?", (table,))
+            "select name from sqlite_master where type='table' and name=?", (table,)
+        )
         if cursor.fetchone():
             return True
         return False
@@ -154,7 +163,7 @@ class Database:
             self._closed = True
             return
         if self.path in self._active:
-            del type(self)._active[self.path] # type: ignore
+            del type(self)._active[self.path]  # type: ignore
         self._closed = True
 
     def tables(self) -> tuple[Table, ...]:

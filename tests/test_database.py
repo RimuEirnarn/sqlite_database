@@ -211,6 +211,8 @@ def test_01_insert():
     """test 01 insert"""
     assert groups.insert_many(GROUP_NEW) is None
     assert users.insert_many(USER_NEW) is None
+    users._sql.commit()
+    assert not not users.select()
     assert save_report("01_insert", database, groups, users)
 
 

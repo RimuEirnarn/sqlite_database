@@ -8,13 +8,16 @@ from urllib.parse import urlsplit, parse_qs
 from random import randint
 
 try:
-    import mysql.connector # type: ignore
+    import mysql.connector  # type: ignore
 except ModuleNotFoundError:
     from ..errors import DependencyError
-    raise DependencyError("mysql-connector is not found, reinstall with sqlite-database[mysql]")\
-        from None
+
+    raise DependencyError(
+        "mysql-connector is not found, reinstall with sqlite-database[mysql]"
+    ) from None
 
 from ..database import Database
+
 
 class MySQLDatabase(Database):
     """MySQL database"""
@@ -40,11 +43,11 @@ class MySQLDatabase(Database):
         uri_data = urlsplit(uri)
         if uri_data.scheme != "mysql":
             raise ValueError(f"Expected scheme mysql, got {uri_data.scheme}")
-        config['user'] = uri_data.username
-        config['password'] = uri_data.password
-        config['host'] = uri_data.hostname
-        config['port'] = uri_data.port or 3306
-        config['database'] = uri_data.path.split('/')[1]
+        config["user"] = uri_data.username
+        config["password"] = uri_data.password
+        config["host"] = uri_data.hostname
+        config["port"] = uri_data.port or 3306
+        config["database"] = uri_data.path.split("/")[1]
         for key, value in parse_qs(uri_data.query):
             if key not in config:
                 config[key] = value[0]

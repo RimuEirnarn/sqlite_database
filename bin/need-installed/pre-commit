@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+HERE="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(realpath $HERE/../../)"
+
+if [ -f "$ROOT/bin/include/utility.bash" ]; then
+    source "$ROOT/bin/include/utility.bash"
+fi
+
+info "Running pre-commit"
+run-black
+run-pylint
+run-pytest
+info "Finished~"

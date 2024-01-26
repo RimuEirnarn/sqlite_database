@@ -8,9 +8,9 @@ fi
 
 . .venv/bin/activate
 
-pylint --rcfile pylint.toml sqlite_database
+pylint --rcfile ./dev-config/pylint.toml sqlite_database
 if [ ! "$?" = 0 ]; then
     echo "Pylint error"
     exit 1
 fi
-pytest
+pytest --config-file ./dev-config/pytest.ini

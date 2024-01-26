@@ -1,4 +1,5 @@
 """Custom operators for shorthand."""
+
 from typing import Any
 from .signature import Signature, op
 
@@ -43,4 +44,4 @@ def between(name: str, low: int, high: int) -> tuple[str, Signature]:
     return (name, op.between(low, high))
 
 
-__all__ = ['eq', 'lt', 'le', 'gt', 'ge', 'ne', 'like', 'between']
+__all__ = ["eq", "lt", "le", "gt", "ge", "ne", "like", "between"]

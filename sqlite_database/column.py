@@ -12,18 +12,19 @@ class Column:  # pylint: disable=too-many-instance-attributes
     tip: for foreign_ref, you can split with / to separate table and column name.
     e.g: user/id"""
 
-    def __init__(self,  # pylint: disable=too-many-arguments
-                 name: str,
-                 type_: str,
-                 foreign: bool = False,
-                 foreign_ref: str | None = None,
-                 primary: bool = False,
-                 unique: bool = False,
-                 nullable: bool = True,
-                 default: Any = None,
-                 on_delete: SQLACTION = "cascade",
-                 on_update:
-                 SQLACTION = "cascade") -> None:
+    def __init__(  # pylint: disable=too-many-arguments
+        self,
+        name: str,
+        type_: str,
+        foreign: bool = False,
+        foreign_ref: str | None = None,
+        primary: bool = False,
+        unique: bool = False,
+        nullable: bool = True,
+        default: Any = None,
+        on_delete: SQLACTION = "cascade",
+        on_update: SQLACTION = "cascade",
+    ) -> None:
         self._name = check_one(name)
         self._type = check_one(type_)
         self._unique = unique
@@ -33,8 +34,9 @@ class Column:  # pylint: disable=too-many-instance-attributes
         while foreign_ref:
             if not matches(_PATH, foreign_ref):
                 raise ValueError(
-                    "foreign_ref has no / separator to separate table and column.")
-            ref = foreign_ref.split('/', 1)
+                    "foreign_ref has no / separator to separate table and column."
+                )
+            ref = foreign_ref.split("/", 1)
             source = ref[0]
             scolumn = ref[1] if len(ref) == 2 else name
             self._source = source
@@ -116,13 +118,31 @@ class Column:  # pylint: disable=too-many-instance-attributes
     def __repr__(self) -> str:
         return f"<{self.type.title()}{type(self).__name__} -> {self.name}>"
 
-    def __eq__(self, __o: 'Column') -> bool:
+    def __eq__(self, __o: "Column") -> bool:
         if not isinstance(__o, Column):
             raise NotImplementedError
-        other = (__o.name, __o.type, __o.unique, __o.nullable, __o.default,
-                 __o.primary, __o.raw_source, __o.on_delete, __o.on_update)
-        self_ = (self.name, self.type, self.unique, self.nullable, self.default,
-                 self.primary, self.raw_source, self.on_delete, self.on_update)
+        other = (
+            __o.name,
+            __o.type,
+            __o.unique,
+            __o.nullable,
+            __o.default,
+            __o.primary,
+            __o.raw_source,
+            __o.on_delete,
+            __o.on_update,
+        )
+        self_ = (
+            self.name,
+            self.type,
+            self.unique,
+            self.nullable,
+            self.default,
+            self.primary,
+            self.raw_source,
+            self.on_delete,
+            self.on_update,
+        )
         return all((item1 in self_ for item1 in other))
 
 
@@ -192,7 +212,7 @@ class BuilderColumn:  # pylint: disable=too-many-instance-attributes
         """Set foreign reference"""
         if not "/" in source:
             raise ValueError("Foreign ref invalid")
-        self._source, self._source_column = source.split('/', 1)
+        self._source, self._source_column = source.split("/", 1)
         self._foreign = True
         return self
 
@@ -226,43 +246,47 @@ class BuilderColumn:  # pylint: disable=too-many-instance-attributes
         """Conver from BuilderColumn to Column"""
         if not self._type:
             raise ValueError("type must be defined first")
-        return Column(self._name,
-                      self._type,
-                      self._foreign,
-                      self._source+'/'+self._source_column,
-                      self._primary,
-                      self._unique,
-                      self._nullable,
-                      self._default,
-                      self._delete,
-                      self._update
-                      )
+        return Column(
+            self._name,
+            self._type,
+            self._foreign,
+            self._source + "/" + self._source_column,
+            self._primary,
+            self._unique,
+            self._nullable,
+            self._default,
+            self._delete,
+            self._update,
+        )
 
-    def __eq__(self, __o: 'Column') -> bool: # type: ignore
+    def __eq__(self, __o: "Column") -> bool:  # type: ignore
         return self.to_column() == __o
 
 
 def text(name: str) -> BuilderColumn:
     """Create a text column with name"""
-    return BuilderColumn().set_type('text')(name)
+    return BuilderColumn().set_type("text")(name)
 
 
 def integer(name: str) -> BuilderColumn:
     """Create a integer column with name"""
-    return BuilderColumn().set_type('integer')(name)
+    return BuilderColumn().set_type("integer")(name)
+
 
 def blob(name: str) -> BuilderColumn:
     """Create a blob column with name"""
-    return BuilderColumn().set_type('blob')(name)
+    return BuilderColumn().set_type("blob")(name)
 
 
 def real(name: str) -> BuilderColumn:
     """Create a real column with name"""
-    return BuilderColumn().set_type('blob')(name)
+    return BuilderColumn().set_type("blob")(name)
+
 
 def create_calls(typename: str, types: list[str]) -> Callable[[str], BuilderColumn]:
     """Create a dynamic call for types. This is intended to mimic
     this module's real(), text(), ... with custom types."""
     return BuilderColumn(types).set_type(typename)
 
-__all__ = ['Column', 'BuilderColumn', 'text', 'integer', 'blob', 'real']
+
+__all__ = ["Column", "BuilderColumn", "text", "integer", "blob", "real"]

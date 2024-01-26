@@ -15,14 +15,17 @@ ConditionDict = dict[str, Signature | ParsedFn | Any]
 ConditionList = list[tuple[str, Signature | ParsedFn]]
 Condition = ConditionDict | ConditionList | None
 CacheCond = tuple[tuple[str, Signature | ParsedFn], ...] | None
-CacheOrders = tuple[str, Literal['asc', 'desc']] | ParsedFn | None
+CacheOrders = tuple[str, Literal["asc", "desc"]] | ParsedFn | None
 CacheData = tuple[str, ...]
 OnlyColumn = tuple[str, ...] | ParsedFn
 DEFAULT_MAPPINGS = {value: value for value in _SQLITETYPES}
 
-def extract_table(table_creation: str) -> list[Column]:  # pylint: disable=too-many-locals
+
+def extract_table(  # pylint: disable=too-many-locals
+    table_creation: str,
+) -> list[Column]:
     """Extract SQLite table string"""
-    data = table_creation[table_creation.find('(')+1:-1]
+    data = table_creation[table_creation.find("(") + 1 : -1]
     cols, upheld = basic_extract(table_creation)
     shlexed = list(shlex(data))
     _, paren_wrap, filtered = filter_extraction(data, shlexed)
@@ -30,41 +33,44 @@ def extract_table(table_creation: str) -> list[Column]:  # pylint: disable=too-m
     # for efficiency, is this part efficient though?
     # although, can SOMEONE have a million columns on a sqlite table?
     # So, the efficiency on this blob isn't a concern.
-    for column_string in filtered.split(','):
+    for column_string in filtered.split(","):
         column_shlexed = list(shlex(column_string))
         for tindex, token in enumerate(column_shlexed):
             if token.lower() == "primary":
-                next_ = tindex+2
-                str_wrap = ''.join(column_shlexed[next_:next_+2])
-                if str_wrap.startswith(':wrap'):
+                next_ = tindex + 2
+                str_wrap = "".join(column_shlexed[next_ : next_ + 2])
+                if str_wrap.startswith(":wrap"):
                     wrap = paren_wrap[str_wrap]
                 else:
                     wrap = str_wrap
-                for name in (wrap[1:-1].split(",") if wrap.startswith('(') else wrap.split(',')):
+                for name in (
+                    wrap[1:-1].split(",") if wrap.startswith("(") else wrap.split(",")
+                ):
                     upheld[name][4] = True
                 continue
             if token.lower() == "foreign":
-                next_ = tindex+2
-                str_wrap = ''.join(column_shlexed[next_:next_+2])
-                if str_wrap.startswith(':wrap'):
+                next_ = tindex + 2
+                str_wrap = "".join(column_shlexed[next_ : next_ + 2])
+                if str_wrap.startswith(":wrap"):
                     wrap = paren_wrap[str_wrap]
                 else:
                     wrap = str_wrap
-                name = wrap[1:-1] if wrap.startswith(
-                    '\'') or wrap.startswith('"') else wrap
-                name = wrap[1:-1] if wrap.startswith('(') else wrap
-                tb_index = next_+3
-                tb_col = tb_index+1
-                source_col_str = paren_wrap[f':{column_shlexed[tb_col+1]}'][1:-1]
+                name = (
+                    wrap[1:-1] if wrap.startswith("'") or wrap.startswith('"') else wrap
+                )
+                name = wrap[1:-1] if wrap.startswith("(") else wrap
+                tb_index = next_ + 3
+                tb_col = tb_index + 1
+                source_col_str = paren_wrap[f":{column_shlexed[tb_col+1]}"][1:-1]
                 sources = f"{column_shlexed[tb_index]}/{source_col_str}"
                 upheld[name][3] = sources
                 upheld[name][2] = True
                 if "delete" in column_shlexed:
                     delete_index = column_shlexed.index("delete")
-                    upheld[name].append(column_shlexed[delete_index+1])
+                    upheld[name].append(column_shlexed[delete_index + 1])
                 if "update" in column_shlexed:
                     uindex = column_shlexed.index("update")
-                    upheld[name].append(column_shlexed[uindex+1])
+                    upheld[name].append(column_shlexed[uindex + 1])
 
     for _, upheld_column in upheld.items():
         cols.append(Column(*upheld_column))
@@ -78,8 +84,9 @@ def fetch_columns(_master_query: _MasterQuery):
     return extract_table(sql)
 
 
-def extract_signature(filter_: Condition | CacheCond = None,  # type: ignore
-                      suffix: str = '_check'):
+def extract_signature(
+    filter_: Condition | CacheCond = None, suffix: str = "_check"  # type: ignore
+):
     """Extract filter signature."""
     if filter_ is None:
         return "", {}
@@ -111,16 +118,22 @@ def extract_signature(filter_: Condition | CacheCond = None,  # type: ignore
 
 def basic_extract(table_creation: str):  # pylint: disable=too-many-locals
     """basic extraction for table"""
-    data = table_creation[table_creation.find('(')+1:-1]
+    data = table_creation[table_creation.find("(") + 1 : -1]
     cols = []
     upheld: dict[str, list[Any]] = {}
-    for constr in data.split(','):
+    for constr in data.split(","):
         name, type_, defaults, sources = "", "", None, ()
         primary = foreign = notnull = unique = False
         base_columns = list(shlex(constr))
         if base_columns[1] not in _SQLITETYPES:
             break  # Other constraint
-        name, type_, = base_columns[0], base_columns[1]
+        (
+            name,
+            type_,
+        ) = (
+            base_columns[0],
+            base_columns[1],
+        )
         if len(base_columns) == 2:
             # cols.append(Column(name, type_))  # type: ignore
             upheld[name] = [name, type_, False, None, False, False, True, None]
@@ -128,25 +141,36 @@ def basic_extract(table_creation: str):  # pylint: disable=too-many-locals
         for token in base_columns:
             token_lowered = token.lower()
             if token_lowered == "defaults":
-                defaults = base_columns[base_columns.index(token)+1]
-                defaults = defaults if defaults[0] != "\"" \
-                    or defaults[0] != "'" else defaults[1:-1]
+                defaults = base_columns[base_columns.index(token) + 1]
+                defaults = (
+                    defaults
+                    if defaults[0] != '"' or defaults[0] != "'"
+                    else defaults[1:-1]
+                )
             if token_lowered == "primary":
                 primary = True
             if token_lowered == "foreign":
                 foreign = True
             if token_lowered == "reference":
-                tb_index = base_columns.index(token)+1
-                tb_col = tb_index+1
+                tb_index = base_columns.index(token) + 1
+                tb_col = tb_index + 1
                 sources = (base_columns[tb_index], base_columns[tb_col][1:-1])
             if token_lowered == "null":
-                notnull = base_columns[base_columns.index(
-                    token)-1].lower() == 'not'
+                notnull = base_columns[base_columns.index(token) - 1].lower() == "not"
             if token_lowered == "unique":
                 unique = True
-        upheld[name] = [name, type_, foreign, f"{sources[0]}/{sources[1]}" if sources else None,
-                        primary, unique, not notnull, defaults if defaults else None]
+        upheld[name] = [
+            name,
+            type_,
+            foreign,
+            f"{sources[0]}/{sources[1]}" if sources else None,
+            primary,
+            unique,
+            not notnull,
+            defaults if defaults else None,
+        ]
     return cols, upheld
+
 
 # Old place of function_extract
 function_extract = _function_extract
@@ -163,20 +187,20 @@ def filter_extraction(string: str, shlexed: list[str]):
             quoted_wrap[f":index{index}"] = shlex_string
             new_string = new_string.replace(shlex_string, f":index{index}")
 
-    while (index := new_string.find('(')) != -1:
+    while (index := new_string.find("(")) != -1:
         # ? this attempt to replace all brackets with format-able stuff
-        last = new_string.find(')')+1
+        last = new_string.find(")") + 1
         selected = new_string[index:last]
-        new_string = new_string.replace(
-            selected, f":wrap{len(paren_wrap)}")
+        new_string = new_string.replace(selected, f":wrap{len(paren_wrap)}")
         paren_wrap[f":wrap{len(paren_wrap)}"] = selected
     # ? from now on, it's safe to use , again.
     return quoted_wrap, paren_wrap, new_string
 
 
-def build_update_data(data: dict[str, Any] | CacheData, suffix: str = '_set'):
+def build_update_data(data: dict[str, Any] | CacheData, suffix: str = "_set"):
     """Build update data, used to parameterized update data.
-    Suffix is used to make sure there's no collisions with others. Use this with caution."""
+    Suffix is used to make sure there's no collisions with others. Use this with caution.
+    """
     string = ""
     that: dict[str, str] = {}
     for key in data:
@@ -235,11 +259,14 @@ def extract_single_column(column: Column):
         string += f"foreign key references {column.source} ({column.source_column})"
     return string
 
-def _iterate_etbc_step1(columns: Iterable[Column],
-                        string: str,
-                        primaries: list[Column],
-                        foreigns: list[Column],
-                        maps: dict[str, str]):
+
+def _iterate_etbc_step1(
+    columns: Iterable[Column],
+    string: str,
+    primaries: list[Column],
+    foreigns: list[Column],
+    maps: dict[str, str],
+):
     for column in columns:
         ctype = maps.get(column.type, column.type)
         string += f" {column.name} {ctype}"
@@ -253,11 +280,13 @@ def _iterate_etbc_step1(columns: Iterable[Column],
             string += " unique"
         if column.default:
             string += f" default {repr(column.default)}"
-        string += ','
+        string += ","
     return string
 
-def extract_table_creations(columns: Iterable[Column],
-                            type_mappings: dict[str, str] | None = None):
+
+def extract_table_creations(
+    columns: Iterable[Column], type_mappings: dict[str, str] | None = None
+):
     """Extract columns classes to sqlite table creation query."""
     maps: dict[str, str] = DEFAULT_MAPPINGS.copy()
     if type_mappings:
@@ -278,6 +307,7 @@ def extract_table_creations(columns: Iterable[Column],
         # ! This might be a buggy code, i'm not sure yet.
     return string[1:-1]
 
+
 def _select_onlyparam_parse(data: str | ParsedFn):
     if isinstance(data, str):
         return data
@@ -286,7 +316,10 @@ def _select_onlyparam_parse(data: str | ParsedFn):
         return x[0]
     return x
 
-def _setup_hashable(condition: Condition, order: Optional[Orders] = None, data: Data | None = None):
+
+def _setup_hashable(
+    condition: Condition, order: Optional[Orders] = None, data: Data | None = None
+):
     cond = None
     order_ = None
     data_ = ()
@@ -304,19 +337,21 @@ def _setup_hashable(condition: Condition, order: Optional[Orders] = None, data: 
 
 
 @lru_cache
-def _build_select(table_name: str, # pylint: disable=too-many-arguments
-                  condition: CacheCond,
-                  only: OnlyColumn = None, # type: ignore
-                  limit: int = 0,
-                  offset: int = 0,
-                  order: CacheOrders = None):
+def _build_select(
+    table_name: str,  # pylint: disable=too-many-arguments
+    condition: CacheCond,
+    only: OnlyColumn = None,  # type: ignore
+    limit: int = 0,
+    offset: int = 0,
+    order: CacheOrders = None,
+):
     check_one(table_name)
     cond, data = extract_signature(condition)
-    check_iter(only or ()) # type: ignore
+    check_iter(only or ())  # type: ignore
     only_ = "*"
     if only and isinstance(only, ParsedFn):
         only_, _ = only.parse_sql()
-    elif only and only != '*':
+    elif only and only != "*":
         only_ = f"{', '.join(column_name for column_name in only)}"
 
     query = f"select {only_} from {table_name}{' '+cond if cond else ''}"
@@ -333,11 +368,13 @@ def _build_select(table_name: str, # pylint: disable=too-many-arguments
 
 
 @lru_cache
-def _build_update(table_name: str,
-                  new_data: CacheData,
-                  condition: CacheCond = None,
-                  limit: int = 0,
-                  order: CacheOrders = None):
+def _build_update(
+    table_name: str,
+    new_data: CacheData,
+    condition: CacheCond = None,
+    limit: int = 0,
+    order: CacheOrders = None,
+):
     check_one(table_name)
     cond, data = extract_signature(condition)
     new_str, updated = build_update_data(new_data)
@@ -356,10 +393,12 @@ def _build_update(table_name: str,
 
 
 @lru_cache
-def _build_delete(table_name: str,
-                  condition: CacheCond = None,
-                  limit: int = 0,
-                  order: CacheOrders = None):
+def _build_delete(
+    table_name: str,
+    condition: CacheCond = None,
+    limit: int = 0,
+    order: CacheOrders = None,
+):
     check_one(table_name)
     cond, data = extract_signature(condition)
     query = f"delete from {table_name} {cond}"
@@ -374,8 +413,7 @@ def _build_delete(table_name: str,
 
 
 @lru_cache
-def _build_insert(table_name: str,
-                  data: CacheData):
+def _build_insert(table_name: str, data: CacheData):
     check_one(table_name)
     converged = format_paramable(data)
     query = f"insert into {table_name} ({', '.join(val for val in converged)}) \
@@ -383,12 +421,14 @@ values ({', '.join(val for val in converged.values())})"
     return query, data
 
 
-def build_select(table_name: str,  # pylint: disable=too-many-arguments
-                 condition: Condition = None,
-                 only: tuple[str, ...] | ParsedFn | Literal['*'] = '*',
-                 limit: int = 0,
-                 offset: int = 0,
-                 order: Optional[Orders] = None) -> tuple[str, dict[str, Any]]:
+def build_select(
+    table_name: str,  # pylint: disable=too-many-arguments
+    condition: Condition = None,
+    only: tuple[str, ...] | ParsedFn | Literal["*"] = "*",
+    limit: int = 0,
+    offset: int = 0,
+    order: Optional[Orders] = None,
+) -> tuple[str, dict[str, Any]]:
     """Build select query (this function (backendly) cache!)
 
     Args:
@@ -406,11 +446,13 @@ def build_select(table_name: str,  # pylint: disable=too-many-arguments
     return _build_select(table_name, cond, only, limit, offset, order_)
 
 
-def build_update(table_name: str,
-                 new_data: Data,
-                 condition: Condition = None,
-                 limit: int = 0,
-                 order: Optional[Orders] = None) -> tuple[str, dict[str, Any]]:
+def build_update(
+    table_name: str,
+    new_data: Data,
+    condition: Condition = None,
+    limit: int = 0,
+    order: Optional[Orders] = None,
+) -> tuple[str, dict[str, Any]]:
     """Build update query (once again, this function backendly cache)
 
     Args:
@@ -424,15 +466,16 @@ def build_update(table_name: str,
         tuple[str, dict[str, Any]]: query, query data
     """
     cond, order_, ndata = _setup_hashable(condition, order, new_data)
-    query, check, updated = _build_update(
-        table_name, ndata, cond, limit, order_)
+    query, check, updated = _build_update(table_name, ndata, cond, limit, order_)
     return query, check | combine_keyvals(updated, new_data)
 
 
-def build_delete(table_name: str,
-                 condition: Condition = None,
-                 limit: int = 0,
-                 order: Optional[Orders] = None) -> tuple[str, dict[str, Any]]:
+def build_delete(
+    table_name: str,
+    condition: Condition = None,
+    limit: int = 0,
+    order: Optional[Orders] = None,
+) -> tuple[str, dict[str, Any]]:
     """Build delete query
 
     Args:
@@ -464,8 +507,18 @@ def build_insert(table_name: str, data: Data) -> tuple[str, dict[str, Any]]:
     return query, data
 
 
-__all__ = ['ConditionDict', 'ConditionList', 'Condition', "extract_table", 'fetch_columns',
-           'extract_signature', 'basic_extract', 'filter_extraction', 'build_update_data',
-           'format_paramable', 'combine_keyvals', 'extract_single_column',
-           'extract_table_creations'
-           ]
+__all__ = [
+    "ConditionDict",
+    "ConditionList",
+    "Condition",
+    "extract_table",
+    "fetch_columns",
+    "extract_signature",
+    "basic_extract",
+    "filter_extraction",
+    "build_update_data",
+    "format_paramable",
+    "combine_keyvals",
+    "extract_single_column",
+    "extract_table_creations",
+]

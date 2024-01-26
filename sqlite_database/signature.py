@@ -35,17 +35,19 @@ class Signature:
 
     You can now use function from :operators:"""
 
-    def __init__(self,
-                 value: Any = null,
-                 operator: Optional[str] = None,
-                 data: Optional[tuple[int, int] | str] = None,
-                 negate=False) -> None:
+    def __init__(
+        self,
+        value: Any = null,
+        operator: Optional[str] = None,
+        data: Optional[tuple[int, int] | str] = None,
+        negate=False,
+    ) -> None:
         self._value = value
         self._operator: str = "" if operator is None else operator
         self._data = data
         self._negate = negate
 
-    def __eq__(self, __o) -> 'Signature':
+    def __eq__(self, __o) -> "Signature":
         return Signature(__o, "==")
 
     def __lt__(self, __o) -> "Signature":
@@ -68,11 +70,11 @@ class Signature:
         is_valid = not matches(_NO_UNLIKE, str_condition)
         if not is_valid:
             raise SecurityError("Cannot understand other character.")
-        return Signature(null, 'like', str_condition)
+        return Signature(null, "like", str_condition)
 
     def between(self, low: int, high: int):
         """Betweeen"""
-        return Signature(null, 'between', (low, high))
+        return Signature(null, "between", (low, high))
 
     def negate(self):
         """Negate or adding NOT"""
@@ -91,8 +93,14 @@ class Signature:
     @property
     def kind_sign(self):
         """Signature kind"""
-        return {"==": "eq", "<": "lt", "<=": "le", ">": "gt", ">=": "ge", "!=": "ne"}\
-            .get(self._operator, self._operator)
+        return {
+            "==": "eq",
+            "<": "lt",
+            "<=": "le",
+            ">": "gt",
+            ">=": "ge",
+            "!=": "ne",
+        }.get(self._operator, self._operator)
 
     @property
     def normal_operator(self):
@@ -107,12 +115,12 @@ class Signature:
     @property
     def is_between(self):
         """Is operator between"""
-        return self._operator == 'between'
+        return self._operator == "between"
 
     @property
     def is_like(self):
         """Is operator like"""
-        return self._operator == 'like'
+        return self._operator == "like"
 
     def generate(self):
         """Generate operator string"""

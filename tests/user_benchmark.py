@@ -20,7 +20,7 @@ The module also have function fills to fill the table with contents to whatever 
 from sqlite_database import Database, text, integer
 from random import randint, choice
 
-database = Database(":memory:")
+database = Database("testdb.sqlite3")
 
 person = database.create_table("person", [
     text('name'),

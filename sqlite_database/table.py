@@ -1,7 +1,16 @@
 """Table"""
 
 from sqlite3 import Connection, OperationalError
-from typing import Any, Generator, Iterable, Literal, NamedTuple, Optional, Type, overload
+from typing import (
+    Any,
+    Generator,
+    Iterable,
+    Literal,
+    NamedTuple,
+    Optional,
+    Type,
+    overload,
+)
 
 import weakref
 
@@ -13,13 +22,26 @@ from ._utils import check_iter, check_one, AttrDict
 from .column import BuilderColumn, Column
 from .errors import TableRemovedError, UnexpectedResultError
 from .locals import SQLITEPYTYPES, PLUGINS_PATH
-from .query_builder import (Condition, extract_single_column,
-                            fetch_columns, build_select,
-                            build_insert, build_delete,
-                            build_update)
+from .query_builder import (
+    Condition,
+    extract_single_column,
+    fetch_columns,
+    build_select,
+    build_insert,
+    build_delete,
+    build_update,
+)
 from .signature import op
-from .typings import (Data, Orders, Queries, Query, TypicalNamedTuple,
-                      _MasterQuery, OnlyColumn, SquashedSqueries)
+from .typings import (
+    Data,
+    Orders,
+    Queries,
+    Query,
+    TypicalNamedTuple,
+    _MasterQuery,
+    OnlyColumn,
+    SquashedSqueries,
+)
 
 # Let's add a little bit of 'black' magic here.
 _null = Function("__NULL__")()
@@ -27,7 +49,7 @@ _null = Function("__NULL__")()
 
 @classmethod
 def get_table(cls):  # pylint: disable=missing-function-docstring
-    return getattr(cls, '_table', None)
+    return getattr(cls, "_table", None)
 
 
 class Table:
@@ -35,10 +57,12 @@ class Table:
 
     _ns: dict[str, Type[NamedTuple]] = {}
 
-    def __init__(self,
-                 parent,  # type: ignore
-                 table: str,
-                 __columns: Optional[Iterable[Column]] = None) -> None:
+    def __init__(
+        self,
+        parent,  # type: ignore
+        table: str,
+        __columns: Optional[Iterable[Column]] = None,
+    ) -> None:
         if parent.closed:
             raise ConnectionError("Connection to database is already closed.")
         self._parent_repr = repr(parent)
@@ -47,8 +71,7 @@ class Table:
         self._sql_path = parent._path
         self._deleted = False
         self._table = check_one(table)
-        self._columns: Optional[list[Column]] = list(
-            __columns) if __columns else None
+        self._columns: Optional[list[Column]] = list(__columns) if __columns else None
         weakref.finalize(self, self._finalize)
 
         if self._columns is None and table != "sqlite_master":
@@ -66,8 +89,9 @@ class Table:
     def _fetch_columns(self):
         table = self._table
         try:
-            query, data = build_select("sqlite_master",
-                                       {"type": op == "table", "name": op == table})
+            query, data = build_select(
+                "sqlite_master", {"type": op == "table", "name": op == table}
+            )
             cursor = self._sql.cursor()
             cursor.execute(query, data)
             tabl = cursor.fetchone()
@@ -85,7 +109,6 @@ class Table:
         cursor.execute(query, data)
         return cursor
 
-
     def _control(self):
         if self._deleted:
             raise TableRemovedError(f"{self._table} is already removed")
@@ -95,7 +118,12 @@ class Table:
         deleted."""
         self._deleted = True
 
-    def delete(self, condition: Condition = None, limit: int = 0, order: Optional[Orders] = None):
+    def delete(
+        self,
+        condition: Condition = None,
+        limit: int = 0,
+        order: Optional[Orders] = None,
+    ):
         """Delete row or rows
 
         Args:
@@ -107,8 +135,7 @@ class Table:
         Returns:
             int: Rows affected
         """
-        query, data = build_delete(
-            self._table, condition, limit, order)  # type: ignore
+        query, data = build_delete(self._table, condition, limit, order)  # type: ignore
         self._control()
         cursor = self._sql.cursor()
         cursor.execute(query, data)
@@ -159,16 +186,18 @@ class Table:
         """Alias to `insert_multiple`"""
         return self.insert_multiple(datas)
 
-    def update(self,
-               condition: Condition | None = None,
-               data: Data | None = None,
-               limit: int = 0,
-               order: Optional[Orders] = None):
+    def update(
+        self,
+        condition: Condition | None = None,
+        data: Data | None = None,
+        limit: int = 0,
+        order: Optional[Orders] = None,
+    ):
         """Update rows of current table
 
         Args:
             data (Data): New data to update
-            condition (Condition, optional): Condition dictionary. 
+            condition (Condition, optional): Condition dictionary.
                 See `Signature` about how condition works. Defaults to None.
             limit (int, optional): Limit updates. Defaults to 0.
             order (Optional[Orders], optional): Order of change. Defaults to None.
@@ -179,7 +208,8 @@ class Table:
         if data is None:
             raise ValueError("data parameter must not be None")
         query, data = build_update(
-            self._table, data, condition, limit, order)  # type: ignore
+            self._table, data, condition, limit, order
+        )  # type: ignore
         self._control()
         cursor = self._sql.cursor()
         cursor.execute(query, data)
@@ -187,50 +217,60 @@ class Table:
         self._sql.commit()
         return rcount
 
-    def update_one(self,
-                   condition: Condition | None = None,
-                   new_data: Data | None = None,
-                   order: Orders | None = None) -> int:
+    def update_one(
+        self,
+        condition: Condition | None = None,
+        new_data: Data | None = None,
+        order: Orders | None = None,
+    ) -> int:
         """Update 1 data only"""
         return self.update(condition, new_data, 1, order)
 
     @overload
-    def select(self,
-               condition: Condition = None,
-               only: OnlyColumn = '*',
-               limit: int = 0,
-               offset: int = 0,
-               order: Optional[Orders] = None,
-               squash: Literal[False] = False) -> Queries: # type: ignore
+    def select(
+        self,
+        condition: Condition = None,
+        only: OnlyColumn = "*",
+        limit: int = 0,
+        offset: int = 0,
+        order: Optional[Orders] = None,
+        squash: Literal[False] = False,
+    ) -> Queries:  # type: ignore
         pass
 
     @overload
-    def select(self,
-               condition: Condition = None,
-               only: OnlyColumn = '*',
-               limit: int = 0,
-               offset: int = 0,
-               order: Optional[Orders] = None,
-               squash: Literal[True] = True) -> SquashedSqueries:
+    def select(
+        self,
+        condition: Condition = None,
+        only: OnlyColumn = "*",
+        limit: int = 0,
+        offset: int = 0,
+        order: Optional[Orders] = None,
+        squash: Literal[True] = True,
+    ) -> SquashedSqueries:
         pass
 
     @overload
-    def select(self,
-               condition: Condition = None,
-               only: ParsedFn = _null,
-               limit: int = 0,
-               offset: int = 0,
-               order: Optional[Orders] = None,
-               squash: Literal[False] = False) -> Any:
+    def select(
+        self,
+        condition: Condition = None,
+        only: ParsedFn = _null,
+        limit: int = 0,
+        offset: int = 0,
+        order: Optional[Orders] = None,
+        squash: Literal[False] = False,
+    ) -> Any:
         pass
 
-    def select(self, # pylint: disable=too-many-arguments
-               condition: Condition = None,
-               only: OnlyColumn | ParsedFn = '*',
-               limit: int = 0,
-               offset: int = 0,
-               order: Optional[Orders] = None,
-               squash: bool = False):
+    def select(
+        self,  # pylint: disable=too-many-arguments
+        condition: Condition = None,
+        only: OnlyColumn | ParsedFn = "*",
+        limit: int = 0,
+        offset: int = 0,
+        order: Optional[Orders] = None,
+        squash: bool = False,
+    ):
         """Select data in current table. Bare .select() returns all data.
 
         Args:
@@ -245,12 +285,9 @@ class Table:
             Queries: Selected data
         """
         self._control()
-        query, data = build_select(self._table,
-                                   condition,
-                                   only,
-                                   limit,
-                                   offset,
-                                   order)  # type: ignore
+        query, data = build_select(
+            self._table, condition, only, limit, offset, order
+        )  # type: ignore
         with self._sql:
             cursor = self._sql.cursor()
             cursor.execute(query, data)
@@ -262,30 +299,35 @@ class Table:
             return data
 
     @overload
-    def paginate_select(self,
-                        condition: Condition = None,
-                        only: OnlyColumn = '*',
-                        length: int = 10,
-                        order: Optional[Orders] = None,
-                        squash: Literal[False] = False) -> \
-                            Generator[Queries, None, None]: # type: ignore
+    def paginate_select(
+        self,
+        condition: Condition = None,
+        only: OnlyColumn = "*",
+        length: int = 10,
+        order: Optional[Orders] = None,
+        squash: Literal[False] = False,
+    ) -> Generator[Queries, None, None]:  # type: ignore
         pass
 
     @overload
-    def paginate_select(self,
-                        condition: Condition = None,
-                        only: OnlyColumn = '*',
-                        length: int = 10,
-                        order: Optional[Orders] = None,
-                        squash: Literal[True] = True) -> Generator[SquashedSqueries, None, None]:
+    def paginate_select(
+        self,
+        condition: Condition = None,
+        only: OnlyColumn = "*",
+        length: int = 10,
+        order: Optional[Orders] = None,
+        squash: Literal[True] = True,
+    ) -> Generator[SquashedSqueries, None, None]:
         pass
 
-    def paginate_select(self,
-                        condition: Condition = None,
-                        only: OnlyColumn = '*',
-                        length: int = 10,
-                        order: Optional[Orders] = None,
-                        squash: bool = False):
+    def paginate_select(
+        self,
+        condition: Condition = None,
+        only: OnlyColumn = "*",
+        length: int = 10,
+        order: Optional[Orders] = None,
+        squash: bool = False,
+    ):
         """Paginate select
 
         Args:
@@ -300,17 +342,13 @@ class Table:
         self._control()
         start = 0
         while True:
-            query, data = build_select(self._table,
-                                       condition,
-                                       only,
-                                       length,
-                                       start,
-                                       order)  # type: ignore
+            query, data = build_select(
+                self._table, condition, only, length, start, order
+            )  # type: ignore
             crunched = squash
             with self._sql:
                 cursor = self._sql.cursor()
-                cursor.execute(
-                    query, data)
+                cursor.execute(query, data)
                 fetched = cursor.fetchmany(length)
                 if len(fetched) == 0:
                     return
@@ -323,23 +361,29 @@ class Table:
                 start += length
 
     @overload
-    def select_one(self,
-                   condition: Condition = None,
-                   only: ParsedFn = _null,
-                   order: Optional[Orders] = None) -> Any:
+    def select_one(
+        self,
+        condition: Condition = None,
+        only: ParsedFn = _null,
+        order: Optional[Orders] = None,
+    ) -> Any:
         pass
 
     @overload
-    def select_one(self,
-                   condition: Condition = None,
-                   only: OnlyColumn = '*',
-                   order: Optional[Orders] = None) -> Query:
+    def select_one(
+        self,
+        condition: Condition = None,
+        only: OnlyColumn = "*",
+        order: Optional[Orders] = None,
+    ) -> Query:
         pass
 
-    def select_one(self,
-                   condition: Condition = None,
-                   only: OnlyColumn | ParsedFn = '*',
-                   order: Optional[Orders] = None):
+    def select_one(
+        self,
+        condition: Condition = None,
+        only: OnlyColumn | ParsedFn = "*",
+        order: Optional[Orders] = None,
+    ):
         """Select one data
 
         Args:
@@ -352,7 +396,8 @@ class Table:
         """
         self._control()
         query, data = build_select(
-            self._table, condition, only, 1, 0, order)  # type: ignore
+            self._table, condition, only, 1, 0, order
+        )  # type: ignore
         with self._sql:
             cursor = self._sql.cursor()
             cursor.execute(query, data)
@@ -383,24 +428,25 @@ class Table:
             return self._ns[self._table]
         self._control()
         if self._columns:
-            datatypes = {
-                col.name: SQLITEPYTYPES[col.type] for col in self._columns}
-            namespace_name = self._table.title()+"Table"
+            datatypes = {col.name: SQLITEPYTYPES[col.type] for col in self._columns}
+            namespace_name = self._table.title() + "Table"
             namedtupled = NamedTuple(namespace_name, **datatypes)
             setattr(namedtupled, "_table", self)
             self._ns[self._table] = namedtupled
             return namedtupled
         self._fetch_columns()
         if self._columns is None:
-            raise ExceptionGroup(f"Column misbehave. Table {self._table}", [
-                ValueError("Mismatched columns"),
-                UnexpectedResultError(
-                    "._fetch_columns() does not change columns.")
-            ])
+            raise ExceptionGroup(
+                f"Column misbehave. Table {self._table}",
+                [
+                    ValueError("Mismatched columns"),
+                    UnexpectedResultError("._fetch_columns() does not change columns."),
+                ],
+            )
         datatypes = {}
         for column in self._columns:
             datatypes[column.name] = SQLITEPYTYPES[column.type]
-        namedtupled = NamedTuple(self._table.title()+"Table", **datatypes)
+        namedtupled = NamedTuple(self._table.title() + "Table", **datatypes)
 
         self._ns[self._table] = namedtupled
         return namedtupled
@@ -428,13 +474,18 @@ class Table:
         column = column.to_column() if isinstance(column, BuilderColumn) else column
         if column.primary or column.unique:
             raise OperationalError(
-                "New column cannot have primary or unique constraint")
+                "New column cannot have primary or unique constraint"
+            )
         if column.nullable is False and column.default is None:
-            raise OperationalError("New column cannot be not null while default value is \
-set to null")
+            raise OperationalError(
+                "New column cannot be not null while default value is \
+set to null"
+            )
         if column.default is not None and column.foreign:
-            raise OperationalError("New column must accept null default value if foreign \
-constraint is enabled.")
+            raise OperationalError(
+                "New column must accept null default value if foreign \
+constraint is enabled."
+            )
         query = f"alter table {self._table} add column {extract_single_column(column)}"
         if self._columns is not None:
             self._columns.append(column)
@@ -450,4 +501,4 @@ constraint is enabled.")
         return f"<Table({self._table}) -> {self._parent_repr}>"
 
 
-__all__ = ['Table']
+__all__ = ["Table"]
