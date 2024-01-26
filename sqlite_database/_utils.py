@@ -22,6 +22,7 @@ _re_valid = re_compile(f"[{re_escape(_INVALID_STR)}]+")
 
 class NullObject:
     """Null object"""
+
     __obj = None
 
     def __new__(cls):
@@ -66,9 +67,10 @@ def sqlite_multithread_check():
     """sqlite mulththread check"""
     thread_safe = {0: 0, 2: 1, 1: 3}
     conn = connect(":memory:", check_same_thread=False)
-    data = conn.execute("select * from pragma_compile_options where compile_options \
-like 'THREADSAFE=%'")\
-        .fetchone()[0]
+    data = conn.execute(
+        "select * from pragma_compile_options where compile_options \
+like 'THREADSAFE=%'"
+    ).fetchone()[0]
     conn.close()
 
     threadsafety_value = int(data.split("=")[1])
@@ -113,19 +115,22 @@ class WithCursor(Cursor):
 
 class Ref:
     """Weakref object Referece (descriptor)"""
+
     _null = object()
+
     def __init__(self):
         self._ref = self._null
 
     def __get__(self, obj, objtype=None):
         if self._ref is self._null:
             raise ValueError("Reference is null, no object is specified")
-        if (object_ := self._ref()): # type: ignore
+        if object_ := self._ref():  # type: ignore
             return object_
         raise ObjectRemovedError("object is removed")
 
     def __set__(self, obj, value):
         self._ref = ref(value)
+
 
 def future_class_var_isdefined(type_: Type[Any], future_attr: str):
     """Is a future class var defined?"""
@@ -137,10 +142,12 @@ def future_class_var_isdefined(type_: Type[Any], future_attr: str):
             return True
     return False
 
+
 def test_installed():
     """Test if project is truly installed. It was meant for docs compatibility and thus,
     always returns true"""
     return True
+
 
 null = NullObject()
 
@@ -151,6 +158,16 @@ def get_type_from_mapping(type: str, mapping: dict[str, str]) -> str:
         raise ValueError(f"{type} was not defined in the mapping.")
     return mapping[type]
 
-__all__ = ['null', 'future_class_var_isdefined', 'WithCursor', 'check_iter', 'check_one',
-           'matches', 'AttrDict', 'NullObject', 'sqlite_multithread_check',
-           'get_type_from_mapping']
+
+__all__ = [
+    "null",
+    "future_class_var_isdefined",
+    "WithCursor",
+    "check_iter",
+    "check_one",
+    "matches",
+    "AttrDict",
+    "NullObject",
+    "sqlite_multithread_check",
+    "get_type_from_mapping",
+]

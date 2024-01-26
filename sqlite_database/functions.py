@@ -7,11 +7,12 @@ from ._utils import check_one
 
 # It was moved here, so users don't just import anything from query builder.
 
-def _function_extract(parsed: 'ParsedFn') -> tuple[str, dict[str, Any]]:
+
+def _function_extract(parsed: "ParsedFn") -> tuple[str, dict[str, Any]]:
     """Extract function into SQL function syntax."""
     check_one(parsed.name)
     if len(parsed.values) == 1:
-        if parsed.values[0] in (None, ..., '*'):
+        if parsed.values[0] in (None, ..., "*"):
             return f"{parsed.name}(*)", {}
         # need to find a check if input is column name or some values.
         return f"{parsed.name}({check_one(parsed.values[0])})", {}
@@ -29,8 +30,10 @@ def _function_extract(parsed: 'ParsedFn') -> tuple[str, dict[str, Any]]:
     string = string[:-2] + ")"
     return string, data
 
+
 class ParsedFn(NamedTuple):
     """Next step to query_builder"""
+
     name: str
     values: tuple[Any, ...]
 
@@ -38,8 +41,10 @@ class ParsedFn(NamedTuple):
         """Parse the ParsedFn into SQL"""
         return _function_extract(self)
 
-class Function: # pylint: disable=too-few-public-methods
+
+class Function:  # pylint: disable=too-few-public-methods
     """Provide Function API calls"""
+
     def __init__(self, name: str):
         self._name = check_one(name)
 

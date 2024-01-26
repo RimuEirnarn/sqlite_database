@@ -1,7 +1,9 @@
 """Errors"""
 
+
 class DependencyError(ImportError):
     """Specific dependency is missing"""
+
 
 class SecurityError(Exception):
     """SQLInjection ahead."""
@@ -21,6 +23,7 @@ class DatabaseExistsError(UnexpectedResultError):
 
 class DatabaseMissingError(UnexpectedResultError):
     """Database that would be accessed is missing."""
+
 
 class ObjectRemovedError(BaseException):
     """Object is deleted from memory and cannot be obtained"""

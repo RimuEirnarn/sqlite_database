@@ -1,4 +1,5 @@
 """CSV module, used to export database/table to csv"""
+
 from csv import DictWriter
 from io import StringIO
 from os import mkdir
@@ -29,11 +30,13 @@ def _export_database(database: Database) -> list[tuple[str, str]]:
         exported.append((table.name, _export_table(table)))
     return exported
 
+
 def _process_database(filename: str, data: list[tuple[str, str]]):
     for table in data:
         base = join_path(filename, f"{table[0]}.csv")
-        with open(base, 'w', encoding='utf-8') as file:
+        with open(base, "w", encoding="utf-8") as file:
             file.write(table[1])
+
 
 def to_csv_string(table_or_database: Table | Database):
     """Export database/table to csv"""
@@ -41,7 +44,10 @@ def to_csv_string(table_or_database: Table | Database):
         return _export_table(table_or_database)
     if isinstance(table_or_database, Database):
         return _export_database(table_or_database)
-    raise TypeError(f"Expected Table or Database, got {type(table_or_database).__name__}")
+    raise TypeError(
+        f"Expected Table or Database, got {type(table_or_database).__name__}"
+    )
+
 
 def to_csv_file(table_or_database: Table | Database, file: str):
     """Export database/table to csv file, will act different if database is exported.
@@ -56,6 +62,6 @@ def to_csv_file(table_or_database: Table | Database, file: str):
 
         _process_database(file, readed)
         return True
-    with open(file, 'w', encoding='utf-8') as fio:
+    with open(file, "w", encoding="utf-8") as fio:
         fio.write(readed)
     return True

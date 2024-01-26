@@ -168,3 +168,4 @@ reports.txt
 /t_*
 /logs
 records
+testdb.sqlite3
