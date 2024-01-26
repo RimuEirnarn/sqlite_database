@@ -36,4 +36,4 @@ jobs:
       # No need for linting, it's already provided in pylint action
     - name: Test with pytest
       run: |
-        pytest --config-file ./dev-config/pytest.ini
+        pytest --config-file ./dev-config/pytest.ini --verbose --rootdir .
