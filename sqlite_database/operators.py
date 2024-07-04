@@ -44,4 +44,6 @@ def between(name: str, low: int, high: int) -> tuple[str, Signature]:
     return (name, op.between(low, high))
 
 
-__all__ = ["eq", "lt", "le", "gt", "ge", "ne", "like", "between"]
+this = op
+
+__all__ = ["eq", "lt", "le", "gt", "ge", "ne", "like", "between", "this"]
