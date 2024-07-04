@@ -70,11 +70,11 @@ class Signature:
         is_valid = not matches(_NO_UNLIKE, str_condition)
         if not is_valid:
             raise SecurityError("Cannot understand other character.")
-        return Signature(null, "like", str_condition)
+        return Signature(null, "like", str_condition, self._negate)
 
     def between(self, low: int, high: int):
         """Betweeen"""
-        return Signature(null, "between", (low, high))
+        return Signature(null, "between", (low, high), self._negate)
 
     def negate(self):
         """Negate or adding NOT"""

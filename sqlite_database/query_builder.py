@@ -8,7 +8,7 @@ from .functions import ParsedFn, _function_extract
 from ._utils import check_one, null, check_iter
 from .column import Column
 from .locals import _SQLITETYPES
-from .signature import Signature, op
+from .signature import Signature
 from .typings import _MasterQuery, Data, Orders
 
 ConditionDict = dict[str, Signature | ParsedFn | Any]
@@ -99,17 +99,21 @@ def extract_signature(
         if not isinstance(value, Signature):
             value = Signature(value, "==")
         old_data = value.value
-        val = op == f":{key}{suffix}" if value.value is not null else value
+        val = (
+            Signature(f":{key}{suffix}", value.generate(), value.data)
+            if value.value is not null
+            else value
+        )
         middle = val.generate()
         if val.normal_operator:
             string += f" {key}{middle}{val.value} and"
             last = 4
         if val.is_between:
             vdata: tuple[int, int] = val.data  # type: ignore
-            string += f" {key} {middle} {vdata[0]} and {vdata[1]},"
+            string += f" {key} {middle} {vdata[0]!r} and {vdata[1]!r} and"
         if val.is_like:
             vdata: str = val.data  # type: ignore
-            string += f"{key} {middle} {vdata},"
+            string += f" {key} {middle} {vdata!r} and"
         if val.value is not null:
             data[f"{key}{suffix}"] = old_data
 

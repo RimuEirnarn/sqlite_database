@@ -169,3 +169,4 @@ reports.txt
 /logs
 records
 testdb.sqlite3
+/test*.py

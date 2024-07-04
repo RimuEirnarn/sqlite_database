@@ -61,7 +61,7 @@ class Table:
         self,
         parent,  # type: ignore
         table: str,
-        __columns: Optional[Iterable[Column]] = None,
+        __columns: Optional[Iterable[Column]] = None, # type: ignore
     ) -> None:
         if parent.closed:
             raise ConnectionError("Connection to database is already closed.")

@@ -103,7 +103,7 @@ class Database:
         del self._table_instances[table]
         table_._delete_hook()  # pylint: disable=protected-access
 
-    def table(self, table: str, __columns: Optional[Iterable[Column]] = None):
+    def table(self, table: str, __columns: Optional[Iterable[Column]] = None): # type: ignore
         """fetch table"""
         if self._table_instances.get(table, None) is not None:
             return self._table_instances[table]
