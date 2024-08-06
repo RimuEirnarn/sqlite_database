@@ -177,7 +177,7 @@ def test_00_select():
     assert save_report("00_test", database, groups, users)
 
 
-def test_001_select():
+def test_00_1_select():
     """Test 001 select"""
     assert groups.select_one([eq('id', 0)]) == GROUP_BASE[0]
     assert groups.select() == GROUP_BASE
@@ -186,7 +186,7 @@ def test_001_select():
     assert save_report("00_test", database, groups, users)
 
 
-def test_002_select():
+def test_00_2_select():
     """Test 002 select"""
     assert groups.select_one({'id': 0}) == GROUP_BASE[0]
     assert groups.select() == GROUP_BASE
@@ -194,13 +194,13 @@ def test_002_select():
     assert users.select() == USER_BASE
     assert save_report("00_test", database, groups, users)
 
-def test_003_select_only():
+def test_00_3_select_only():
     """Test 003 select only"""
     assert groups.select_one({"id": 0}, ('name',)) == GROUP_NAMEBASE[0]
     assert users.select_one({'id': 0}, ('username', 'role')) == USER_NAMEBASE[0]
     assert save_report("00_test", database, groups, users)
 
-def test_004_select_crunch():
+def test_00_4_select_crunch():
     """Test 004 select with crunch"""
     database = Database(":memory:")
     groups = database.table('groups')
@@ -211,8 +211,8 @@ def test_01_insert():
     """test 01 insert"""
     assert groups.insert_many(GROUP_NEW) is None
     assert users.insert_many(USER_NEW) is None
-    users._sql.commit()
-    assert not not users.select()
+    users._sql.commit() # pylint: disable=protected-access
+    assert not not users.select() # pylint: disable=unnecessary-negation
     assert save_report("01_insert", database, groups, users)
 
 
