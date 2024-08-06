@@ -1,26 +1,35 @@
-# In Depth of Available Features
+# SQLite Database
 
-## Table of contents
+This is a simple wrapper for Python's builtin sqlite package, it uses simple API to interact with the database in a NoSQL-like fashion.
 
-1. [More filter](#more-filter)
-    1. [Some Constraints](#some-constraints)
-2. [Table-related operation](#table-related-operation)
-    1. [Select](#select)
-    2. [Update](#update)
-    3. [Delete](#delete)
-    4. [Insert](#insert)
-    5. [Functions](#functions)
-3. [Database-related operation](#database-related-operation)
-    1. [Create Table](#create-table)
-    2. [Delete Table](#delete-table)
-    3. [Accessing Table](#accessing-table)
-    4. [Reset Table](#reset-table)
-    5. [Rename Table](#rename-table)
-    6. [Check Table](#check-table)
-    7. [All Tables](#list-tables-that-have-been-created)
-4. [Export](#export)
-    1. [Export Table](#export-table)
-    2. [Export Database](#export-database)
+## Table of content
+
+- [SQLite Database](#sqlite-database)
+  - [Table of content](#table-of-content)
+  - [In Depth of Available Features](#in-depth-of-available-features)
+    - [Available Filters](#available-filters)
+    - [Available Constraints](#available-constraints)
+    - [Table-related operation](#table-related-operation)
+      - [Select](#select)
+        - [Select Common Params](#select-common-params)
+        - [Select Methods](#select-methods)
+      - [Update](#update)
+      - [Delete](#delete)
+      - [Insert](#insert)
+      - [Functions](#functions)
+    - [Database-related operation](#database-related-operation)
+      - [Create Table](#create-table)
+      - [Delete table](#delete-table)
+      - [Accessing table](#accessing-table)
+      - [Reset table](#reset-table)
+      - [Rename table](#rename-table)
+      - [Check table](#check-table)
+      - [List tables that have been created](#list-tables-that-have-been-created)
+    - [Export](#export)
+      - [Export Table](#export-table)
+      - [Export Database](#export-database)
+
+## In Depth of Available Features
 
 **Note**: to test these features, make sure you copy and paste this snippet:
 
@@ -34,24 +43,25 @@ For table and database, you can create any dummy database but here's one (assumi
 
 ```python
 from sqlite_database import Database, integer, text
+from sqlite_database import this
 db = Database(":memory:")
-table = db.create_table('table', [
+my_table = db.create_table('my_table', [
     integer('row'),
     text('row2')
 ])
 ```
 
-## More filter
+### Available Filters
 
-Basic
+`this`:
 
 ```python
 data = table.select({
-    "row": op == value
+    "row": this == value
 })
 ```
 
-Basic (new equal) (v0.1.2)
+Key-Value:
 
 ```python
 data = table.select({
@@ -59,7 +69,7 @@ data = table.select({
 })
 ```
 
-List (v0.1.2)
+List of functions:
 
 ```python
 data = table.select([
@@ -69,9 +79,9 @@ data = table.select([
 
 Any other variations are just math operators, for the list, operations can be obtained from the `operators` module.
 
-### Some constraints
+### Available Constraints
 
-Like constraint
+Like constraint:
 
 ```python
 data = table.select([
@@ -79,7 +89,7 @@ data = table.select([
 ])
 ```
 
-Between constraint
+Between constraint:
 
 ```python
 data = table.select([
@@ -87,24 +97,17 @@ data = table.select([
 ])
 ```
 
-## Table-related operation
+### Table-related operation
 
-### Select
+#### Select
 
-```python
-data = table.select({'row': 0})
-```
+To retrieve contents of a table, you can use `.select*` methods such as `.paginate_select`, `.select`, and `.select_one`. See [Select Methods](#select-methods).
 
-`paginate_select` has the same effect as `select` except that it's paginate.
+##### Select Common Params
 
-As it stands, it only covers at-length parameters for an iteration-turn.
-This means it loops, selects (based on offset and limit), checks if the length is equal to the length parameter, yields, and increments the offset by the length.
+`offset`: returns at specific position
 
-`offset` isn't available as a parameter yet but exists for the `select` method.
-
-**New in v0.4.0**: parameter `only`.
-
-`only` is introduced so that you can select what column you want on a select operation, and use it as usual. However, `only` can also be used on [functions](#functions) too.
+`only`: you can use `only` to select which columns you want to return, and use it as usual. However, `only` can also be used on [functions](#functions) too.
 
 So for example:
 
@@ -130,9 +133,9 @@ which achieves the same as
 select COUNT(*) from table
 ```
 
-#### Crunchy Selection
+`order`: you can change the return order from `asc` and `desc`.
 
-The result of the select operation is usually a list/tuples of `AttrDict` however, a `crunch` option can be used to 'inverse' it into returning an `AttrDict` where each value are list.
+`squash`: The result of the select operation is usually a list/tuples of `Row` however, a `squash` option can be used to 'inverse' it into returning an `Row` where each value are list.
 
 ```python
 table.select(squash=True)
@@ -140,7 +143,41 @@ table.select(squash=True)
 
 The example will do the trick.
 
-### Update
+##### Select Methods
+
+`.paginate_select`: yields a selection page, useful when there's ton of data and you want to limit how much it returns at a time.
+
+As it stands, it only covers length parameters for an iteration turn.
+This means it loops, selects (based on offset and limit), checks if the length is equal to the length parameter, yields, and increments the offset by the length.
+
+Example:
+
+```python
+several_people = table.paginate_select(
+    {"age": this >= 20}, # Select people with age more or equal than 20
+    length=20, # Each page has 20 columns
+)
+
+for page in several_people:
+    print(page)
+```
+
+`.select`: selects, described in [Select](#select)
+
+Example:
+
+```python
+persons = table.select() # This returns everything
+persons_age = table.select(only=('age',)) # This returns everything but only contains 'age' column.
+```
+
+See [Select Common Params](#select-common-params)
+
+`.select_one`: Like `.select()` but returns one item (`Row`)
+
+#### Update
+
+To change columns on matching `conditions`, use either `update()` or `update_one`. `update_on` updates specifically one item.
 
 ```python
 table.update({
@@ -150,9 +187,9 @@ table.update({
 })
 ```
 
-You can use `update_one` and `update`. The only difference is that `update_one` has 3 parameters. (yes, excluding the `limit` param.)
+#### Delete
 
-### Delete
+You can delete row(s).
 
 ```python
 data = table.delete([
@@ -160,7 +197,11 @@ data = table.delete([
 ])
 ```
 
-### Insert
+Most of the parameters are `conditions`, `limit`, and `order`. `.delete` also has `.delete_one`
+
+#### Insert
+
+To push a data, you can use `.insert`
 
 ```python
 table.insert({
@@ -168,9 +209,11 @@ table.insert({
 })
 ```
 
-### Functions
+use `.insert_multiple` if your data has many things.
 
-You can now use functions on the latest version (from `0.4.0`) however for now, it's limited to only `.select()` queries. However, practically you can use any functions defined.
+#### Functions
+
+You can now use functions, however for now, it's limited to only `.select()` queries. However, practically you can use any functions defined.
 
 ```python
 from sqlite_database.functions import Function
@@ -178,13 +221,15 @@ count = Function('COUNT')
 person.select(only=count('*'))
 ```
 
-## Database-related operation
+### Database-related operation
 
-You can use the `cursor` method to use raw SQLite Connection or access the `sql` property to access **the** connection.
+You can use the `cursor` method to use raw SQLite Connection or access the `sql` property to access the connection.
 
-For connecting to the database, you can pass any regular keyword args or args for connect (see `sqlite3.connect`)
+For connecting to the database, you can pass any regular keyword args or args for connect (see [`sqlite3.connect`](https://docs.python.org/3/library/sqlite3.html#sqlite3.connect))
 
-### Create Table
+#### Create Table
+
+You can create a table, yes. By default, available types defined are `real`, `text`, `integer`, and `blob`
 
 ```python
 table = db.create_table('table', [
@@ -193,19 +238,19 @@ table = db.create_table('table', [
 ])
 ```
 
-### Delete table
+#### Delete table
 
 ```python
 db.delete_table('table')
 ```
 
-### Accessing table
+#### Accessing table
 
 ```python
 table = db.table('table')
 ```
 
-### Reset table
+#### Reset table
 
 ```python
 table = db.reset_table('table',[
@@ -214,25 +259,26 @@ table = db.reset_table('table',[
 ])
 ```
 
-### Rename table
+#### Rename table
 
 ```python
 table = db.rename_table('table', "some_table")
 ```
 
-### Check table
+#### Check table
 
 ```python
-exists = db.check_table('table')
+if db.check_table('table'): # Table exists
+    # do something
 ```
 
-### List tables that have been created
+#### List tables that have been created
 
 ```python
 db.tables
 ```
 
-## Export
+### Export
 
 You can export the database/table to CSV, for now, import functionality will not be added.
 
@@ -246,7 +292,7 @@ You can use `to_csv_string` rather than `to_csv_file`, all you need is to pass t
 
 **Note**: The return type for the database is a tuple indicating `(name, csv)`, and by that, `to_csv_file` would make sure that filename passed is a directory and the content will be all table files. E.g: `/path/database/table.csv`
 
-### Export Table
+#### Export Table
 
 ```python
 # To String
@@ -256,7 +302,7 @@ csv = to_csv_string(db.table("table"))
 to_csv_file(db.table("table"), "table.csv")
 ```
 
-### Export Database
+#### Export Database
 
 ```python
 # To String

@@ -29,6 +29,6 @@ The functionality here is outside of sqlite features such as export and import.
 - [ ] CSV Import
 - [ ] Other method of Import
 
-[^1]: The term data crunching is when `select*` is used, typically the functions returns list of `AttrDict`, by using `crunch=True`, the return value should be `AttrDict[str, tuple[Any]]`
-[^2]: If `only` parameter is specified to 1, we should return `tuple[Any, ...]` instead of `list[AttrDict[str, Any]]` or `AttrDict[str, Any]`
+[^1]: The term data crunching is when `select*` is used, typically the functions returns list of `Row`, by using `crunch=True`, the return value should be `Row[str, tuple[Any]]`
+[^2]: If `only` parameter is specified to 1, we should return `tuple[Any, ...]` instead of `list[Row[str, Any]]` or `Row[str, Any]`
 [^3]: Caching should **NOT** cache query data! Provide using `combine_keyvals` to create named params

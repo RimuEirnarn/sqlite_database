@@ -46,7 +46,7 @@ class NullObject:
         return 0.0
 
 
-class AttrDict(dict):
+class Row(dict):
     """Attribute Dictionary"""
 
     def __getattr__(self, __name: str) -> Any:
@@ -59,7 +59,7 @@ class AttrDict(dict):
 def dict_factory(cursor, row):
     """dict factory"""
     fields = [column[0] for column in cursor.description]
-    return AttrDict(zip(fields, row))
+    return Row(zip(fields, row))
     # return {key: value for key, value in zip(fields, row)}
 
 
@@ -150,13 +150,14 @@ def test_installed():
 
 
 null = NullObject()
+AttrDict = Row
 
 
-def get_type_from_mapping(type: str, mapping: dict[str, str]) -> str:
+def get_type_from_mapping(type_: str, mapping: dict[str, str]) -> str:
     """get type from mapping"""
-    if not type in mapping:
-        raise ValueError(f"{type} was not defined in the mapping.")
-    return mapping[type]
+    if not type_ in mapping:
+        raise ValueError(f"{type_} was not defined in the mapping.")
+    return mapping[type_]
 
 
 __all__ = [
@@ -166,6 +167,7 @@ __all__ = [
     "check_iter",
     "check_one",
     "matches",
+    "Row",
     "AttrDict",
     "NullObject",
     "sqlite_multithread_check",

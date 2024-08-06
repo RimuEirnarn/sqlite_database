@@ -6,15 +6,15 @@ from typing import Any, Literal, Protocol, SupportsIndex, TypedDict
 
 from sqlite_database.functions import ParsedFn  # pylint: disable=unused-import
 
-from ._utils import AttrDict
+from ._utils import Row
 
 Orders = dict[str, Literal["asc"] | Literal["desc"]]
 Data = dict[str, Any]
-Query = AttrDict[str, Any]  # type: ignore
+Query = Row[str, Any]  # type: ignore
 OnlyColumn = tuple[str, ...] | Literal["*"]
-Queries = list[Query] | AttrDict[str, list[Any]]  # type: ignore
+Queries = list[Query] | Row[str, list[Any]]  # type: ignore
 Queries = list[Query]
-SquashedSqueries = AttrDict[str, list[Any]]  # type: ignore
+SquashedSqueries = Row[str, list[Any]]  # type: ignore
 null = object()
 
 

@@ -1,5 +1,7 @@
 """Table"""
 
+# pylint: disable=too-many-arguments
+
 from sqlite3 import Connection, OperationalError
 from typing import (
     Any,
@@ -18,7 +20,7 @@ from sqlite_database.functions import ParsedFn, Function
 
 
 from .utils import crunch
-from ._utils import check_iter, check_one, AttrDict
+from ._utils import check_iter, check_one, Row
 from .column import BuilderColumn, Column
 from .errors import TableRemovedError, UnexpectedResultError
 from .locals import SQLITEPYTYPES, PLUGINS_PATH
@@ -405,7 +407,7 @@ class Table:
             if isinstance(only, ParsedFn):
                 return data[only.parse_sql()[0]]
             if not data:
-                return AttrDict()
+                return Row()
             return data
 
     def exists(self, condition: Condition = None):
