@@ -162,6 +162,8 @@ for page in several_people:
     print(page)
 ```
 
+There's also `page` param so you can skip directly to which page to return.
+
 `.select`: selects, described in [Select](#select)
 
 Example:

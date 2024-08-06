@@ -305,6 +305,7 @@ class Table:
         self,
         condition: Condition = None,
         only: OnlyColumn = "*",
+        page: int = 0,
         length: int = 10,
         order: Optional[Orders] = None,
         squash: Literal[False] = False,
@@ -316,6 +317,7 @@ class Table:
         self,
         condition: Condition = None,
         only: OnlyColumn = "*",
+        page: int = 0,
         length: int = 10,
         order: Optional[Orders] = None,
         squash: Literal[True] = True,
@@ -326,6 +328,7 @@ class Table:
         self,
         condition: Condition = None,
         only: OnlyColumn = "*",
+        page: int = 0,
         length: int = 10,
         order: Optional[Orders] = None,
         squash: bool = False,
@@ -334,15 +337,20 @@ class Table:
 
         Args:
             condition (Condition, optional): Confitions to use. Defaults to None.
-            only: (OnlyColumn, optional): Select what you want. Default to None.
+            only (OnlyColumn, optional): Select what you want. Default to None.
+            page (int): Which page number be returned first
             length (int, optional): Pagination length. Defaults to 10.
             order (Optional[Orders], optional): Order. Defaults to None.
 
         Yields:
             Generator[Queries, None, None]: Step-by-step paginated result.
         """
+
+        if page < 0:
+            page = 0
+            order = 'desc' if order in ('asc', None) else 'asc' # type: ignore
         self._control()
-        start = 0
+        start = page * length
         while True:
             query, data = build_select(
                 self._table, condition, only, length, start, order
