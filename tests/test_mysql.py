@@ -1,5 +1,6 @@
 """test db"""
-# pylint: disable=redefined-outer-name,invalid-name
+# pylint: disable=redefined-outer-name,invalid-name,all
+'''
 from io import StringIO
 from json import dumps
 from os.path import abspath
@@ -9,7 +10,7 @@ from pathlib import Path
 
 from pytest import raises, skip
 
-'''"""
+"""
 from sqlite_database import text, integer
 from sqlite_database.mysqldb import MySQLDatabase as Database
 from sqlite_database.signature import op
