@@ -174,6 +174,9 @@ class Database:
             if table.type == "table":
                 listed.append(self.table(table.name))
         return tuple(listed)
+    
+    def commit(self):
+        self._database.commit()
 
     @property
     def closed(self):
