@@ -72,6 +72,8 @@ class Table:
         # pylint: disable-next=protected-access
         self._sql_path = parent._path
         self._deleted = False
+        self._force_dirty = False
+        self._dirty = False
         self._table = check_one(table)
         self._columns: Optional[list[Column]] = list(__columns) if __columns else None
         weakref.finalize(self, self._finalize)
@@ -114,6 +116,11 @@ class Table:
     def _control(self):
         if self._deleted:
             raise TableRemovedError(f"{self._table} is already removed")
+        
+    def _query_control(self):
+        if self._dirty and self._force_dirty is False:
+            self._sql.commit()
+            self._dirty = False
 
     def force_nodelete(self):
         """Force "undelete" table. Used if table was mistakenly assigned as
@@ -125,6 +132,7 @@ class Table:
         condition: Condition = None,
         limit: int = 0,
         order: Optional[Orders] = None,
+        commit: bool = True
     ):
         """Delete row or rows
 
@@ -133,6 +141,7 @@ class Table:
                 See `Signature` class about conditional stuff. Defaults to None.
             limit (int, optional): Limit deletion by integer. Defaults to 0.
             order (Optional[Orders], optional): Order of deletion. Defaults to None.
+            commit (bool, optional): Commit changes to database (default is true)
 
         Returns:
             int: Rows affected
@@ -142,7 +151,10 @@ class Table:
         cursor = self._sql.cursor()
         cursor.execute(query, data)
         rcount = cursor.rowcount
-        self._sql.commit()
+        if commit:
+            self._sql.commit()
+        else:
+            self._dirty = True
         return rcount
 
     def delete_one(self, condition: Condition = None, order: Optional[Orders] = None):
@@ -155,11 +167,12 @@ class Table:
         """
         return self.delete(condition, 1, order)
 
-    def insert(self, data: Data):
+    def insert(self, data: Data, commit: bool = True):
         """Insert data to current table
 
         Args:
             data (Data): Data to insert. Make sure it's compatible with the table.
+            commit (bool, optional): Commit data to database.
 
         Returns:
             int: Last rowid
@@ -170,19 +183,27 @@ class Table:
         cursor.execute(query, data)
         rlastrowid = cursor.lastrowid
         self._sql.commit()
+        if commit:
+            self._sql.commit()
+        else:
+            self._dirty = True
         return rlastrowid
 
-    def insert_multiple(self, datas: list[Data]):
+    def insert_multiple(self, datas: list[Data], commit: bool = True):
         """Insert multiple values
 
         Args:
             datas (Iterable[Data]): Data to be inserted.
+            commit (bool, optional): Commit data to database
         """
         self._control()
         query, _ = build_insert(self._table, datas[0])  # type: ignore
         cursor = self._sql.cursor()
         cursor.executemany(query, datas)
-        self._sql.commit()
+        if commit:
+            self._sql.commit()
+        else:
+            self._dirty = True
 
     def insert_many(self, datas: list[Data]):
         """Alias to `insert_multiple`"""
@@ -194,6 +215,7 @@ class Table:
         data: Data | None = None,
         limit: int = 0,
         order: Optional[Orders] = None,
+        commit: bool = True
     ):
         """Update rows of current table
 
@@ -203,6 +225,7 @@ class Table:
                 See `Signature` about how condition works. Defaults to None.
             limit (int, optional): Limit updates. Defaults to 0.
             order (Optional[Orders], optional): Order of change. Defaults to None.
+            commit (bool, optional): Commit data to database
 
         Returns:
             int: Rows affected
@@ -216,7 +239,10 @@ class Table:
         cursor = self._sql.cursor()
         cursor.execute(query, data)
         rcount = cursor.rowcount
-        self._sql.commit()
+        if commit:
+            self._sql.commit()
+        else:
+            self._dirty = True
         return rcount
 
     def update_one(
@@ -287,6 +313,7 @@ class Table:
             Queries: Selected data
         """
         self._control()
+        self._query_control()
         query, data = build_select(
             self._table, condition, only, limit, offset, order
         )  # type: ignore
@@ -350,6 +377,7 @@ class Table:
             page = 0
             order = 'desc' if order in ('asc', None) else 'asc' # type: ignore
         self._control()
+        self._query_control()
         start = page * length
         while True:
             query, data = build_select(
@@ -405,6 +433,7 @@ class Table:
             Any: Selected data
         """
         self._control()
+        self._query_control()
         query, data = build_select(
             self._table, condition, only, 1, 0, order
         )  # type: ignore
@@ -506,6 +535,23 @@ constraint is enabled."
         check_iter((old_column, new_column))
         query = f"alter table {self._table} rename column {old_column} to {new_column}"
         self._sql.execute(query)
+
+    def allow_dirty(self):
+        """Allow dirty queries"""
+        self._force_dirty = True
+
+    def disallow_dirty(self):
+        """Disallow dirty queries"""
+        self._force_dirty = False
+
+    def commit(self):
+        """Commit changes"""
+        self._sql.commit()
+
+    def rollback(self):
+        """Rollback"""
+        self._sql.rollback()
+        self._dirty = False
 
     def __repr__(self) -> str:
         return f"<Table({self._table}) -> {self._parent_repr}>"
