@@ -174,8 +174,9 @@ class Database:
             if table.type == "table":
                 listed.append(self.table(table.name))
         return tuple(listed)
-    
+
     def commit(self):
+        """Commit changes to database"""
         self._database.commit()
 
     @property
