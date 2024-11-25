@@ -1,8 +1,8 @@
 # SQLite Database
 
-This is a simple wrapper for Python's builtin sqlite package, it uses simple API to interact with the database in a NoSQL-like fashion.
+This is a simple wrapper for Python's built-in sqlite package. It uses simple API to interact with the database in a NoSQL-like fashion.
 
-## Table of content
+## Table of content.
 
 - [SQLite Database](#sqlite-database)
   - [Table of content](#table-of-content)
@@ -31,7 +31,7 @@ This is a simple wrapper for Python's builtin sqlite package, it uses simple API
 
 ## In Depth of Available Features
 
-**Note**: to test these features, make sure you copy and paste this snippet:
+**Note**: To test these features, make sure you copy and paste this snippet:
 
 ```python
 from sqlite_database import op
@@ -39,7 +39,7 @@ from sqlite_database.operators import eq, like, between
 value = 0 # You can use almost anything.
 ```
 
-For table and database, you can create any dummy database but here's one (assuming you have pasted the above snippet):
+For table and database, you can create any dummy database, but here's one (assuming you have pasted the above snippet):
 
 ```python
 from sqlite_database import Database, integer, text
@@ -77,7 +77,7 @@ data = table.select([
 ])
 ```
 
-Any other variations are just math operators, for the list, operations can be obtained from the `operators` module.
+Any other variations are just math operators. For the list, operations can be obtained from the `operators` module.
 
 ### Available Constraints
 
@@ -89,7 +89,7 @@ data = table.select([
 ])
 ```
 
-Between constraint:
+Between constraints:
 
 ```python
 data = table.select([
@@ -107,9 +107,9 @@ To retrieve contents of a table, you can use `.select*` methods such as `.pagina
 
 `offset`: returns at specific position
 
-`only`: you can use `only` to select which columns you want to return, and use it as usual. However, `only` can also be used on [functions](#functions) too.
+`only`: you can use `only` to select which columns you want to return and use it as usual. However, `only` can also be used on [functions](#functions) too.
 
-So for example:
+So, for example:
 
 ```python
 person = table.select(only=('name', 'age'))
@@ -145,7 +145,7 @@ The example will do the trick.
 
 ##### Select Methods
 
-`.paginate_select`: yields a selection page, useful when there's ton of data and you want to limit how much it returns at a time.
+`.paginate_select`: yields a selection page, useful when there's a ton of data and you want to limit how much it returns at a time.
 
 As it stands, it only covers length parameters for an iteration turn.
 This means it loops, selects (based on offset and limit), checks if the length is equal to the length parameter, yields, and increments the offset by the length.
@@ -170,7 +170,7 @@ Example:
 
 ```python
 persons = table.select() # This returns everything
-persons_age = table.select(only=('age',)) # This returns everything but only contains 'age' column.
+persons_age = table.select(only=('age',)) # This returns everything but only contains the 'age' column.
 ```
 
 See [Select Common Params](#select-common-params)
@@ -203,7 +203,7 @@ Most of the parameters are `conditions`, `limit`, and `order`. `.delete` also ha
 
 #### Insert
 
-To push a data, you can use `.insert`
+To push data, you can use `.insert`
 
 ```python
 table.insert({
@@ -215,7 +215,7 @@ use `.insert_multiple` if your data has many things.
 
 #### Functions
 
-You can now use functions, however for now, it's limited to only `.select()` queries. However, practically you can use any functions defined.
+You can now use functions. However, for now, it's limited to only `.select()` queries. However, practically, you can use any functions defined.
 
 ```python
 from sqlite_database.functions import Function
@@ -282,7 +282,7 @@ db.tables
 
 ### Export
 
-You can export the database/table to CSV, for now, import functionality will not be added.
+You can export the database/table to CSV. For now, import functionality will not be added.
 
 Make sure to add this line
 
