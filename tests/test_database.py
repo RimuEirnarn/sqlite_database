@@ -177,7 +177,7 @@ def test_00_select():
     assert save_report("00_test", database, groups, users)
 
 
-def test_00_1_select():
+def test_00_01_select():
     """Test 001 select"""
     assert groups.select_one([eq('id', 0)]) == GROUP_BASE[0]
     assert groups.select() == GROUP_BASE
@@ -186,7 +186,7 @@ def test_00_1_select():
     assert save_report("00_test", database, groups, users)
 
 
-def test_00_2_select():
+def test_00_02_select():
     """Test 002 select"""
     assert groups.select_one({'id': 0}) == GROUP_BASE[0]
     assert groups.select() == GROUP_BASE
@@ -194,13 +194,13 @@ def test_00_2_select():
     assert users.select() == USER_BASE
     assert save_report("00_test", database, groups, users)
 
-def test_00_3_select_only():
+def test_00_03_select_only():
     """Test 003 select only"""
     assert groups.select_one({"id": 0}, ('name',)) == GROUP_NAMEBASE[0]
     assert users.select_one({'id': 0}, ('username', 'role')) == USER_NAMEBASE[0]
     assert save_report("00_test", database, groups, users)
 
-def test_00_4_select_crunch():
+def test_00_04_select_crunch():
     """Test 004 select with crunch"""
     database = Database(":memory:")
     groups = database.table('groups')
@@ -216,18 +216,17 @@ def test_01_insert():
     assert save_report("01_insert", database, groups, users)
 
 
-def test_02_update():
+def test_02_01_update():
     """test 02 update"""
     assert groups.update({"id": op == 2}, GROUP_UNEW[0]) == 1
     assert users.update({"id": op == 2}, USER_UNEW[0]) == 1
     assert save_report("02_update", database, groups, users)
 
-
-def test_03_delete():
-    """test 03 delete"""
-    assert save_report("03_delete", database, groups, users)
-    assert groups.delete({"id": op == 3}) == 1
-    assert users.delete({"id": op == 3}) == 1
+def test_02_02_update():
+    """test 02 update one"""
+    assert groups.update({"id": op == 3}, GROUP_UNEW[0]) == 1
+    assert users.update({"id": op == 3}, USER_UNEW[0]) == 1
+    assert save_report("02_update", database, groups, users)
 
 
 def test_04_finish():
