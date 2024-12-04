@@ -179,6 +179,10 @@ class Database:
         """Commit changes to database"""
         self._database.commit()
 
+    def rollback(self):
+        """Rollback changes"""
+        self._database.rollback()
+
     @property
     def closed(self):
         """Is database closed?"""
