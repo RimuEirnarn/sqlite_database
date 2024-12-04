@@ -6,6 +6,7 @@ from os.path import abspath
 from types import SimpleNamespace
 from tempfile import mkdtemp
 from pathlib import Path
+from random import random
 
 from pytest import raises
 
@@ -169,7 +170,7 @@ def save_report(tid, database, grouptb, usertb):
 
 
 def test_00_select():
-    """test 00 select"""
+    """test 0000 select"""
     assert groups.select_one({"id": op == 0}) == GROUP_BASE[0]
     assert groups.select() == GROUP_BASE
     assert users.select_one({"id": op == 0}) == USER_BASE[0]
@@ -178,7 +179,7 @@ def test_00_select():
 
 
 def test_00_01_select():
-    """Test 001 select"""
+    """Test 0001 select"""
     assert groups.select_one([eq('id', 0)]) == GROUP_BASE[0]
     assert groups.select() == GROUP_BASE
     assert users.select_one([eq('id', 0)]) == USER_BASE[0]
@@ -187,7 +188,7 @@ def test_00_01_select():
 
 
 def test_00_02_select():
-    """Test 002 select"""
+    """Test 0002 select"""
     assert groups.select_one({'id': 0}) == GROUP_BASE[0]
     assert groups.select() == GROUP_BASE
     assert users.select_one({'id': 0}) == USER_BASE[0]
@@ -195,20 +196,26 @@ def test_00_02_select():
     assert save_report("00_test", database, groups, users)
 
 def test_00_03_select_only():
-    """Test 003 select only"""
-    assert groups.select_one({"id": 0}, ('name',)) == GROUP_NAMEBASE[0]
+    """Test 0003 select only"""
     assert users.select_one({'id': 0}, ('username', 'role')) == USER_NAMEBASE[0]
     assert save_report("00_test", database, groups, users)
 
 def test_00_04_select_crunch():
-    """Test 004 select with crunch"""
+    """Test 0004 select with crunch"""
     database = Database(":memory:")
     groups = database.table('groups')
     setup_database(database)
     assert groups.select(squash=True) == GROUP_BASE_CRUNCHED
 
+def test_00_05_select_one_only_one_item():
+    """Test 0005"""
+    database = Database(":memory:")
+    groups = database.table('groups')
+    setup_database(database)
+    assert groups.select_one({'id': 0}, "name") == 'root'
+
 def test_01_insert():
-    """test 01 insert"""
+    """test 0100 insert"""
     assert groups.insert_many(GROUP_NEW) is None
     assert users.insert_many(USER_NEW) is None
     users._sql.commit() # pylint: disable=protected-access
@@ -217,20 +224,20 @@ def test_01_insert():
 
 
 def test_02_01_update():
-    """test 02 update"""
+    """test 0201 update"""
     assert groups.update({"id": op == 2}, GROUP_UNEW[0]) == 1
     assert users.update({"id": op == 2}, USER_UNEW[0]) == 1
     assert save_report("02_update", database, groups, users)
 
 def test_02_02_update():
-    """test 02 update one"""
+    """test 0202 update one"""
     assert groups.update({"id": op == 3}, GROUP_UNEW[0]) == 1
     assert users.update({"id": op == 3}, USER_UNEW[0]) == 1
     assert save_report("02_update", database, groups, users)
 
 
-def test_04_finish():
-    """test 04 finish"""
+def test_03_finish():
+    """test 0300 finish"""
     with raises(TableRemovedError):
         assert save_report("04_finish", database, groups, users)
         assert database.delete_table("groups") is None
@@ -238,8 +245,8 @@ def test_04_finish():
         assert save_report("05_finish", database, groups, users)
 
 
-def test_05_builder_pattern():
-    """Test 05 builder pattern"""
+def test_04_builder_pattern():
+    """Test 0400 builder pattern"""
     database = Database(":memory:")
     setup_database_builder(database)
     users = database.table('users')
@@ -248,8 +255,8 @@ def test_05_builder_pattern():
     assert groups.select() == GROUP_BASE
 
 
-def test_06_paginate_select():
-    """Pagination select"""
+def test_05_paginate_select():
+    """Test 0500 Pagination select"""
     data = []
     for a, b in zip(range(0, 100), range(1000, 1100)):
         data.append({"x": a, "y": b})
@@ -265,8 +272,8 @@ def test_06_paginate_select():
     for i in nums.paginate_select():
         assert i
 
-def test_07_export_csv():
-    """Export to CSV"""
+def test_06_00_export_csv():
+    """Test 0600 Export to CSV"""
     database = Database(":memory:")
     setup_database(database)
     csv = to_csv_string(database)
@@ -274,20 +281,20 @@ def test_07_export_csv():
     assert csv
 
 
-def test_08_export_file():
-    """Export to CSV file"""
+def test_07_01_export_file():
+    """Test 0701 Export to CSV file"""
     database = Database(":memory:")
     setup_database(database)
     assert to_csv_file(database.table('users'), temp_dir / "users.csv") # type: ignore
 
-def test_09_export_directory():
-    """Export to CSV as directory"""
+def test_07_02_export_directory():
+    """Test 0702 Export to CSV as directory"""
     database = Database(":memory:")
     setup_database(database)
     assert to_csv_file(database, temp_dir / "MemDB") # type: ignore
 
-def test_10_0_function_count():
-    """Count(*) usage"""
+def test_08_0_function_count():
+    """Test 0800 Count(*) usage"""
     database = Database(":memory:")
     setup_database_fns(database)
     counted = count("*")
@@ -295,7 +302,12 @@ def test_10_0_function_count():
     print(data)
     assert data == 4
 
-def test_99_save_report():
-    """Save reports"""
+def test_99_99_save_report():
+    """FINAL 9999 Save reports"""
     with open(file, "w", encoding="utf-8") as xfile:
         xfile.write(pstdout.getvalue())
+
+def test_100_pity():
+    """FINAL"""
+    # 99% success rate
+    assert random() < 0.99

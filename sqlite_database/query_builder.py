@@ -17,7 +17,7 @@ Condition = ConditionDict | ConditionList | None
 CacheCond = tuple[tuple[str, Signature | ParsedFn], ...] | None
 CacheOrders = tuple[str, Literal["asc", "desc"]] | ParsedFn | None
 CacheData = tuple[str, ...]
-OnlyColumn = tuple[str, ...] | ParsedFn
+OnlyColumn = tuple[str, ...] | str | ParsedFn
 DEFAULT_MAPPINGS = {value: value for value in _SQLITETYPES}
 
 
@@ -355,8 +355,10 @@ def _build_select(
     only_ = "*"
     if only and isinstance(only, ParsedFn):
         only_, _ = only.parse_sql()
-    elif only and only != "*":
+    elif isinstance(only, tuple):
         only_ = f"{', '.join(column_name for column_name in only)}"
+    elif only_ != '*' and isinstance(only_, str):
+        only_ = check_one(only) # type: ignore
 
     query = f"select {only_} from {table_name}{' '+cond if cond else ''}"
     if limit:
@@ -428,7 +430,7 @@ values ({', '.join(val for val in converged.values())})"
 def build_select(
     table_name: str,  # pylint: disable=too-many-arguments
     condition: Condition = None,
-    only: tuple[str, ...] | ParsedFn | Literal["*"] = "*",
+    only: tuple[str, ...] | ParsedFn | str | Literal["*"] = "*",
     limit: int = 0,
     offset: int = 0,
     order: Optional[Orders] = None,

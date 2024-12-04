@@ -43,6 +43,7 @@ from .typings import (
     _MasterQuery,
     OnlyColumn,
     SquashedSqueries,
+    JustAColumn
 )
 
 # Let's add a little bit of 'black' magic here.
@@ -416,10 +417,19 @@ class Table:
     ) -> Query:
         pass
 
+    @overload
     def select_one(
         self,
         condition: Condition = None,
-        only: OnlyColumn | ParsedFn = "*",
+        only: JustAColumn = "_COLUMN",
+        order: Optional[Orders] = None,
+    ) -> Any:
+        pass
+
+    def select_one(
+        self,
+        condition: Condition = None,
+        only: OnlyColumn | JustAColumn | ParsedFn = "*",
         order: Optional[Orders] = None,
     ):
         """Select one data
@@ -445,6 +455,8 @@ class Table:
                 return data[only.parse_sql()[0]]
             if not data:
                 return Row()
+            if isinstance(only, str) and only != '*':
+                return data[only]
             return data
 
     def exists(self, condition: Condition = None):
