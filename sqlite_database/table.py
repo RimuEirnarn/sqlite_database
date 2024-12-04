@@ -1,6 +1,6 @@
 """Table"""
 
-# pylint: disable=too-many-arguments
+# pylint: disable=too-many-arguments,too-many-public-methods
 
 from sqlite3 import Connection, OperationalError
 from typing import (
@@ -116,7 +116,7 @@ class Table:
     def _control(self):
         if self._deleted:
             raise TableRemovedError(f"{self._table} is already removed")
-        
+
     def _query_control(self):
         if self._dirty and self._force_dirty is False:
             self._sql.commit()
