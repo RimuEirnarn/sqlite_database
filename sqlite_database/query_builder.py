@@ -400,7 +400,7 @@ def _build_update(
             query += f" {ord_} {order_by},"
         query = query[:-1]
     # ? Require manual intervention to make sure updated is sync as
-    print(query)
+    # print(query)
     return query, data, updated
     # ? ... combine_keyvals(updated, NEW DATA)
     # ? our cache data only contain keys not values (v0.3.0)
