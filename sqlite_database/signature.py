@@ -48,7 +48,7 @@ class Signature:
         self._negate = negate
 
     def __eq__(self, __o) -> "Signature":
-        return Signature(__o, "==")
+        return Signature(__o, "=")
 
     def __lt__(self, __o) -> "Signature":
         return Signature(__o, "<")
@@ -94,7 +94,7 @@ class Signature:
     def kind_sign(self):
         """Signature kind"""
         return {
-            "==": "eq",
+            "=": "eq",
             "<": "lt",
             "<=": "le",
             ">": "gt",
@@ -105,7 +105,7 @@ class Signature:
     @property
     def normal_operator(self):
         """Is it normal?"""
-        return self._operator in ("!=", "==", "<", "<=", ">", ">=")
+        return self._operator in ("!=", "=", "<", "<=", ">", ">=")
 
     @property
     def negated(self):
@@ -132,7 +132,7 @@ class Signature:
         return hash((self._value, self._data, self._negate, self._operator))
 
     def __repr__(self) -> str:
-        return f"<Signature -> {self._operator}>"
+        return f"<Signature -> {self._operator} {self._data!r}>"
 
 
 op = Signature()

@@ -140,6 +140,7 @@ def setup_database_builder(database: Database):
     ])
     groups.insert_many(GROUP_BASE)
     users.insert_many(USER_BASE)
+    database.commit()
 
 def setup_database_fns(database: Database):
     """Setup database used for functions"""
@@ -149,6 +150,7 @@ def setup_database_fns(database: Database):
         integer('quantity')
     ])
     checkout.insert_many(COUNT_DATA)
+    database.commit()
 
 database = Database(temp_dir / "test.db") # type: ignore
 setup_database_builder(database)
@@ -225,16 +227,31 @@ def test_01_insert():
 
 def test_02_01_update():
     """test 0201 update"""
-    assert groups.update({"id": op == 2}, GROUP_UNEW[0]) == 1
-    assert users.update({"id": op == 2}, USER_UNEW[0]) == 1
+    database = Database(":memory:")
+    setup_database_builder(database)
+    users = database.table('users')
+    groups = database.table('groups')
+    assert groups.update({"id": op == 1}, GROUP_UNEW[0]) == 1
+    assert users.update({"id": op == 1}, USER_UNEW[0]) == 1
     assert save_report("02_update", database, groups, users)
 
-def test_02_02_update():
+def test_02_02_update_one():
     """test 0202 update one"""
-    assert groups.update({"id": op == 3}, GROUP_UNEW[0]) == 1
-    assert users.update({"id": op == 3}, USER_UNEW[0]) == 1
+    database = Database(":memory:")
+    setup_database_builder(database)
+    users = database.table('users')
+    groups = database.table('groups')
+    assert groups.update_one({"id": op == 1}, GROUP_UNEW[0]) == 1
+    assert users.update_one({"id": op == 1}, USER_UNEW[0]) == 1
     assert save_report("02_update", database, groups, users)
 
+def test_02_03_update_limited_order():
+    """Test 0203 update limited with order"""
+    database = Database(":memory:")
+    setup_database_fns(database)
+    checkout = database.table('checkout')
+    assert checkout.update({'quantity': 50}, {'quantity': 70}, limit=2, order='asc') == 2 # type: ignore
+    assert len(checkout.select({'quantity': 70}, limit=2)) == 2
 
 def test_03_finish():
     """test 0300 finish"""
@@ -272,7 +289,42 @@ def test_05_paginate_select():
     for i in nums.paginate_select():
         assert i
 
-def test_06_00_export_csv():
+def test_06_00_delete():
+    """Test 0600 Deletion test"""
+    db = Database(":memory:")
+    setup_database_builder(db)
+    users = db.table('users')
+    assert users.delete() == len(USER_BASE)
+
+def test_06_01_delete_condition():
+    """Test 0601 Delete based on ID"""
+    db = Database(":memory:")
+    setup_database_builder(db)
+    users = db.table('users')
+    assert users.delete({'id': 1}) == 1
+
+def test_06_02_delete_limit():
+    """Test 0602 Delete with limit"""
+    db = Database(":memory:")
+    setup_database_builder(db)
+    users = db.table('users')
+    assert users.delete(limit=1) == 1
+
+def test_06_03_delete_limit_condition():
+    """Test 0603 Delete limit with certain condition"""
+    db = Database(":memory:")
+    setup_database_fns(db)
+    checkout = db.table('checkout')
+    assert checkout.delete({'quantity': 50}, limit=2) == 2
+
+def test_06_04_delete_order():
+    """Test 0603 Delete limit with certain condition"""
+    db = Database(":memory:")
+    setup_database_fns(db)
+    checkout = db.table('checkout')
+    assert checkout.delete({'quantity': 50}, order='asc', limit=2) == 2 # type: ignore
+
+def test_07_00_export_csv():
     """Test 0600 Export to CSV"""
     database = Database(":memory:")
     setup_database(database)
@@ -293,7 +345,7 @@ def test_07_02_export_directory():
     setup_database(database)
     assert to_csv_file(database, temp_dir / "MemDB") # type: ignore
 
-def test_08_0_function_count():
+def test_08_00_function_count():
     """Test 0800 Count(*) usage"""
     database = Database(":memory:")
     setup_database_fns(database)

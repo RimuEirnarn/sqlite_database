@@ -97,7 +97,7 @@ def extract_signature(
     last = 1
     for key, value in filter_.items():
         if not isinstance(value, Signature):
-            value = Signature(value, "==")
+            value = Signature(value, "=")
         old_data = value.value
         val = (
             Signature(f":{key}{suffix}", value.generate(), value.data)
@@ -339,6 +339,12 @@ def _setup_hashable(
         data_ = tuple(data.keys())
     return cond, order_, data_
 
+def _setup_limit_patch(table_name: str, condition: str, limit):
+    check_one(table_name)
+    if not isinstance(limit, int):
+        limit = 1
+    return f"where rowid in (select rowid from {table_name}\
+{' '+condition if condition else ''} limit {limit})"
 
 @lru_cache
 def _build_select(
@@ -386,13 +392,15 @@ def _build_update(
     new_str, updated = build_update_data(new_data)
     query = f"update {table_name} set {new_str} {cond}"
     if limit:
-        query += f" limit {limit}"
+        query = query.replace(cond, '')
+        query += _setup_limit_patch(table_name, cond, limit)
     if order:
         query += " order by"
         for ord_, order_by in order:
             query += f" {ord_} {order_by},"
         query = query[:-1]
     # ? Require manual intervention to make sure updated is sync as
+    print(query)
     return query, data, updated
     # ? ... combine_keyvals(updated, NEW DATA)
     # ? our cache data only contain keys not values (v0.3.0)
@@ -409,7 +417,8 @@ def _build_delete(
     cond, data = extract_signature(condition)
     query = f"delete from {table_name} {cond}"
     if limit:
-        query += f" limit {limit}"
+        query = query.replace(cond, '')
+        query += _setup_limit_patch(table_name, cond, limit)
     if order:
         query += " order by"
         for ord_, order_by in order:
