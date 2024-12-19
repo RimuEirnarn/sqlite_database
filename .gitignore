@@ -170,3 +170,4 @@ reports.txt
 records
 testdb.sqlite3
 /test*.py
+perf-counter.txt
