@@ -161,8 +161,7 @@ class Table:
         """
         query, data = build_delete(self._table, condition, limit, order)  # type: ignore
         self._control()
-        cursor = self._sql.cursor()
-        self._exec(query, data)
+        cursor = self._exec(query, data)
         rcount = cursor.rowcount
         if commit:
             self._sql.commit()
@@ -192,8 +191,7 @@ class Table:
         """
         query, _ = build_insert(self._table, data)  # type: ignore
         self._control()
-        cursor = self._sql.cursor()
-        self._exec(query, data)
+        cursor = self._exec(query, data)
         rlastrowid = cursor.lastrowid
         self._sql.commit()
         if commit:
@@ -248,8 +246,7 @@ class Table:
             self._table, data, condition, limit, order
         )  # type: ignore
         self._control()
-        cursor = self._sql.cursor()
-        self._exec(query, data)
+        cursor = self._exec(query, data)
         rcount = cursor.rowcount
         if commit:
             self._sql.commit()
@@ -330,8 +327,7 @@ class Table:
             self._table, condition, only, limit, offset, order
         )  # type: ignore
         with self._sql:
-            cursor = self._sql.cursor()
-            self._exec(query, data)
+            cursor = self._exec(query, data)
             data = cursor.fetchall()
             if squash:
                 return crunch(data)
@@ -397,8 +393,7 @@ class Table:
             )  # type: ignore
             crunched = squash
             with self._sql:
-                cursor = self._sql.cursor()
-                self._exec(query, data)
+                cursor = self._exec(query, data)
                 fetched = cursor.fetchmany(length)
                 if len(fetched) == 0:
                     return
@@ -459,8 +454,7 @@ class Table:
             self._table, condition, only, 1, 0, order
         )  # type: ignore
         with self._sql:
-            cursor = self._sql.cursor()
-            self._exec(query, data)
+            cursor = self._exec(query, data)
             data = cursor.fetchone()
             if isinstance(only, ParsedFn):
                 return data[only.parse_sql()[0]]
