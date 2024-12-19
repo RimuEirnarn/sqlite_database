@@ -108,10 +108,22 @@ class Table:
         except Exception:  # pylint: disable=broad-except
             return 1
 
-    def _raw_exec(self, query: str, data: dict[str, Any]):
-        """No thread safe :("""
+    # def _raw_exec(self, query: str, data: dict[str, Any]):
+    #     """No thread safe :("""
+    #     cursor = self._sql.cursor()
+    #     cursor.execute(query, data)
+    #     return cursor
+
+    def _exec(self, query: str, data: dict[str, Any] | list[dict[str, Any]], which: Literal['execute', 'executemany']='execute'):
+        """Execute a sql query"""
         cursor = self._sql.cursor()
-        cursor.execute(query, data)
+        fn = cursor.execute if which == 'execute' else cursor.executemany
+        try:
+            fn(query, data)
+        except OperationalError as OError:
+            OError.add_note(f"SQL Query: {query}")
+            OError.add_note(f"There's about {1 if isinstance(data, dict) else len(data)} values where inserted")
+            raise OError
         return cursor
 
     def _control(self):
@@ -150,7 +162,7 @@ class Table:
         query, data = build_delete(self._table, condition, limit, order)  # type: ignore
         self._control()
         cursor = self._sql.cursor()
-        cursor.execute(query, data)
+        self._exec(query, data)
         rcount = cursor.rowcount
         if commit:
             self._sql.commit()
@@ -181,7 +193,7 @@ class Table:
         query, _ = build_insert(self._table, data)  # type: ignore
         self._control()
         cursor = self._sql.cursor()
-        cursor.execute(query, data)
+        self._exec(query, data)
         rlastrowid = cursor.lastrowid
         self._sql.commit()
         if commit:
@@ -200,7 +212,7 @@ class Table:
         self._control()
         query, _ = build_insert(self._table, datas[0])  # type: ignore
         cursor = self._sql.cursor()
-        cursor.executemany(query, datas)
+        self._exec(query, datas)
         if commit:
             self._sql.commit()
         else:
@@ -238,7 +250,7 @@ class Table:
         )  # type: ignore
         self._control()
         cursor = self._sql.cursor()
-        cursor.execute(query, data)
+        self._exec(query, data)
         rcount = cursor.rowcount
         if commit:
             self._sql.commit()
@@ -320,7 +332,7 @@ class Table:
         )  # type: ignore
         with self._sql:
             cursor = self._sql.cursor()
-            cursor.execute(query, data)
+            self._exec(query, data)
             data = cursor.fetchall()
             if squash:
                 return crunch(data)
@@ -387,7 +399,7 @@ class Table:
             crunched = squash
             with self._sql:
                 cursor = self._sql.cursor()
-                cursor.execute(query, data)
+                self._exec(query, data)
                 fetched = cursor.fetchmany(length)
                 if len(fetched) == 0:
                     return
@@ -449,7 +461,7 @@ class Table:
         )  # type: ignore
         with self._sql:
             cursor = self._sql.cursor()
-            cursor.execute(query, data)
+            self._exec(query, data)
             data = cursor.fetchone()
             if isinstance(only, ParsedFn):
                 return data[only.parse_sql()[0]]

@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from tempfile import mkdtemp
 from pathlib import Path
 from random import random
+from sqlite3 import OperationalError
 
 from pytest import raises
 
@@ -353,6 +354,13 @@ def test_08_00_function_count():
     data = database.table("checkout").select(only=counted)
     print(data)
     assert data == 4
+
+def test_09_00_select_error():
+    db = Database(":memory:")
+    setup_database(db)
+    groups = db.table('groups')
+    with raises(OperationalError):
+        groups.select({'nothing': None})
 
 def test_99_99_save_report():
     """FINAL 9999 Save reports"""
