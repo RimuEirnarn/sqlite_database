@@ -211,7 +211,6 @@ class Table:
         """
         self._control()
         query, _ = build_insert(self._table, datas[0])  # type: ignore
-        cursor = self._sql.cursor()
         self._exec(query, datas, "executemany")
         if commit:
             self._sql.commit()
