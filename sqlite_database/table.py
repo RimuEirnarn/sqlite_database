@@ -43,7 +43,7 @@ from .typings import (
     _MasterQuery,
     OnlyColumn,
     SquashedSqueries,
-    JustAColumn
+    JustAColumn,
 )
 
 # Let's add a little bit of 'black' magic here.
@@ -64,7 +64,7 @@ class Table:
         self,
         parent,  # type: ignore
         table: str,
-        __columns: Optional[Iterable[Column]] = None, # type: ignore
+        __columns: Optional[Iterable[Column]] = None,  # type: ignore
     ) -> None:
         if parent.closed:
             raise ConnectionError("Connection to database is already closed.")
@@ -114,16 +114,23 @@ class Table:
     #     cursor.execute(query, data)
     #     return cursor
 
-    def _exec(self, query: str, data: dict[str, Any] | list[dict[str, Any]], which: Literal['execute', 'executemany']='execute'):
+    def _exec(
+        self,
+        query: str,
+        data: dict[str, Any] | list[dict[str, Any]],
+        which: Literal["execute", "executemany"] = "execute",
+    ):
         """Execute a sql query"""
         cursor = self._sql.cursor()
-        fn = cursor.execute if which == 'execute' else cursor.executemany
+        fn = cursor.execute if which == "execute" else cursor.executemany
         try:
             fn(query, data)
-        except OperationalError as OError:
-            OError.add_note(f"SQL query: {query}")
-            OError.add_note(f"There's about {1 if isinstance(data, dict) else len(data)} value(s) inserted")
-            raise OError
+        except OperationalError as exc:
+            exc.add_note(f"SQL query: {query}")
+            exc.add_note(
+                f"There's about {1 if isinstance(data, dict) else len(data)} value(s) inserted"
+            )
+            raise exc
         return cursor
 
     def _control(self):
@@ -145,7 +152,7 @@ class Table:
         condition: Condition = None,
         limit: int = 0,
         order: Optional[Orders] = None,
-        commit: bool = True
+        commit: bool = True,
     ):
         """Delete row or rows
 
@@ -225,7 +232,7 @@ class Table:
         data: Data | None = None,
         limit: int = 0,
         order: Optional[Orders] = None,
-        commit: bool = True
+        commit: bool = True,
     ):
         """Update rows of current table
 
@@ -383,7 +390,7 @@ class Table:
 
         if page < 0:
             page = 0
-            order = 'desc' if order in ('asc', None) else 'asc' # type: ignore
+            order = "desc" if order in ("asc", None) else "asc"  # type: ignore
         self._control()
         self._query_control()
         start = page * length
@@ -460,7 +467,7 @@ class Table:
                 return data[only.parse_sql()[0]]
             if not data:
                 return Row()
-            if isinstance(only, str) and only != '*':
+            if isinstance(only, str) and only != "*":
                 return data[only]
             return data
 
