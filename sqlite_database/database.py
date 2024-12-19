@@ -117,6 +117,10 @@ class Database:
         self._table_instances[table] = this_table
         return this_table
 
+    def get_tables(self, tables: Iterable[str]):
+        """Retrieves selected tables and returns them as-is"""
+        return tuple(self.table(table) for table in tables)
+
     def reset_table(self, table: str, columns: Columns) -> Table:
         """Reset existing table with new, this rewrote entire table than altering it."""
         try:
