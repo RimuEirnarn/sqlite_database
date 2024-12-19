@@ -1,4 +1,5 @@
 """Performance testing"""
+# pylint: disable=all
 from typing import Callable
 from random import randint
 from timeit import timeit
