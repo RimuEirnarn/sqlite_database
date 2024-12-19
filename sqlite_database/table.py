@@ -121,8 +121,8 @@ class Table:
         try:
             fn(query, data)
         except OperationalError as OError:
-            OError.add_note(f"SQL Query: {query}")
-            OError.add_note(f"There's about {1 if isinstance(data, dict) else len(data)} values where inserted")
+            OError.add_note(f"SQL query: {query}")
+            OError.add_note(f"There's about {1 if isinstance(data, dict) else len(data)} value(s) inserted")
             raise OError
         return cursor
 
@@ -212,7 +212,7 @@ class Table:
         self._control()
         query, _ = build_insert(self._table, datas[0])  # type: ignore
         cursor = self._sql.cursor()
-        self._exec(query, datas)
+        self._exec(query, datas, "executemany")
         if commit:
             self._sql.commit()
         else:
