@@ -7,7 +7,7 @@ from typing import Any, Iterable, Literal, Optional
 from .functions import ParsedFn, _function_extract
 from ._utils import check_one, null, check_iter
 from .column import Column
-from .locals import _SQLITETYPES
+from .locals import _SQLITETYPES, SQLACTION
 from .signature import Signature
 from .typings import _MasterQuery, Data, Orders
 
@@ -288,6 +288,12 @@ def _iterate_etbc_step1(
     return string
 
 
+def _iterate_sql_action(action: SQLACTION):
+    if action == "null":
+        return "set null"
+    return action
+
+
 def extract_table_creations(
     columns: Iterable[Column], type_mappings: dict[str, str] | None = None
 ):
@@ -307,7 +313,7 @@ def extract_table_creations(
         stable, sname = column.source, column.source_column
 
         string += f" foreign key ({column.name}) references {stable} ({sname})\
- on delete {column.on_delete} on update {column.on_update},"
+ on delete {_iterate_sql_action(column.on_delete)} on update {_iterate_sql_action(column.on_update)},"  # type: ignore # pylint: disable=line-too-long
         # ! This might be a buggy code, i'm not sure yet.
     return string[1:-1]
 
@@ -339,12 +345,14 @@ def _setup_hashable(
         data_ = tuple(data.keys())
     return cond, order_, data_
 
+
 def _setup_limit_patch(table_name: str, condition: str, limit):
     check_one(table_name)
     if not isinstance(limit, int):
         limit = 1
     return f"where rowid in (select rowid from {table_name}\
 {' '+condition if condition else ''} limit {limit})"
+
 
 @lru_cache
 def _build_select(
@@ -363,8 +371,8 @@ def _build_select(
         only_, _ = only.parse_sql()
     elif isinstance(only, tuple):
         only_ = f"{', '.join(column_name for column_name in only)}"
-    elif only_ != '*' and isinstance(only_, str):
-        only_ = check_one(only) # type: ignore
+    elif only_ != "*" and isinstance(only_, str):
+        only_ = check_one(only)  # type: ignore
 
     query = f"select {only_} from {table_name}{' '+cond if cond else ''}"
     if limit:
@@ -392,7 +400,7 @@ def _build_update(
     new_str, updated = build_update_data(new_data)
     query = f"update {table_name} set {new_str} {cond}"
     if limit:
-        query = query.replace(cond, '')
+        query = query.replace(cond, "")
         query += _setup_limit_patch(table_name, cond, limit)
     if order:
         query += " order by"
@@ -417,7 +425,7 @@ def _build_delete(
     cond, data = extract_signature(condition)
     query = f"delete from {table_name} {cond}"
     if limit:
-        query = query.replace(cond, '')
+        query = query.replace(cond, "")
         query += _setup_limit_patch(table_name, cond, limit)
     if order:
         query += " order by"
