@@ -82,9 +82,12 @@ class Database:
             cursor.execute(query)
             self._database.commit()
         except OperationalError as error:
-            dberror = DatabaseExistsError(f"table {table} already exists.")
-            dberror.add_note(f"{type(error).__name__}: {error!s}")
-            raise dberror from error
+            if "already exists" in str(error):
+                dberror = DatabaseExistsError(f"table {table} already exists.")
+                dberror.add_note(f"{type(error).__name__}: {error!s}")
+                raise dberror from error
+            error.add_note(f"Query: {query}")
+            raise error
         table_ = self.table(table, columns)
         table_._deleted = False  # pylint: disable=protected-access
         self._table_instances[table] = table_
