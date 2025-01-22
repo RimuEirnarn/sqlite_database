@@ -262,6 +262,9 @@ class BuilderColumn:  # pylint: disable=too-many-instance-attributes
     def __eq__(self, __o: "Column") -> bool:  # type: ignore
         return self.to_column() == __o
 
+    def __repr__(self) -> str:
+        return f"<{self._type} of {self._name}>"
+
 
 def text(name: str) -> BuilderColumn:
     """Create a text column with name"""
