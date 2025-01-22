@@ -19,9 +19,9 @@ classifiers = [
 dynamic = ["version"]
 
 [project.urls]
-homepage = "https://github.com/RimuEirnarn/sqlite_database"
-documentation = "https://sqlite-database.rtfd.io"
-repository = "https://github.com/RimuEirnarn/sqlite_database.git"
+Homepage = "https://github.com/RimuEirnarn/sqlite_database"
+Documentation = "https://sqlite-database.rtfd.io"
+Repository = "https://github.com/RimuEirnarn/sqlite_database.git"
 
 [tool.setuptools]
 zip-safe = true
