@@ -283,7 +283,7 @@ def blob(name: str) -> BuilderColumn:
 
 def real(name: str) -> BuilderColumn:
     """Create a real column with name"""
-    return BuilderColumn().set_type("blob")(name)
+    return BuilderColumn().set_type("real")(name)
 
 
 def create_calls(typename: str, types: list[str]) -> Callable[[str], BuilderColumn]:
