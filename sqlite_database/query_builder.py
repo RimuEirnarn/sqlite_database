@@ -371,7 +371,7 @@ def _build_select(
         only_, _ = only.parse_sql()
     elif isinstance(only, tuple):
         only_ = f"{', '.join(column_name for column_name in only)}"
-    elif only_ != "*" and isinstance(only_, str):
+    elif only != "*" and isinstance(only, str):
         only_ = check_one(only)  # type: ignore
 
     query = f"select {only_} from {table_name}{' '+cond if cond else ''}"
