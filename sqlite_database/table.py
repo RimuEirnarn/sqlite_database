@@ -370,7 +370,7 @@ class Table:
         squash: Literal[False] = False,
     ) -> Generator[Queries, None, None]:  # type: ignore
         pass
-    
+
     @overload
     def paginate_select(
         self,
@@ -437,7 +437,7 @@ class Table:
                 fetched = cursor.fetchmany(length)
                 if len(fetched) == 0:
                     return
-                elif squash and not just_a_column:
+                if squash and not just_a_column:
                     fetched = crunch(fetched)
                 if len(fetched) != length:
                     yield fetched
