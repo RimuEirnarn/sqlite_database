@@ -306,10 +306,22 @@ class Table:
     ) -> Any:
         pass
 
+    @overload
+    def select(
+        self,
+        condition: Condition = None,
+        only: JustAColumn = "_COLUMN",
+        limit: int = 0,
+        offset: int = 0,
+        order: Optional[Orders] = None,
+        squash: Literal[False] = False,
+    ) -> list[Any]:
+        pass
+
     def select(
         self,  # pylint: disable=too-many-arguments
         condition: Condition = None,
-        only: OnlyColumn | ParsedFn = "*",
+        only: OnlyColumn | ParsedFn | JustAColumn = "*",
         limit: int = 0,
         offset: int = 0,
         order: Optional[Orders] = None,
@@ -333,9 +345,14 @@ class Table:
         query, data = build_select(
             self._table, condition, only, limit, offset, order
         )  # type: ignore
+        just_a_column = (isinstance(only, tuple) and len(only) == 1) or (
+                isinstance(only, str) and only != "*"
+            )
         with self._sql:
             cursor = self._exec(query, data)
             data = cursor.fetchall()
+            if just_a_column:
+                return [d[only] for d in data]
             if squash:
                 return crunch(data)
             if isinstance(only, ParsedFn):
@@ -353,6 +370,18 @@ class Table:
         squash: Literal[False] = False,
     ) -> Generator[Queries, None, None]:  # type: ignore
         pass
+    
+    @overload
+    def paginate_select(
+        self,
+        condition: Condition = None,
+        only: JustAColumn = "_COLUMN",
+        page: int = 0,
+        length: int = 10,
+        order: Optional[Orders] = None,
+        squash: Literal[False] = False,
+    ) -> Generator[list[Any], None, None]:  # type: ignore
+        pass
 
     @overload
     def paginate_select(
@@ -369,7 +398,7 @@ class Table:
     def paginate_select(
         self,
         condition: Condition = None,
-        only: OnlyColumn = "*",
+        only: OnlyColumn | JustAColumn = "*",
         page: int = 0,
         length: int = 10,
         order: Optional[Orders] = None,
@@ -394,17 +423,21 @@ class Table:
         self._control()
         self._query_control()
         start = page * length
+        # ! A `only` keyword as a string or tuple of 1 elelemnt will
+        # ! actually be a problem if they left alone because the end result is a list
+        just_a_column = (isinstance(only, str) and only != "*") or (
+            isinstance(only, tuple) and len(only) == 1
+        )
         while True:
             query, data = build_select(
                 self._table, condition, only, length, start, order
             )  # type: ignore
-            crunched = squash
             with self._sql:
                 cursor = self._exec(query, data)
                 fetched = cursor.fetchmany(length)
                 if len(fetched) == 0:
                     return
-                if crunched:
+                elif squash and not just_a_column:
                     fetched = crunch(fetched)
                 if len(fetched) != length:
                     yield fetched
@@ -467,6 +500,8 @@ class Table:
                 return data[only.parse_sql()[0]]
             if not data:
                 return Row()
+            if isinstance(only, tuple) and len(only) == 1:
+                return data[only]
             if isinstance(only, str) and only != "*":
                 return data[only]
             return data
