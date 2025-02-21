@@ -25,7 +25,12 @@ IGNORE_TABLE_CHECKS = ("sqlite_master", "sqlite_temp_schema", "sqlite_temp_maste
 
 
 class Database:
-    """Sqlite3 database, this provide basic integration."""
+    """Sqlite3 database, this provide basic integration.
+    
+    Custom flags:
+        strict : Certain actions are prevented when active, i.e, initializing nonexistent tables
+        forgive: Certain actions are replaced when active, i.e, replacing .create_table to .table
+                 when a table exists"""
 
     _active: Mapping[str, "Database"] = WeakValueDictionary()
 
@@ -48,6 +53,8 @@ class Database:
         self._config = None
         self._closed = False
         self._table_instances: dict[str, Table] = {}
+        self._strict: bool = kwargs.get('strict', True)
+        self._forgive: bool = kwargs.get('forgive', True)
         if not self._closed or self.__dict__.get("_initiated", False) is False:
             self._finalizer_fn = finalize(self, self.close)
             self._initiated = True
@@ -76,6 +83,9 @@ class Database:
         )
         tbquery = extract_table_creations(columns)
         query = f"create table {table} ({tbquery})"
+
+        if self._forgive and self.check_table(table):
+            return self.table(table, columns)
 
         try:
             cursor = self._database.cursor()
@@ -110,6 +120,9 @@ class Database:
         """fetch table"""
         if self._table_instances.get(table, None) is not None:
             return self._table_instances[table]
+
+        if self._strict and not self.check_table(table):
+            raise DatabaseMissingError(f"table {table} does not exists.")
 
         try:
             this_table = Table(self, table, __columns)
@@ -148,9 +161,7 @@ class Database:
         cursor.execute(
             "select name from sqlite_master where type='table' and name=?", (table,)
         )
-        if cursor.fetchone():
-            return True
-        return False
+        return cursor.fetchone() is not None
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__} {id(self)}>"
