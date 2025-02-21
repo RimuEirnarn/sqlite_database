@@ -55,3 +55,5 @@ class Function:  # pylint: disable=too-few-public-methods
     def name(self):
         """Name of the function"""
         return self._name
+
+count = Function("COUNT")

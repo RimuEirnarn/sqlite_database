@@ -16,7 +16,7 @@ from typing import (
 
 import weakref
 
-from sqlite_database.functions import ParsedFn, Function
+from sqlite_database.functions import ParsedFn, Function, count
 
 
 from .utils import crunch
@@ -611,6 +611,11 @@ constraint is enabled."
         """Rollback"""
         self._sql.rollback()
         self._dirty = False
+
+    def count(self):
+        """Count how much objects/rows stored in this table"""
+        # ? Might as well uses __len__? But it's quite expensive.
+        return self.select(only=count('*'))
 
     def __repr__(self) -> str:
         return f"<Table({self._table}) -> {self._parent_repr}>"
