@@ -206,15 +206,15 @@ def test_00_03_select_only():
 def test_00_04_select_crunch():
     """Test 0004 select with crunch"""
     database = Database(":memory:")
-    groups = database.table('groups')
     setup_database(database)
+    groups = database.table('groups')
     assert groups.select(squash=True) == GROUP_BASE_CRUNCHED
 
 def test_00_05_select_one_only_one_item():
     """Test 0005"""
     database = Database(":memory:")
-    groups = database.table('groups')
     setup_database(database)
+    groups = database.table('groups')
     assert groups.select_one({'id': 0}, "name") == 'root'
 
 def test_01_insert():
