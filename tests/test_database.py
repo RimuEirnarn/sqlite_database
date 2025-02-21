@@ -6,7 +6,7 @@ from os.path import abspath
 from types import SimpleNamespace
 from tempfile import mkdtemp
 from pathlib import Path
-from random import random
+from random import randint, random
 from sqlite3 import OperationalError
 
 from pytest import raises
@@ -356,11 +356,46 @@ def test_08_00_function_count():
     assert data == 4
 
 def test_09_00_select_error():
+    """Test errors"""
     db = Database(":memory:")
     setup_database(db)
     groups = db.table('groups')
     with raises(OperationalError):
         groups.select({'nothing': None})
+
+def test_10_01_pragma_foreign_key():
+    """Test 1001 PRAGMA tests"""
+    db = Database(":memory:")
+    setup_database(db)
+    db.foreign_pragma("ON")
+    db.foreign_pragma('OFF')
+    assert db.foreign_pragma() == {'foreign_keys': 0}
+
+def test_10_02_pragma_optimize():
+    """Test 1002 PRAGMA optimize"""
+    db = Database(":memory:")
+    setup_database(db)
+    db.optimize()
+    assert 1 == 1
+
+def test_10_03_pragma_shrink():
+    """Test 1003 PRAGMA shrink"""
+    db = Database(":memory:")
+    t = db.create_table('t', [integer('a')])
+    t.insert_many([{'a': a} for a in range(10000)])
+    t.commit()
+    db.shrink_memory()
+    assert 1 == 1
+
+def test_10_04_vacuum():
+    """Test 1004 vacuum"""
+    db = Database(":memory:")
+    t = db.create_table('t', [integer('a')])
+    t.insert_many([{'a': a} for a in range(10000)])
+    t.commit()
+    _ = [t.delete_one({'a': randint(0, 1000)})]
+    t.commit()
+    db.vacuum()
 
 def test_99_99_save_report():
     """FINAL 9999 Save reports"""

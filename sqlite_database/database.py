@@ -2,7 +2,7 @@
 
 from weakref import finalize, WeakValueDictionary
 from sqlite3 import OperationalError, connect
-from typing import Iterable, Optional, Mapping
+from typing import Iterable, Literal, Optional, Mapping
 
 from .locals import PLUGINS_PATH
 from ._utils import (
@@ -185,6 +185,24 @@ class Database:
     def rollback(self):
         """Rollback changes"""
         self._database.rollback()
+
+    def foreign_pragma(self, bool_state: Literal['ON', "OFF", ""] = ""):
+        """Enable/disable foreign key pragma"""
+        if bool_state not in ("ON", "OFF", ""):
+            raise ValueError("Either ON/OFF for foreign key pragma.")
+        return self._database.execute(f"PRAGMA foreign_keys{'='+bool_state  if bool_state else ''}").fetchone() # pylint: disable=line-too-long
+
+    def optimize(self):
+        """Optimize current database"""
+        return self._database.execute("PRAGMA optimize").fetchone()
+
+    def shrink_memory(self):
+        """Shrink memories from database as much as it can."""
+        return self._database.execute("PRAGMA shrink_memory").fetchone()
+
+    def vacuum(self):
+        """Vacuum this database"""
+        return self._database.execute("VACUUM").fetchone()
 
     @property
     def closed(self):
