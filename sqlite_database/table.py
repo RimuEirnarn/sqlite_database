@@ -22,8 +22,7 @@ from sqlite_database.functions import ParsedFn, Function, count
 from .utils import crunch
 from ._utils import check_iter, check_one, Row
 from .column import BuilderColumn, Column
-from .errors import TableRemovedError, UnexpectedResultError
-from .locals import SQLITEPYTYPES, PLUGINS_PATH
+from .errors import TableRemovedError
 from .query_builder import (
     Condition,
     extract_single_column,
@@ -39,7 +38,6 @@ from .typings import (
     Orders,
     Queries,
     Query,
-    TypicalNamedTuple,
     _MasterQuery,
     OnlyColumn,
     SquashedSqueries,
@@ -49,13 +47,7 @@ from .typings import (
 # Let's add a little bit of 'black' magic here.
 _null = Function("__NULL__")()
 
-
-@classmethod
-def get_table(cls):  # pylint: disable=missing-function-docstring
-    return getattr(cls, "_table", None)
-
-
-class Table:
+class Table: # pylint: disable=too-many-instance-attributes
     """Table. Make sure you remember how the table goes."""
 
     _ns: dict[str, Type[NamedTuple]] = {}
@@ -75,12 +67,71 @@ class Table:
         self._deleted = False
         self._force_dirty = False
         self._dirty = False
+        self._auto = True
         self._table = check_one(table)
+        self._prev_autocommit = None
+        self._prev_auto = True
         self._columns: Optional[list[Column]] = list(__columns) if __columns else None
         weakref.finalize(self, self._finalize)
 
         if self._columns is None and table != "sqlite_master":
             self._fetch_columns()
+
+    def __enter__(self):
+        self._prev_auto = self._auto
+        self._prev_autocommit = self._sql.isolation_level
+
+        self._sql.isolation_level = None
+        self._auto = False
+        self._sql.execute("BEGIN TRANSACTION")
+        print("IN TRANSACTION?", self.in_transaction)
+        return self
+
+    def __exit__(self, exc_type, _, __):
+        if exc_type is None:
+            self._sql.commit()
+        else:
+            self._sql.rollback()
+        self._sql.isolation_level = self._prev_autocommit
+        self._auto = self._prev_auto
+
+    @property
+    def deleted(self):
+        """Is table deleted"""
+        return self._deleted
+
+    @property
+    def name(self):
+        """Table name"""
+        return self._table
+
+    @property
+    def force_dirty(self):
+        """Force dirty state, whether .selecting() on dirty/uncommitted data is allowed or not"""
+        return self._force_dirty
+
+    @force_dirty.setter
+    def force_dirty(self, value: bool):
+        """Force dirty state, whether .selecting() on dirty/uncommitted data is allowed or not"""
+        if not isinstance(value, bool):
+            return
+        self._force_dirty = value
+
+    @property
+    def auto_commit(self):
+        """Auto commit state of this instance"""
+        return self._auto
+
+    @auto_commit.setter
+    def auto_commit(self, value: bool):
+        if not isinstance(value, bool):
+            return
+        self._auto = value
+
+    @property
+    def in_transaction(self):
+        """Returns True if the table is in an active transaction."""
+        return not self._auto or self._sql.isolation_level is None
 
     def _finalize(self):
         pass
@@ -107,12 +158,6 @@ class Table:
             return 0
         except Exception:  # pylint: disable=broad-except
             return 1
-
-    # def _raw_exec(self, query: str, data: dict[str, Any]):
-    #     """No thread safe :("""
-    #     cursor = self._sql.cursor()
-    #     cursor.execute(query, data)
-    #     return cursor
 
     def _exec(
         self,
@@ -152,7 +197,6 @@ class Table:
         condition: Condition = None,
         limit: int = 0,
         order: Optional[Orders] = None,
-        commit: bool = True,
     ):
         """Delete row or rows
 
@@ -161,7 +205,6 @@ class Table:
                 See `Signature` class about conditional stuff. Defaults to None.
             limit (int, optional): Limit deletion by integer. Defaults to 0.
             order (Optional[Orders], optional): Order of deletion. Defaults to None.
-            commit (bool, optional): Commit changes to database (default is true)
 
         Returns:
             int: Rows affected
@@ -170,7 +213,7 @@ class Table:
         self._control()
         cursor = self._exec(query, data)
         rcount = cursor.rowcount
-        if commit:
+        if not self.in_transaction:
             self._sql.commit()
         else:
             self._dirty = True
@@ -186,12 +229,11 @@ class Table:
         """
         return self.delete(condition, 1, order)
 
-    def insert(self, data: Data, commit: bool = True):
+    def insert(self, data: Data):
         """Insert data to current table
 
         Args:
             data (Data): Data to insert. Make sure it's compatible with the table.
-            commit (bool, optional): Commit data to database.
 
         Returns:
             int: Last rowid
@@ -200,24 +242,22 @@ class Table:
         self._control()
         cursor = self._exec(query, data)
         rlastrowid = cursor.lastrowid
-        self._sql.commit()
-        if commit:
+        if not self.in_transaction:
             self._sql.commit()
         else:
             self._dirty = True
         return rlastrowid
 
-    def insert_multiple(self, datas: list[Data], commit: bool = True):
+    def insert_multiple(self, datas: list[Data]):
         """Insert multiple values
 
         Args:
             datas (Iterable[Data]): Data to be inserted.
-            commit (bool, optional): Commit data to database
         """
         self._control()
         query, _ = build_insert(self._table, datas[0])  # type: ignore
         self._exec(query, datas, "executemany")
-        if commit:
+        if not self.in_transaction:
             self._sql.commit()
         else:
             self._dirty = True
@@ -232,7 +272,6 @@ class Table:
         data: Data | None = None,
         limit: int = 0,
         order: Optional[Orders] = None,
-        commit: bool = True,
     ):
         """Update rows of current table
 
@@ -242,7 +281,6 @@ class Table:
                 See `Signature` about how condition works. Defaults to None.
             limit (int, optional): Limit updates. Defaults to 0.
             order (Optional[Orders], optional): Order of change. Defaults to None.
-            commit (bool, optional): Commit data to database
 
         Returns:
             int: Rows affected
@@ -255,7 +293,7 @@ class Table:
         self._control()
         cursor = self._exec(query, data)
         rcount = cursor.rowcount
-        if commit:
+        if not self.in_transaction:
             self._sql.commit()
         else:
             self._dirty = True
@@ -346,8 +384,8 @@ class Table:
             self._table, condition, only, limit, offset, order
         )  # type: ignore
         just_a_column = (isinstance(only, tuple) and len(only) == 1) or (
-                isinstance(only, str) and only != "*"
-            )
+            isinstance(only, str) and only != "*"
+        )
         with self._sql:
             cursor = self._exec(query, data)
             data = cursor.fetchall()
@@ -423,7 +461,7 @@ class Table:
         self._control()
         self._query_control()
         start = page * length
-        # ! A `only` keyword as a string or tuple of 1 elelemnt will
+        # ! A `only` keyword as a string or tuple of 1 element will
         # ! actually be a problem if they left alone because the end result is a list
         just_a_column = (isinstance(only, str) and only != "*") or (
             isinstance(only, tuple) and len(only) == 1
@@ -506,65 +544,12 @@ class Table:
                 return data[only]
             return data
 
-    def exists(self, condition: Condition = None):
-        """Check if data is exists or not.
-
-        Args:
-            condition (Condition, optional): Condition to use. Defaults to None.
-        """
-        data = self.select_one(condition)
-        if data is None:
-            return False
-        return True
-
-    def get_namespace(self) -> Type[TypicalNamedTuple]:
-        """Generate or return pre-existed namespace/table."""
-        if self._sql_path in PLUGINS_PATH:
-            plugin = self._sql_path[2:]
-            raise ValueError(f"Redefining get_namespace required for plugin {plugin}")
-        if self._ns.get(self._table, None):
-            return self._ns[self._table]
-        self._control()
-        if self._columns:
-            datatypes = {col.name: SQLITEPYTYPES[col.type] for col in self._columns}
-            namespace_name = self._table.title() + "Table"
-            namedtupled = NamedTuple(namespace_name, **datatypes)
-            setattr(namedtupled, "_table", self)
-            self._ns[self._table] = namedtupled
-            return namedtupled
-        self._fetch_columns()
-        if self._columns is None:
-            raise ExceptionGroup(
-                f"Column misbehave. Table {self._table}",
-                [
-                    ValueError("Mismatched columns"),
-                    UnexpectedResultError("._fetch_columns() does not change columns."),
-                ],
-            )
-        datatypes = {}
-        for column in self._columns:
-            datatypes[column.name] = SQLITEPYTYPES[column.type]
-        namedtupled = NamedTuple(self._table.title() + "Table", **datatypes)
-
-        self._ns[self._table] = namedtupled
-        return namedtupled
-
     def columns(self):
         """Table columns"""
         if self._columns is None:
-            raise AttributeError("columns is undefined.")
+            raise AttributeError("columns are undefined.")
 
         return tuple(self._columns)
-
-    @property
-    def deleted(self):
-        """Is table deleted"""
-        return self._deleted
-
-    @property
-    def name(self):
-        """Table name"""
-        return self._table
 
     def add_column(self, column: Column | BuilderColumn):
         """Add column to table"""
@@ -595,14 +580,6 @@ constraint is enabled."
         query = f"alter table {self._table} rename column {old_column} to {new_column}"
         self._sql.execute(query)
 
-    def allow_dirty(self):
-        """Allow dirty queries"""
-        self._force_dirty = True
-
-    def disallow_dirty(self):
-        """Disallow dirty queries"""
-        self._force_dirty = False
-
     def commit(self):
         """Commit changes"""
         self._sql.commit()
@@ -615,7 +592,7 @@ constraint is enabled."
     def count(self):
         """Count how much objects/rows stored in this table"""
         # ? Might as well uses __len__? But it's quite expensive.
-        return self.select(only=count('*'))
+        return self.select(only=count("*"))
 
     def __repr__(self) -> str:
         return f"<Table({self._table}) -> {self._parent_repr}>"

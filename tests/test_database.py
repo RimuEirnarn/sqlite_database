@@ -15,7 +15,7 @@ from pytest import raises
 from sqlite_database import Column, Database, integer, text
 from sqlite_database.signature import op
 from sqlite_database.operators import eq
-from sqlite_database.errors import TableRemovedError
+from sqlite_database.errors import TableRemovedError, CuteDemonLordException
 from sqlite_database.csv import to_csv_string, to_csv_file
 from sqlite_database.utils import crunch
 from sqlite_database.functions import Function
@@ -225,6 +225,17 @@ def test_01_insert():
     assert not not users.select() # pylint: disable=unnecessary-negation
     assert save_report("01_insert", database, groups, users)
 
+def test_01_01_insert_with():
+    """Test 0101 insert in with-statement"""
+    db = Database(":memory:")
+    table = db.create_table("a", [text('name')])
+    try:
+        with table:
+            table.insert({"name": "Admin"})
+            raise CuteDemonLordException("Haha, i'm cute demon lord and I cast [Insert Dispell]")
+    except CuteDemonLordException:
+        pass
+    assert table.select() == []
 
 def test_02_01_update():
     """test 0201 update"""

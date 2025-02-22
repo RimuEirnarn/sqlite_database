@@ -27,3 +27,6 @@ class DatabaseMissingError(UnexpectedResultError):
 
 class ObjectRemovedError(BaseException):
     """Object is deleted from memory and cannot be obtained"""
+
+class CuteDemonLordException(Exception):
+    """A demon lord (cute one, somehow a dude) aborts an SQL statement"""
