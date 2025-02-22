@@ -285,6 +285,10 @@ def real(name: str) -> BuilderColumn:
     """Create a real column with name"""
     return BuilderColumn().set_type("real")(name)
 
+def boolean(name: str) -> BuilderColumn:
+    """Create a boolean column with name"""
+    return BuilderColumn().set_type("boolean")(name)
+
 
 def create_calls(typename: str, types: list[str]) -> Callable[[str], BuilderColumn]:
     """Create a dynamic call for types. This is intended to mimic
@@ -292,4 +296,4 @@ def create_calls(typename: str, types: list[str]) -> Callable[[str], BuilderColu
     return BuilderColumn(types).set_type(typename)
 
 
-__all__ = ["Column", "BuilderColumn", "text", "integer", "blob", "real"]
+__all__ = ["Column", "BuilderColumn", "text", "integer", "blob", "real", "create_calls"]
