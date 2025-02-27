@@ -2,7 +2,7 @@
 
 This is a simple wrapper for Python's built-in sqlite package. It uses simple API to interact with the database in a NoSQL-like fashion.
 
-## Table of content.
+## Table of content
 
 - [SQLite Database](#sqlite-database)
   - [Table of content](#table-of-content)
