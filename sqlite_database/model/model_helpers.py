@@ -2,7 +2,7 @@
 # pylint: disable=invalid-name,too-few-public-methods,abstract-method
 
 from typing import Any, Callable, Type, TypeAlias
-from .column import BuilderColumn, text, integer, blob, boolean
+from ..column import BuilderColumn, text, integer, blob, boolean
 
 TypeFunction: TypeAlias = Callable[[str], BuilderColumn]
 

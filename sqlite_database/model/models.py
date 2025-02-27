@@ -4,12 +4,12 @@
 from typing import Any, Literal, Protocol, Type, cast, overload
 
 from .model_helpers import Constraint, Unique, Primary, Foreign, TYPES
-from .database import Database, Table
-from .table import _null
-from .functions import ParsedFn
-from .column import text, BuilderColumn
-from .query_builder import Condition
-from .typings import (
+from ..database import Database, Table
+from ..table import _null
+from ..functions import ParsedFn
+from ..column import text, BuilderColumn
+from ..query_builder import Condition
+from ..typings import (
     Data,
     Orders,
     Queries,

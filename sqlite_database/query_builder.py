@@ -338,8 +338,8 @@ def _setup_hashable(
     if isinstance(condition, list):
         cond = tuple(condition)
 
-    if isinstance(order, dict):
-        order_ = tuple(order.items())
+    if isinstance(order, tuple):
+        order_ = order
 
     if data:
         data_ = tuple(data.keys())

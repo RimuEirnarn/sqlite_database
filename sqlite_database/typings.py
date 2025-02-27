@@ -8,7 +8,7 @@ from sqlite_database.functions import ParsedFn  # pylint: disable=unused-import
 
 from ._utils import Row
 
-Orders = dict[str, Literal["asc"] | Literal["desc"]]
+Orders = tuple[str, Literal['asc'] | Literal['desc']]
 Data = dict[str, Any]
 Query = Row[str, Any]  # type: ignore
 OnlyColumn = tuple[str, ...] | Literal["*"]
