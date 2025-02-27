@@ -26,7 +26,7 @@ IGNORE_TABLE_CHECKS = ("sqlite_master", "sqlite_temp_schema", "sqlite_temp_maste
 
 class Database:
     """Sqlite3 database, this provide basic integration.
-    
+
     Custom flags:
         strict : Certain actions are prevented when active, i.e, initializing nonexistent tables
         forgive: Certain actions are replaced when active, i.e, replacing .create_table to .table
@@ -151,9 +151,9 @@ class Database:
 
     def check_table(self, table: str):
         """Check if table is exists or not."""
-        if self._path in PLUGINS_PATH:
-            plugin = self._path[2:]
-            raise ValueError(f"Plugin {plugin} must redefine check_table.")
+        # if self._path in PLUGINS_PATH:
+        #     plugin = self._path[2:]
+        #     raise ValueError(f"Plugin {plugin} must redefine check_table.")
         check_one(table)
         if table in IGNORE_TABLE_CHECKS:
             return True  # Let's return true.

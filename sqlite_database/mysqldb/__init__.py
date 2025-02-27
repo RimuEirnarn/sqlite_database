@@ -29,6 +29,7 @@ class MySQLDatabase(Database):
     def __init__(self, config: dict[str, Any], **kwargs) -> None:
         super().__init__("--mysql", **kwargs)
 
+        self._config = config
         self._database = mysql.connector.connect(**config)
 
     @classmethod
@@ -52,3 +53,10 @@ class MySQLDatabase(Database):
             if key not in config:
                 config[key] = value[0]
         return cls(config, **kwargs)
+
+    def __repr__(self) -> str:
+        user = self._config['user']
+        host = self._config['host']
+        port = self._config.get('port', 3306)
+        database = self._config.get('database')
+        return f"<{type(self).__name__} {user}@{host}:{port}/{database}>" # pylint: disable=line-too-long
