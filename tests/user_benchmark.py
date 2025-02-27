@@ -18,7 +18,7 @@ The module also have function fills to fill the table with contents to whatever 
 
 # Edit this if you get a error.
 from sqlite_database import Database, text, integer
-from random import randint, choice
+from random import choice
 
 database = Database("testdb.sqlite3")
 
