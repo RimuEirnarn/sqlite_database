@@ -53,8 +53,8 @@ class Database:
         self._config = None
         self._closed = False
         self._table_instances: dict[str, Table] = {}
-        self._strict: bool = kwargs.get('strict', True)
-        self._forgive: bool = kwargs.get('forgive', True)
+        self._strict: bool = kwargs.get("strict", True)
+        self._forgive: bool = kwargs.get("forgive", True)
         if not self._closed or self.__dict__.get("_initiated", False) is False:
             self._finalizer_fn = finalize(self, self.close)
             self._initiated = True
@@ -116,7 +116,7 @@ class Database:
         del self._table_instances[table]
         table_._delete_hook()  # pylint: disable=protected-access
 
-    def table(self, table: str, __columns: Optional[Iterable[Column]] = None): # type: ignore
+    def table(self, table: str, __columns: Optional[Iterable[Column]] = None):  # type: ignore
         """fetch table"""
         if self._table_instances.get(table, None) is not None:
             return self._table_instances[table]
@@ -197,11 +197,13 @@ class Database:
         """Rollback changes"""
         self._database.rollback()
 
-    def foreign_pragma(self, bool_state: Literal['ON', "OFF", ""] = ""):
+    def foreign_pragma(self, bool_state: Literal["ON", "OFF", ""] = ""):
         """Enable/disable foreign key pragma"""
         if bool_state not in ("ON", "OFF", ""):
             raise ValueError("Either ON/OFF for foreign key pragma.")
-        return self._database.execute(f"PRAGMA foreign_keys{'='+bool_state  if bool_state else ''}").fetchone() # pylint: disable=line-too-long
+        return self._database.execute(
+            f"PRAGMA foreign_keys{'='+bool_state  if bool_state else ''}"
+        ).fetchone()  # pylint: disable=line-too-long
 
     def optimize(self):
         """Optimize current database"""
