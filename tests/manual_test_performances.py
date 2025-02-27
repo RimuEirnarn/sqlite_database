@@ -3,6 +3,9 @@
 from typing import Callable
 from random import randint
 from timeit import timeit
+import os.path
+from sys import path
+path.insert(0, os.path.realpath(os.path.join(__file__, "../..")))
 
 from sqlite_database import Column, Database, integer, text
 from sqlite_database.signature import op
