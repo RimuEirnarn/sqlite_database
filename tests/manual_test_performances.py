@@ -192,10 +192,16 @@ def testp_02_01_update():
     performance_counter['generic_update'] = timeit(lambda: (groups.update({"id": op == 1}, GROUP_UNEW[0]), groups.update({'id': 3}, {'id': 1})), number=500_000)
 
 def testp_03_00_delete():
-    """Test Performance 0600 Deletion test"""
+    """Test Performance 0300 single deletion test"""
     db = init_memdb(setup_database_1mdata)
     items = db.table('items')
     performance_counter['generic_delete'] = timeit(lambda: items.delete_one())
+
+def testp_03_01_delete_all():
+    """Test 0301 deletion test (all)"""
+    db = init_memdb(setup_database_1mdata)
+    items = db.table('items')
+    performance_counter['generic_delete_all'] = timeit(lambda: items.delete(), number=1)
 
 def testp_99_99_final():
     """Test final"""

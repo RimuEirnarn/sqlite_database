@@ -10,8 +10,8 @@ To get started, this module is intended to be imported. So opens up your python 
 
 -- Details
 
-This module has a database connection from memory which assigned as database. Then, a table person
-has columns of text name, integer age, and text gender.
+This module has a database connection from "testdb.sqlite3" which assigned as database
+Then, a table person has columns of text name, integer age, and text gender.
 
 The module also have function fills to fill the table with contents to whatever amount you want.
 """
@@ -22,11 +22,8 @@ from random import choice
 
 database = Database("testdb.sqlite3")
 
-person = database.create_table("person", [
-    text('name'),
-    integer('age'),
-    text('gender')
-])
+person = database.create_table("person", [text("name"), integer("age"), text("gender")])
+
 
 def fills(amount):
     """Directly filled the table person with pre-generated contents."""
@@ -37,7 +34,7 @@ def fills(amount):
         _pname = choice(names)
         person_name = f"{_pname} #{i}"
         person_age = choice(age)
-        person_gender = "M" if _pname == names[0] else 'F'
+        person_gender = "M" if _pname == names[0] else "F"
         data.append({"name": person_name, "age": person_age, "gender": person_gender})
     person.insert_many(data)
     return amount
