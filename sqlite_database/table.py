@@ -84,7 +84,6 @@ class Table: # pylint: disable=too-many-instance-attributes
         self._sql.isolation_level = None
         self._auto = False
         self._sql.execute("BEGIN TRANSACTION")
-        print("IN TRANSACTION?", self.in_transaction)
         return self
 
     def __exit__(self, exc_type, _, __):
