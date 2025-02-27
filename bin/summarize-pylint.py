@@ -1,3 +1,4 @@
+# pylint: disable=all
 from sys import argv
 from json import loads
 from io import StringIO
