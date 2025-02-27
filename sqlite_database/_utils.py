@@ -102,7 +102,7 @@ def matches(pattern: Pattern, value: str):
 
 
 def check_one(data: str):
-    """check one to check if a string contains illegal character"""
+    """check one to check if a string contains illegal character OR if it is a reserved SQL keyword"""
     if matches(_re_valid, data) is True:
         raise SecurityError("Cannot parse unsafe data.")
     if data.upper() in _SQLITE_KEYWORDS:
