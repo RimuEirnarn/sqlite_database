@@ -1,3 +1,4 @@
+# pylint: disable=all
 from sqlite_database.query_builder import extract_table
 
 SQL = "CREATE TABLE tbl (row1 text not null, row2 text not null, foreign key (row2) references tbl (row1) on delete cascade on update cascade)"
