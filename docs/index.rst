@@ -6,8 +6,6 @@
 sqlite-database Documentation
 =============================
 
-**note** this documentation is in beta version!
-
 SQLite Database
 ---------------
 
@@ -15,6 +13,7 @@ SQLite Database
    :maxdepth: 4
    :caption: SQLite Database
 
+   SimpleGuide
    usage
    api_reference
 
