@@ -1,6 +1,7 @@
 """Used for debugging"""
 
 from inspect import getouterframes, FrameInfo, Traceback
+from textwrap import wrap
 
 STATE = {'DEBUG': False}
 
@@ -34,5 +35,5 @@ def map_frames(frames: list[FrameInfo | Traceback]):
 def if_debug_print(*args, sep=" ", end="\n", flush=True):
     """If debug? print!"""
     if STATE['DEBUG']:
-        print(*args, sep=sep, end=end, flush=flush)
-        return
+        arg0 = args[0]
+        print(arg0, *(wrap(arg) for arg in args if args.index(arg) != 0), sep=sep, end=end, flush=flush)

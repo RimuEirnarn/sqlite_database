@@ -15,11 +15,18 @@ Then, a table person has columns of text name, integer age, and text gender.
 
 The module also have function fills to fill the table with contents to whatever amount you want.
 """
-
+# pylint: disable=wrong-import-position
 # Edit this if you get a error.
-from sqlite_database import Database, text, integer
 from random import choice
+from sys import path
+from os.path import realpath
+path.insert(0, realpath("../"))
 
+from sqlite_database import Database, text, integer
+from sqlite_database._debug import STATE
+
+
+STATE['DEBUG'] = True
 database = Database("testdb.sqlite3")
 
 person = database.create_table("person", [text("name"), integer("age"), text("gender")])
