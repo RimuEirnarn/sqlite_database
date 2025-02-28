@@ -3,7 +3,8 @@
 from inspect import getouterframes, FrameInfo, Traceback
 from textwrap import wrap
 
-STATE = {'DEBUG': False}
+STATE = {"DEBUG": False}
+
 
 def _build_frame_str(frame: FrameInfo | Traceback):
     context_lines = (
@@ -32,8 +33,15 @@ def map_frames(frames: list[FrameInfo | Traceback]):
     """Shorthand for alreadby built list of frames"""
     return "".join((_build_frame_str(frame) for frame in frames))
 
+
 def if_debug_print(*args, sep=" ", end="\n", flush=True):
     """If debug? print!"""
-    if STATE['DEBUG']:
+    if STATE["DEBUG"]:
         arg0 = args[0]
-        print(arg0, *(wrap(arg) for arg in args if args.index(arg) != 0), sep=sep, end=end, flush=flush)
+        print(
+            arg0,
+            *(wrap(str(arg)) for arg in args if args.index(arg) != 0),
+            sep=sep,
+            end=end,
+            flush=flush,
+        )
