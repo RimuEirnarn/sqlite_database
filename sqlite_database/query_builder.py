@@ -181,7 +181,20 @@ function_extract = _function_extract
 
 
 def filter_extraction(string: str, shlexed: list[str]):
-    """A function step of table extraction. Used to replace quoted and parens with parameter."""
+    """
+    A function step of table extraction. Used to replace quoted and parens with parameter.
+
+    Args:
+        string (str): The input string containing the table creation SQL.
+        shlexed (list[str]): The tokenized list of the input string.
+
+    Returns:
+        tuple[dict[str, str], dict[str, str], str]: A tuple containing:
+            - A dictionary mapping placeholders to quoted strings.
+            - A dictionary mapping placeholders to parenthesized strings.
+            - The modified string with placeholders.
+    """
+
     quoted_wrap = {}
     paren_wrap = {}
     new_string = string
@@ -197,7 +210,6 @@ def filter_extraction(string: str, shlexed: list[str]):
         selected = new_string[index:last]
         new_string = new_string.replace(selected, f":wrap{len(paren_wrap)}")
         paren_wrap[f":wrap{len(paren_wrap)}"] = selected
-    # ? from now on, it's safe to use , again.
     return quoted_wrap, paren_wrap, new_string
 
 
