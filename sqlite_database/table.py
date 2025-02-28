@@ -21,6 +21,7 @@ from sqlite_database.functions import ParsedFn, Function, count
 
 from .utils import crunch
 from ._utils import check_iter, check_one, Row
+from ._debug import if_debug_print
 from .column import BuilderColumn, Column
 from .errors import TableRemovedError
 from .query_builder import (
@@ -165,6 +166,7 @@ class Table: # pylint: disable=too-many-instance-attributes
         which: Literal["execute", "executemany"] = "execute",
     ):
         """Execute a sql query"""
+        if_debug_print(query, '\n', data)
         cursor = self._sql.cursor()
         fn = cursor.execute if which == "execute" else cursor.executemany
         try:

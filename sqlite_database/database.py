@@ -4,6 +4,8 @@ from weakref import finalize, WeakValueDictionary
 from sqlite3 import OperationalError, connect
 from typing import Iterable, Literal, Optional, Mapping
 
+from sqlite_database._debug import if_debug_print
+
 from .locals import PLUGINS_PATH
 from ._utils import (
     WithCursor,
@@ -83,6 +85,8 @@ class Database:
         )
         tbquery = extract_table_creations(columns)
         query = f"create table {table} ({tbquery})"
+
+        if_debug_print(query)
 
         if self._forgive and self.check_table(table):
             return self.table(table, columns)

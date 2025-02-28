@@ -2,6 +2,7 @@
 
 from inspect import getouterframes, FrameInfo, Traceback
 
+STATE = {'DEBUG': False}
 
 def _build_frame_str(frame: FrameInfo | Traceback):
     context_lines = (
@@ -29,3 +30,9 @@ def map_frame(frame: Traceback) -> str:
 def map_frames(frames: list[FrameInfo | Traceback]):
     """Shorthand for alreadby built list of frames"""
     return "".join((_build_frame_str(frame) for frame in frames))
+
+def if_debug_print(*args, sep=" ", end="\n", flush=True):
+    """If debug? print!"""
+    if STATE['DEBUG']:
+        print(*args, sep=sep, end=end, flush=flush)
+        return
