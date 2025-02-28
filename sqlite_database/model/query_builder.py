@@ -3,8 +3,7 @@
 from __future__ import annotations
 from typing import Type
 from ..column import check_one
-from . import models
-
+from .. import model as models
 
 class QueryBuilder:
     """Query builder for Model ORM"""
