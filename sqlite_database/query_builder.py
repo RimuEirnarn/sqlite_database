@@ -365,10 +365,20 @@ def _setup_limit_patch(table_name: str, condition: str, limit):
     return f"where rowid in (select rowid from {table_name}\
 {' '+condition if condition else ''} limit {limit})"
 
+def _parse_orders(order: CacheOrders):
+    if isinstance(order, tuple) and not isinstance(order[0], tuple):
+        ord_, order_by = order
+        return f"{ord_} {order_by}"
+    if isinstance(order, tuple) and isinstance(order[0], tuple):
+        query = ""
+        for ord_, order_by in order:
+            query += f" {ord_} {order_by},"
+        return query[1:-1]
+    raise TypeError("What?", type(order))
 
 @lru_cache
-def _build_select(
-    table_name: str,  # pylint: disable=too-many-arguments
+def _build_select(  # pylint: disable=too-many-arguments
+    table_name: str,
     condition: CacheCond,
     only: OnlyColumn = None,  # type: ignore
     limit: int = 0,
@@ -387,15 +397,13 @@ def _build_select(
         only_ = check_one(only)  # type: ignore
 
     query = f"select {only_} from {table_name}{' '+cond if cond else ''}"
+    if order and isinstance(order, tuple):
+        query += f" order by {_parse_orders(order)}"
     if limit:
         query += f" limit {limit}"
     if offset:
         query += f" offset {offset}"
-    if order:
-        query += " order by"
-        for ord_, order_by in order:
-            query += f" {ord_} {order_by},"
-        query = query[:-1]
+
     return query, data
 
 
@@ -415,10 +423,7 @@ def _build_update(
         query = query.replace(cond, "")
         query += _setup_limit_patch(table_name, cond, limit)
     if order:
-        query += " order by"
-        for ord_, order_by in order:
-            query += f" {ord_} {order_by},"
-        query = query[:-1]
+        query += f" order by {_parse_orders(order)}"
     # ? Require manual intervention to make sure updated is sync as
     # print(query)
     return query, data, updated
@@ -440,10 +445,7 @@ def _build_delete(
         query = query.replace(cond, "")
         query += _setup_limit_patch(table_name, cond, limit)
     if order:
-        query += " order by"
-        for ord_, order_by in order:
-            query += f" {ord_} {order_by}"
-        query = query[:-1]
+        query += f" order by {_parse_orders(order)}"
     return query, data
 
 
@@ -456,8 +458,8 @@ values ({', '.join(val for val in converged.values())})"
     return query, data
 
 
-def build_select(
-    table_name: str,  # pylint: disable=too-many-arguments
+def build_select( # pylint: disable=too-many-arguments
+    table_name: str,
     condition: Condition = None,
     only: tuple[str, ...] | ParsedFn | str | Literal["*"] = "*",
     limit: int = 0,
