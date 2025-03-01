@@ -9,6 +9,7 @@ This library is a simple wrapper for Python's built-in SQLite package. It simpli
   - [Introduction](#introduction)
   - [Getting Started](#getting-started)
     - [What is SQLite?](#what-is-sqlite)
+    - [SQLite Database](#sqlite-database)
     - [Installation](#installation)
     - [Creating a Database](#creating-a-database)
     - [Creating a Table](#creating-a-table)
@@ -33,6 +34,10 @@ SQLite is a lightweight, serverless database that stores data in a single file. 
 ### What is SQLite?
 
 SQLite is a small and fast database engine that stores all data in a single file. It is widely used in applications where a full-fledged database server is unnecessary.
+
+### SQLite Database
+
+This library itself is intended to help around your life from having to write SQL statements unless in specific cases. For now, implemented API is Table API which is what is this documentation will show to you.
 
 ### Installation
 
