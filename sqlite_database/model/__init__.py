@@ -1,5 +1,5 @@
 """Models"""
-# pylint: disable=unused-import,unused-argument
+# pylint: disable=unused-import,unused-argument,cyclic-import
 
 from typing import Any, Literal, Protocol, Type, cast, overload
 
