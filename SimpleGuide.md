@@ -4,21 +4,23 @@ This library is a simple wrapper for Python's built-in SQLite package. It simpli
 
 ## Table of Contents
 
-- [Introduction](#introduction)
-- [Getting Started](#getting-started)
-  - [What is SQLite?](#what-is-sqlite)
-  - [Installation](#installation)
-  - [Creating a Database](#creating-a-database)
-  - [Creating a Table](#creating-a-table)
-  - [Inserting Data](#inserting-data)
-  - [Retrieving Data](#retrieving-data)
-  - [Updating Data](#updating-data)
-  - [Deleting Data](#deleting-data)
-- [Advanced Features](#advanced-features)
-  - [Filtering Data](#filtering-data)
-  - [Sorting and Pagination](#sorting-and-pagination)
-  - [Exporting Data](#exporting-data)
-- [Conclusion](#conclusion)
+- [SQLite Database (Beginner-Friendly Guide)](#sqlite-database-beginner-friendly-guide)
+  - [Table of Contents](#table-of-contents)
+  - [Introduction](#introduction)
+  - [Getting Started](#getting-started)
+    - [What is SQLite?](#what-is-sqlite)
+    - [Installation](#installation)
+    - [Creating a Database](#creating-a-database)
+    - [Creating a Table](#creating-a-table)
+    - [Inserting Data](#inserting-data)
+    - [Retrieving Data](#retrieving-data)
+    - [Updating Data](#updating-data)
+    - [Deleting Data](#deleting-data)
+  - [Advanced Features](#advanced-features)
+    - [Filtering Data](#filtering-data)
+    - [Sorting and Pagination](#sorting-and-pagination)
+    - [Exporting Data](#exporting-data)
+  - [Conclusion](#conclusion)
 
 ---
 
@@ -149,7 +151,7 @@ data = users.select([like("name", "A%")])
 Sort results in ascending or descending order:
 
 ```python
-users.select(order="desc")  # Sort in descending order
+users.select(order=("age", "desc"))  # Sort in descending order
 ```
 
 Paginate results (fetch 2 users per page):
@@ -181,4 +183,3 @@ to_csv_file(db, "DatabasePath")
 This library simplifies SQLite operations, making it beginner-friendly while retaining powerful features. Whether you're building a simple app or need lightweight database management, it’s a great tool to use!
 
 For more advanced use cases, refer to the full documentation or explore more features.
-

@@ -151,7 +151,7 @@ data = users.select([like("name", "A%")])
 Sort results in ascending or descending order:
 
 ```python
-users.select(order="desc")  # Sort in descending order
+users.select(order=("age", "desc"))  # Sort in descending order
 ```
 
 Paginate results (fetch 2 users per page):
