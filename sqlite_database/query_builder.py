@@ -393,7 +393,9 @@ def _build_select(  # pylint: disable=too-many-arguments
     elif only != "*" and isinstance(only, str):
         only_ = check_one(only)  # type: ignore
 
-    query = f"select {only_} from {table_name}{' '+cond if cond else ''}"
+    query = f"select {only_} from {table_name}"
+    if cond:
+        query += f" {cond}"
     if order and isinstance(order, tuple):
         query += f" order by {_parse_orders(order)}"
     if limit:
