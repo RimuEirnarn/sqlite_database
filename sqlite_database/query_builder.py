@@ -370,10 +370,7 @@ def _parse_orders(order: CacheOrders):
         ord_, order_by = order
         return f"{ord_} {order_by}"
     if isinstance(order, tuple) and isinstance(order[0], tuple):
-        query = ""
-        for ord_, order_by in order:
-            query += f" {ord_} {order_by},"
-        return query[1:-1]
+        return ", ".join(f"{ord_} {order_by}" for ord_, order_by in order)
     raise TypeError("What?", type(order))
 
 @lru_cache
