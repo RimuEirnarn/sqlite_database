@@ -9,6 +9,7 @@ from dataclasses import asdict, dataclass, fields, is_dataclass, MISSING
 from .helpers import Constraint, Unique, Primary, Foreign, TYPES, Validators
 from .query_builder import QueryBuilder
 from .errors import ConstraintError
+from ..errors import DatabaseExistsError
 from ..database import Database, Table
 from ..column import text, BuilderColumn
 from ..operators import in_
@@ -64,7 +65,10 @@ class BaseModel:  # pylint: disable=too-few-public-methods
             columns.append(col)
 
         cls._primary = _primary
-        cls._tbl = db.create_table(cls.__name__.lower(), columns)
+        try:
+            cls._tbl = db.create_table(cls.__name__.lower(), columns)
+        except DatabaseExistsError:
+            cls._tbl = db.table(cls.__name__.lower())
 
 
     @classmethod
