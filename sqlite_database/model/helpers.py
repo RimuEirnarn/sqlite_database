@@ -21,6 +21,11 @@ class Constraint:
     def __init__(self, column: str) -> None:
         self._column = column
 
+    @property
+    def column(self):
+        """Columns"""
+        return self._column
+
     def apply(self, type_: BuilderColumn):
         """Apply this constraint to an column"""
         raise NotImplementedError()
@@ -36,6 +41,10 @@ class Foreign(Constraint):
 
 class Primary(Constraint):
     """Primary constraint"""
+
+    def apply(self, type_: BuilderColumn):
+        """Apply this constraint as primary"""
+        type_.primary()
 
 T = TypeVar("T")
 

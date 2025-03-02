@@ -9,11 +9,14 @@ from tempfile import mkdtemp
 from pathlib import Path
 from random import randint, random
 from sqlite3 import OperationalError
+from typing import NamedTuple
+from uuid import UUID
 
 from pytest import raises
 
 
 from sqlite_database import Column, Database, integer, text
+from sqlite_database.model import model, Primary, Unique
 from sqlite_database.signature import op
 from sqlite_database.operators import eq
 from sqlite_database.errors import TableRemovedError, CuteDemonLordException
@@ -195,9 +198,9 @@ def test_00_06_select_order_by():
     """Test 0006 Select order by"""
     database = Database(":memory:")
     setup_orderable(database)
-    items = database.table('items')
+    items = database.table("items")
     first_high = items.select(only="quantity", limit=3, order=("quantity", "asc"))
-    first_low = items.select(only='quantity', limit=3, order=("quantity", 'desc'))
+    first_low = items.select(only="quantity", limit=3, order=("quantity", "desc"))
     assert first_high == [0, 1, 2]
     assert first_low == [99, 98, 97]
 
@@ -409,6 +412,29 @@ def test_10_04_vacuum():
     _ = [t.delete_one({"a": randint(0, 1000)})]
     t.commit()
     db.vacuum()
+
+
+def test_11_00_model_api():
+    """Test 1100 Model API"""
+    db = Database(":memory:")
+
+    @model(db)
+    class Users(NamedTuple):
+        """Users"""
+
+        __schema__ = (Primary("id"), Unique("username"))
+        id: str
+        username: str
+        display_name: str
+        is_active: bool = True
+
+    assert (
+        db.table("users")._table == Users._tbl._table  # pylint: disable=protected-access,no-member
+    )
+    admin = Users.create(
+        id=str(UUID(int=0)), username="admin", display_name="System Administrator"
+    )
+    assert admin
 
 
 def test_99_99_save_report():
