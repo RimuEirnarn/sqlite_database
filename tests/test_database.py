@@ -10,8 +10,6 @@ from pathlib import Path
 from random import randint, random
 from sqlite3 import OperationalError
 from uuid import UUID
-from dataclasses import dataclass
-
 from pytest import raises
 
 
@@ -256,7 +254,12 @@ def test_02_03_update_limited_order():
     database = Database(":memory:")
     setup_database_fns(database)
     checkout = database.table("checkout")
-    assert checkout.update({"quantity": 50}, {"quantity": 70}, limit=2, order="asc") == 2  # type: ignore
+    assert (
+        checkout.update(
+            {"quantity": 50}, {"quantity": 70}, limit=2
+        )
+        == 2
+    )  # type: ignore
     assert len(checkout.select({"quantity": 70}, limit=2)) == 2
 
 
@@ -419,7 +422,7 @@ def test_11_00_model_api():
     db = Database(":memory:")
 
     @model(db)
-    class Users(BaseModel): # type: ignore
+    class Users(BaseModel):  # type: ignore
         """Users"""
 
         __schema__ = (Primary("id"), Unique("username"))
@@ -429,12 +432,14 @@ def test_11_00_model_api():
         is_active: bool = True
 
     assert (
-        db.table("users")._table == Users._tbl._table  # pylint: disable=protected-access,no-member
+        db.table("users")._table == Users._tbl._table # pylint: disable=protected-access
     )
     admin = Users.create(
         id=str(UUID(int=0)), username="admin", display_name="System Administrator"
     )
-    assert admin
+    assert admin.username
+    fetched = Users.where(username="admin").fetch_one()
+    assert fetched == admin
 
 
 def test_99_99_save_report():

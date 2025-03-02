@@ -87,7 +87,9 @@ class BaseModel:  # pylint: disable=too-few-public-methods
                 "The table does not have any primary key, cannot update due to undefined selection"
             )
         self._tbl.update({primary: getattr(self, primary)}, kwargs)  # type: ignore
-        return type(self)(**kwargs)
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        return self
 
 
     def delete(self, __primary=NULL, /):
