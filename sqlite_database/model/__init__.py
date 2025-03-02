@@ -19,6 +19,7 @@ T = TypeVar("T", bound="BaseModel")
 
 ## Model functions
 
+
 class BaseModel:  # pylint: disable=too-few-public-methods
     """Base class for all Models using Model API"""
 
@@ -35,7 +36,9 @@ class BaseModel:  # pylint: disable=too-few-public-methods
             raise TypeError(f"{cls.__name__} must be a dataclass")
 
         columns: list[BuilderColumn] = []
-        constraints: dict[str, list[Constraint]] = {col: [] for col in cls.__annotations__} # pylint: disable=no-member
+        constraints: dict[str, list[Constraint]] = {
+            col: [] for col in cls.__annotations__
+        }  # pylint: disable=no-member
         _primary = None
 
         # Extract constraints from __schema__
@@ -52,7 +55,7 @@ class BaseModel:  # pylint: disable=too-few-public-methods
         for field_def in fields(cls):  # Fetch fields using dataclass reflection
             field_name = field_def.name
             field_type = field_def.type
-            col = TYPES.get(field_type, text)(field_name) # type: ignore
+            col = TYPES.get(field_type, text)(field_name)  # type: ignore
 
             # Check if there's a default value
             if field_def.default is not MISSING:
@@ -72,12 +75,10 @@ class BaseModel:  # pylint: disable=too-few-public-methods
         except DatabaseExistsError:
             cls._tbl = db.table(cls.__table_name__.lower())
 
-
     @classmethod
     def where(cls, **kwargs):
         """Basic select operation"""
         return QueryBuilder(cls).where(**kwargs)
-
 
     @classmethod
     def create(cls, **kwargs):
@@ -85,8 +86,7 @@ class BaseModel:  # pylint: disable=too-few-public-methods
         cls._tbl.insert(kwargs)
         return cls(**kwargs)  # pylint: disable=not-callable
 
-
-    def update(self, __primary: str | object =NULL, /, **kwargs):
+    def update(self, __primary: str | object = NULL, /, **kwargs):
         """Update current data"""
         # pylint: disable=protected-access
         primary = self._primary or __primary
@@ -98,7 +98,6 @@ class BaseModel:  # pylint: disable=too-few-public-methods
         for key, value in kwargs.items():
             setattr(self, key, value)
         return self
-
 
     def delete(self, __primary=NULL, /):
         """Delete current data"""
@@ -117,7 +116,7 @@ class BaseModel:  # pylint: disable=too-few-public-methods
         return [cls(**record) for record in records]  # Return list of instances
 
     @classmethod
-    def bulk_update(cls, records: list[dict], key: str | object=NULL):
+    def bulk_update(cls, records: list[dict], key: str | object = NULL):
         """Update multiple records using a primary key or provided key."""
         key_ = cls._primary or key
         if key is NULL:
@@ -127,7 +126,7 @@ class BaseModel:  # pylint: disable=too-few-public-methods
         for record in records:
             if key_ not in record:
                 raise ValueError(f"Missing primary key '{key_}' in record: {record}")
-            cls._tbl.update({key_: record[key_]}, record) # type: ignore
+            cls._tbl.update({key_: record[key_]}, record)  # type: ignore
 
     @classmethod
     def bulk_delete(cls, keys: list[Any], key: str):
@@ -175,13 +174,73 @@ class BaseModel:  # pylint: disable=too-few-public-methods
 
     def to_dict(self):
         """Convert model instance to dictionary."""
-        if is_dataclass(self): # always true, though, just in case
+        if is_dataclass(self):  # always true, though, just in case
             return asdict(self)
         return {}
 
     def raw(self, query: str, params: list[Any] | tuple[Any, ...] | dict[str, Any]):
         """Raw SQL query"""
-        return self._tbl._sql.execute(query, params) # pylint: disable=protected-access
+        return self._tbl._sql.execute(query, params)  # pylint: disable=protected-access
+
+    def has_many(self, related: "Type[T]", foreign_key: str | object = NULL):
+        """Ensure related_model has a Foreign key pointing to self"""
+        foreign_key = None
+
+        if not self._primary:
+            raise ConstraintError(
+                f"The table {self.__table_name__} does not have any primary key "
+                "required for has_many()"
+            )
+
+        # Scan __schema__ of related model to find a Foreign key linking back
+        for constraint in related.__schema__:
+            if isinstance(constraint, Foreign):
+                table_ref, _ = constraint.target.split("/")
+                if table_ref == self.__class__.__name__.lower():
+                    foreign_key = constraint.column
+                    break
+
+        if not foreign_key:
+            raise ValueError(
+                f"{related.__name__} does not have a Foreign key pointing "
+                f"to {self.__class__.__name__}"
+            )
+
+        # Perform the actual query
+        return related.where(**{foreign_key: getattr(self, self._primary)}).fetch()
+
+    def belongs_to(self, related_model: "Type[T]"):
+        """Retrieve the related model that this instance belongs to."""
+        # Find the Foreign() constraint that references `related_model`
+        for constraint in self.__schema__:
+            if isinstance(constraint, Foreign) and constraint.target.startswith(
+                related_model.__table_name__ + "/"
+            ):
+                foreign_key = constraint.column
+                referenced_column = constraint.target.split("/")[1]
+                return related_model.where(
+                    **{referenced_column: getattr(self, foreign_key)}
+                ).fetch_one()
+
+        raise ValueError(
+            f"{self.__class__.__name__} does not belong to {related_model.__name__}"
+        )
+
+    def has_one(self, related_model: "Type[T]"):
+        """Retrieve the related model where this instance is referenced."""
+        # Find the Foreign() constraint in `related_model` that references this model
+        for constraint in related_model.__schema__:
+            if (
+                isinstance(constraint, Foreign)
+                and constraint.target == f"{self.__table_name__}/{self._primary}"
+            ):
+                foreign_key = constraint.column
+                return related_model.where(**{foreign_key: self._primary}).fetch_one()
+
+        raise ValueError(
+            f"{related_model.__name__} does not have a one-to-one relationship "
+            f"with {self.__class__.__name__}"
+        )
 
 
 def model(db: Database):
