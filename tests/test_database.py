@@ -9,14 +9,14 @@ from tempfile import mkdtemp
 from pathlib import Path
 from random import randint, random
 from sqlite3 import OperationalError
-from typing import NamedTuple
 from uuid import UUID
+from dataclasses import dataclass
 
 from pytest import raises
 
 
 from sqlite_database import Column, Database, integer, text
-from sqlite_database.model import model, Primary, Unique
+from sqlite_database.model import Primary, Unique, model, BaseModel
 from sqlite_database.signature import op
 from sqlite_database.operators import eq
 from sqlite_database.errors import TableRemovedError, CuteDemonLordException
@@ -419,7 +419,7 @@ def test_11_00_model_api():
     db = Database(":memory:")
 
     @model(db)
-    class Users(NamedTuple):
+    class Users(BaseModel): # type: ignore
         """Users"""
 
         __schema__ = (Primary("id"), Unique("username"))
