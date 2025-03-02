@@ -39,6 +39,18 @@ class Unique(Constraint):
 class Foreign(Constraint):
     """Foreign constraint"""
 
+    def __init__(self, column: str, target: str) -> None:
+        super().__init__(column)
+        self._target = target
+
+    @property
+    def target(self):
+        """Target foreign constraint"""
+        return self._target
+
+    def apply(self, type_: BuilderColumn):
+        type_.foreign(self._target)
+
 class Primary(Constraint):
     """Primary constraint"""
 
