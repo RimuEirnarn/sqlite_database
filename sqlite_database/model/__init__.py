@@ -3,7 +3,7 @@
 # pylint: disable=unused-import,unused-argument,cyclic-import
 
 from contextlib import contextmanager
-from typing import Any, Literal, Protocol, Self, Type, TypeVar, cast
+from typing import Any, Type, TypeVar
 from dataclasses import asdict, dataclass, fields, is_dataclass, MISSING
 
 from .helpers import Constraint, Unique, Primary, Foreign, TYPES, Validators
@@ -11,6 +11,7 @@ from .query_builder import QueryBuilder
 from .errors import ConstraintError
 from ..database import Database, Table
 from ..column import text, BuilderColumn
+from ..operators import in_
 
 NULL = object()
 T = TypeVar("T", bound="BaseModel")
@@ -122,10 +123,10 @@ class BaseModel:  # pylint: disable=too-few-public-methods
                 raise ValueError(f"Missing primary key '{key_}' in record: {record}")
             cls._tbl.update({key_: record[key_]}, record) # type: ignore
 
-    # @classmethod
-    # def bulk_delete(cls, keys: list[Any], key: str):
-    #     """Delete multiple records using a primary key."""
-    #     cls._tbl.delete()
+    @classmethod
+    def bulk_delete(cls, keys: list[Any], key: str):
+        """Delete multiple records using a primary key."""
+        cls._tbl.delete({key: in_(keys)})
 
     @classmethod
     def first(cls, **kwargs):

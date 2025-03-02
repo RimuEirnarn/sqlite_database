@@ -50,4 +50,4 @@ def in_(values: list[Any]):
 
 this = op
 
-__all__ = ["eq", "lt", "le", "gt", "ge", "ne", "like", "between", "this"]
+__all__ = ["eq", "lt", "le", "gt", "ge", "ne", "like", "between", "this", 'in_']
