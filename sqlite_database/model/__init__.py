@@ -22,6 +22,7 @@ T = TypeVar("T", bound="BaseModel")
 class BaseModel:  # pylint: disable=too-few-public-methods
     """Base class for all Models using Model API"""
 
+    __table_name__ = ""
     __schema__: tuple[Constraint, ...] = ()
     __validators__: tuple[Validators, ...] = ()
     _tbl: Table
@@ -65,10 +66,11 @@ class BaseModel:  # pylint: disable=too-few-public-methods
             columns.append(col)
 
         cls._primary = _primary
+        cls.__table_name__ = cls.__table_name__ or cls.__name__.lower()
         try:
-            cls._tbl = db.create_table(cls.__name__.lower(), columns)
+            cls._tbl = db.create_table(cls.__table_name__, columns)
         except DatabaseExistsError:
-            cls._tbl = db.table(cls.__name__.lower())
+            cls._tbl = db.table(cls.__table_name__.lower())
 
 
     @classmethod
