@@ -171,6 +171,11 @@ class BaseModel:  # pylint: disable=too-few-public-methods
         """Convert model instance to dictionary."""
         if is_dataclass(self): # always true, though, just in case
             return asdict(self)
+        return {}
+
+    def raw(self, query: str, params: list[Any] | tuple[Any, ...] | dict[str, Any]):
+        """Raw SQL query"""
+        return self._tbl._sql.execute(query, params) # pylint: disable=protected-access
 
 
 def model(db: Database):
