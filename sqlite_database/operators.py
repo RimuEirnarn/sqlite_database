@@ -43,6 +43,10 @@ def between(name: str, low: int, high: int) -> tuple[str, Signature]:
     """Between constraint"""
     return (name, op.between(low, high))
 
+def in_(values: list[Any]):
+    """In VALUES"""
+    return this.in_(values)
+
 
 this = op
 

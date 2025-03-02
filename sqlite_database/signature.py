@@ -5,6 +5,7 @@ from typing import Any, Optional
 from ._utils import matches, null
 from .errors import SecurityError
 from .locals import _NO_UNLIKE
+from .typings import tuple_list
 
 
 class Signature:
@@ -39,7 +40,7 @@ class Signature:
         self,
         value: Any = null,
         operator: Optional[str] = None,
-        data: Optional[tuple[int, int] | str] = None,
+        data: Optional[tuple[int, int] | str] | tuple_list[Any] = None,
         negate=False,
     ) -> None:
         self._value = value
@@ -72,13 +73,19 @@ class Signature:
             raise SecurityError("Cannot understand other character.")
         return Signature(null, "like", str_condition, self._negate)
 
+    def in_(self, values: list[Any]):
+        """IN"""
+        return Signature(null, operator="in", data=tuple(values), negate=self._negate)
+
     def between(self, low: int, high: int):
         """Betweeen"""
         return Signature(null, "between", (low, high), self._negate)
 
     def negate(self):
         """Negate or adding NOT"""
-        return Signature(self._value, self._operator, self._data, not self._negate)
+        return Signature(
+            self._value, self._operator, tuple(self._data), not self._negate  # type: ignore
+        )
 
     @property
     def value(self):
@@ -121,6 +128,11 @@ class Signature:
     def is_like(self):
         """Is operator like"""
         return self._operator == "like"
+
+    @property
+    def is_in(self):
+        """Is operator in?"""
+        return self._operator == "in"
 
     def generate(self):
         """Generate operator string"""

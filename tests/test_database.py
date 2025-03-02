@@ -13,10 +13,11 @@ from uuid import UUID
 from pytest import raises
 
 
+from sqlite_database._debug import STATE
 from sqlite_database import Column, Database, integer, text
 from sqlite_database.model import Primary, Unique, model, BaseModel
 from sqlite_database.signature import op
-from sqlite_database.operators import eq
+from sqlite_database.operators import eq, in_, this
 from sqlite_database.errors import TableRemovedError, CuteDemonLordException
 from sqlite_database.csv import to_csv_string, to_csv_file
 from sqlite_database.utils import crunch
@@ -441,6 +442,18 @@ def test_11_00_model_api():
     fetched = Users.where(username="admin").fetch_one()
     assert fetched == admin
 
+
+def test_98_00_test():
+    """Gradual test"""
+    db = Database(":memory:")
+    setup_orderable(db)
+    items = db.table('items')
+    v0 = items.select({'quantity': this == 99})
+    STATE['DEBUG'] = True
+    values = items.select({'quantity': in_([99, 98, 97])})
+    assert v0
+    assert values
+    STATE['DEBUG'] = False
 
 def test_99_99_save_report():
     """FINAL 9999 Save reports"""

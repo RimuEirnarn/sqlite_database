@@ -3,12 +3,14 @@
 from __future__ import annotations
 from typing import Any, Generic, Type, TypeVar
 from ..column import check_one
+from ..functions import Function
 from .. import model as models # pylint: disable=unused-import
 
 T = TypeVar("T", bound="models.BaseModel")
-
+count = Function('COUNT')
 
 class QueryBuilder(Generic[T]):
+    # pylint: disable=protected-access
     """Query builder for Model ORM"""
 
     def __init__(self, model: Type[T]) -> None:
@@ -54,3 +56,7 @@ class QueryBuilder(Generic[T]):
             self._filters, order=self._order
         )
         return self._model(**record)
+
+    def count(self) -> int:
+        """Count how much data is within this operation"""
+        return self._model._tbl.select(self._filters, only=count('*'))

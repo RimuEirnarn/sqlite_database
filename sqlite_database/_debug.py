@@ -1,7 +1,6 @@
 """Used for debugging"""
 
 from inspect import getouterframes, FrameInfo, Traceback
-from textwrap import wrap
 
 STATE = {"DEBUG": False}
 
@@ -40,7 +39,7 @@ def if_debug_print(*args, sep=" ", end="\n", flush=True):
         arg0 = args[0]
         print(
             arg0,
-            *(wrap(str(arg)) for arg in args if args.index(arg) != 0),
+            *(repr(arg) for arg in args if args.index(arg) != 0),
             sep=sep,
             end=end,
             flush=flush,

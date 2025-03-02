@@ -2,8 +2,9 @@
 
 # pylint: disable=unused-import,unused-argument,cyclic-import
 
-from typing import Any, Protocol, Self, Type, TypeVar, cast
-from dataclasses import dataclass, fields, is_dataclass, MISSING
+from contextlib import contextmanager
+from typing import Any, Literal, Protocol, Self, Type, TypeVar, cast
+from dataclasses import asdict, dataclass, fields, is_dataclass, MISSING
 
 from .helpers import Constraint, Unique, Primary, Foreign, TYPES, Validators
 from .query_builder import QueryBuilder
@@ -78,7 +79,7 @@ class BaseModel:  # pylint: disable=too-few-public-methods
         return cls(**kwargs)  # pylint: disable=not-callable
 
 
-    def update(self, __primary=NULL, /, **kwargs):
+    def update(self, __primary: str | object =NULL, /, **kwargs):
         """Update current data"""
         # pylint: disable=protected-access
         primary = self._primary or __primary
@@ -101,6 +102,74 @@ class BaseModel:  # pylint: disable=too-few-public-methods
                 "The table does not have any primary key, cannot delete due to undefined selection"
             )
         self._tbl.delete_one({primary: getattr(self, primary)})  # type: ignore
+
+    @classmethod
+    def bulk_create(cls, records: list[dict]):
+        """Insert multiple records at once."""
+        cls._tbl.insert_many(records)
+        return [cls(**record) for record in records]  # Return list of instances
+
+    @classmethod
+    def bulk_update(cls, records: list[dict], key: str | object=NULL):
+        """Update multiple records using a primary key or provided key."""
+        key_ = cls._primary or key
+        if key is NULL:
+            raise ValueError(
+                "The table does not have any primary key, or key parameter is not provided"
+            )
+        for record in records:
+            if key_ not in record:
+                raise ValueError(f"Missing primary key '{key_}' in record: {record}")
+            cls._tbl.update({key_: record[key_]}, record) # type: ignore
+
+    # @classmethod
+    # def bulk_delete(cls, keys: list[Any], key: str):
+    #     """Delete multiple records using a primary key."""
+    #     cls._tbl.delete()
+
+    @classmethod
+    def first(cls, **kwargs):
+        """Return the first matching record or None if no match is found."""
+        result = cls.where(**kwargs).limit(1).fetch_one()
+        return cls(**result) if result else None
+
+    @classmethod
+    def one(cls, **kwargs):
+        """Return exactly one record. Raises error if multiple results exist."""
+        results = cls.where(**kwargs).fetch()
+        if len(results) > 1:
+            raise ValueError(f"Expected one record, but found {len(results)}")
+        return cls(**results[0]) if results else None
+
+    @classmethod
+    def count(cls, **kwargs) -> int:
+        """Return count of matching records."""
+        return cls.where(**kwargs).count()
+
+    @classmethod
+    def exists(cls, **kwargs) -> bool:
+        """Check if any record matches the query."""
+        return cls.where(**kwargs).limit(1).fetch_one() is not None
+
+    @classmethod
+    @contextmanager
+    def atomic(cls):
+        """Perform operations within a transaction."""
+        with cls._tbl:  # Assuming `transaction()` exists
+            yield
+
+    @classmethod
+    def upsert(cls, key: str, **kwargs):
+        """Insert or update a record based on primary key."""
+        existing = cls.where(**{key: kwargs[key]}).fetch_one()
+        if existing:
+            return existing.update(**kwargs)
+        return cls.create(**kwargs)
+
+    def to_dict(self):
+        """Convert model instance to dictionary."""
+        if is_dataclass(self): # always true, though, just in case
+            return asdict(self)
 
 
 def model(db: Database):

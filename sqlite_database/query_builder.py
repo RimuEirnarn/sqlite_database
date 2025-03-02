@@ -108,6 +108,13 @@ def extract_signature(
         if val.normal_operator:
             string += f" {key}{middle}{val.value} and"
             last = 4
+        if val.is_in:
+            vals = tuple(
+                (f":prop_val_in{index}" for index, _ in enumerate(val.data)))  # type: ignore
+            string += f" {key} {middle} ({', '.join(vals)}) "
+            for key0, val0 in zip(vals, val.data):  # type: ignore
+                data[key0[1:]] = val0
+            continue
         if val.is_between:
             vdata: tuple[int, int] = val.data  # type: ignore
             string += f" {key} {middle} {vdata[0]!r} and {vdata[1]!r} and"
@@ -365,6 +372,7 @@ def _setup_limit_patch(table_name: str, condition: str, limit):
     return f"where rowid in (select rowid from {table_name}\
 {' '+condition if condition else ''} limit {limit})"
 
+
 def _parse_orders(order: CacheOrders):
     if isinstance(order, tuple) and not isinstance(order[0], tuple):
         ord_, order_by = order
@@ -372,6 +380,7 @@ def _parse_orders(order: CacheOrders):
     if isinstance(order, tuple) and isinstance(order[0], tuple):
         return ", ".join(f"{ord_} {order_by}" for ord_, order_by in order)
     raise TypeError("What?", type(order))
+
 
 @lru_cache
 def _build_select(  # pylint: disable=too-many-arguments
@@ -457,7 +466,7 @@ values ({', '.join(val for val in converged.values())})"
     return query, data
 
 
-def build_select( # pylint: disable=too-many-arguments
+def build_select(  # pylint: disable=too-many-arguments
     table_name: str,
     condition: Condition = None,
     only: tuple[str, ...] | ParsedFn | str | Literal["*"] = "*",

@@ -2,12 +2,13 @@
 
 # pylint: disable=unnecessary-ellipsis
 from sys import maxsize as sys_maxsize
-from typing import Any, Literal, Protocol, SupportsIndex, TypedDict, TypeAlias
+from typing import Any, Literal, Protocol, SupportsIndex, TypedDict, TypeAlias, TypeVar
 
 from sqlite_database.functions import ParsedFn  # pylint: disable=unused-import
 
 from ._utils import Row
 
+T = TypeVar("T")
 Order: TypeAlias = tuple[str, Literal['asc'] | Literal['desc']]
 Orders: TypeAlias = tuple[Order, ...] | Order
 Data: TypeAlias = dict[str, Any]
@@ -16,6 +17,7 @@ OnlyColumn: TypeAlias = tuple[str, ...] | Literal["*"]
 JustAColumn: TypeAlias = str | tuple[str] # pylint: disable=invalid-name
 Queries: TypeAlias = list[Query] | Row[str, list[Any]]  # type: ignore
 SquashedSqueries: TypeAlias = Row[str, list[Any]]  # type: ignore
+tuple_list: TypeAlias = list[T] | tuple[T, ...]
 null = object()
 
 
