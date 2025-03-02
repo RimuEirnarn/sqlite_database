@@ -5,6 +5,7 @@ from shlex import shlex
 from typing import Any, Iterable, Literal, Optional
 
 from .functions import ParsedFn, _function_extract
+from .errors import SecurityError
 from ._utils import check_one, null, check_iter
 from .column import Column
 from .locals import _SQLITETYPES, SQLACTION
@@ -117,6 +118,8 @@ def extract_signature(
             continue
         if val.is_between:
             vdata: tuple[int, int] = val.data  # type: ignore
+            if not all(map(lambda x: isinstance(x, (int, float)), vdata)):
+                raise SecurityError("Values for between constraint is not int/float")
             string += f" {key} {middle} {vdata[0]!r} and {vdata[1]!r} and"
         if val.is_like:
             vdata: str = val.data  # type: ignore
