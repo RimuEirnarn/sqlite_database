@@ -14,7 +14,7 @@ from pytest import raises
 
 
 from sqlite_database._debug import STATE
-from sqlite_database import Column, Database, integer, text
+from sqlite_database import Column, Database, integer, text, Null
 from sqlite_database.model import Primary, Unique, model, BaseModel, Foreign
 from sqlite_database.signature import op
 from sqlite_database.operators import eq, in_, this
@@ -248,6 +248,13 @@ def test_01_01_insert_with():
     except CuteDemonLordException:
         pass
     assert table.select() == []
+
+def test_01_02_insert_empty():
+    """Test 0101 insert in with-statement"""
+    db = Database(":memory:")
+    table = db.create_table("a", [text("name")])
+    with raises(ValueError):
+        table.insert({"name": Null})
 
 
 def test_02_01_update():

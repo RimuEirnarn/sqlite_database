@@ -183,6 +183,11 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
         return results[0] if results else None
 
     @classmethod
+    def all(cls):
+        """Return all values from the table"""
+        return cls.where().fetch()
+
+    @classmethod
     def count(cls, **kwargs) -> int:
         """Return count of matching records."""
         return cls.where(**kwargs).count()

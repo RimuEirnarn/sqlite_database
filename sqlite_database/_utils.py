@@ -62,6 +62,9 @@ class NullObject:
     def __float__(self) -> float:
         return 0.0
 
+class Sentinel:
+    def __repr__(self) -> str:
+        return "<Sentinel>"
 
 class Row(dict):
     """Attribute Dictionary"""
@@ -170,6 +173,7 @@ def test_installed():
 
 
 null = NullObject()
+Null = Sentinel()
 AttrDict = Row
 
 
@@ -182,6 +186,7 @@ def get_type_from_mapping(type_: str, mapping: dict[str, str]) -> str:
 
 __all__ = [
     "null",
+    "Null",
     "future_class_var_isdefined",
     "WithCursor",
     "check_iter",

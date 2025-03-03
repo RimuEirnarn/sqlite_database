@@ -6,7 +6,7 @@ from typing import Any, Iterable, Literal, Optional
 
 from .functions import ParsedFn, _function_extract
 from .errors import SecurityError
-from ._utils import check_one, null, check_iter
+from ._utils import check_one, null, check_iter, Null
 from .column import Column
 from .locals import _SQLITETYPES, SQLACTION
 from .signature import Signature
@@ -384,6 +384,15 @@ def _parse_orders(order: CacheOrders):
         return ", ".join(f"{ord_} {order_by}" for ord_, order_by in order)
     raise TypeError("What?", type(order))
 
+def _remove_null(condition: dict[str, Any]) -> dict[str, Any]:
+    new = condition.copy()
+    for key, value in condition.items():
+        if value is Null:
+            del new[key]
+    if not new:
+        raise ValueError("After removing Null sentinel value, new data that would be inserted"
+                         "/updated returns empty dictionary.")
+    return new
 
 @lru_cache
 def _build_select(  # pylint: disable=too-many-arguments
@@ -513,6 +522,7 @@ def build_update(
     Returns:
         tuple[str, dict[str, Any]]: query, query data
     """
+    new_data = _remove_null(new_data)
     cond, order_, ndata = _setup_hashable(condition, order, new_data)
     query, check, updated = _build_update(table_name, ndata, cond, limit, order_)
     return query, check | combine_keyvals(updated, new_data)
@@ -550,6 +560,7 @@ def build_insert(table_name: str, data: Data) -> tuple[str, dict[str, Any]]:
     Returns:
         tuple[str, dict[str, Any]]: query, query data
     """
+    data = _remove_null(data)
     _, _, ndata = _setup_hashable(None, None, data)
     query, _ = _build_insert(table_name, ndata)
     return query, data

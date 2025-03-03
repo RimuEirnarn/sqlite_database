@@ -2,7 +2,7 @@
 
 from .model import BaseModel, model, Foreign, Primary, Unique
 from .database import Database
-from ._utils import null, Row
+from ._utils import null, Row, Null
 from .column import Column, text, integer, blob, real
 from .signature import op
 from .operators import this
@@ -14,7 +14,7 @@ def test_installed():
     return True
 
 
-__version__ = "0.6.4"
+__version__ = "0.6.5"
 __all__ = [
     "Database",
     "Table",
@@ -22,6 +22,7 @@ __all__ = [
     "op",
     "Column",
     "null",
+    "Null",
     "Row",
     "text",
     "integer",
