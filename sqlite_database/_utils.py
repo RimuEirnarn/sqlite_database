@@ -62,7 +62,12 @@ class NullObject:
     def __float__(self) -> float:
         return 0.0
 
-class Sentinel:
+class Sentinel: # pylint: disable=too-few-public-methods
+    """A Sentinel value, has unique behavior for Table API and Model API.
+
+    Pre-defined value:
+        - Null, use this one if you're unsure if the data you pulled exists or not.
+            The query builder will remove it if it detects Null sentinel."""
     def __repr__(self) -> str:
         return "<Sentinel>"
 
