@@ -29,7 +29,7 @@ VALID_HOOKS_NAME = (
 ## Model functions
 
 
-class BaseModel:  # pylint: disable=too-few-public-methods
+class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-methods
     """Base class for all Models using Model API"""
 
     __table_name__ = ""
