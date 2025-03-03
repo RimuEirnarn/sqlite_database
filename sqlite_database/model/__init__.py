@@ -287,6 +287,8 @@ class BaseModel:  # pylint: disable=too-few-public-methods
 
     def register(self, type_: str = 'hook', name: str = "", if_fail: str = ""):
         """Register a hook/validator under a name"""
+        if type_ not in ("hook", "validator"):
+            raise ValueError("Which do you want?")
         def function(func):
             if name == '':
                 raise ValueError(f"{type_.title()} name needs to be declared.")
