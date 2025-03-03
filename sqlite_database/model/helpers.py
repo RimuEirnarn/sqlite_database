@@ -1,7 +1,7 @@
 """Model helpers"""
 # pylint: disable=invalid-name,too-few-public-methods,abstract-method
 
-from typing import Any, Callable, Type, TypeAlias, Generic, TypeVar
+from typing import Any, Callable, Type, TypeAlias
 
 from sqlite_database.model.errors import ValidationError
 from ..column import BuilderColumn, text, integer, blob, boolean
@@ -58,17 +58,14 @@ class Primary(Constraint):
         """Apply this constraint as primary"""
         type_.primary()
 
-T = TypeVar("T")
-
-class Validators(Generic[T]):
+class Validators():
     """Base class to hold validators"""
 
-    def __init__(self, column: str, fn: Callable[[T], bool], if_fail: str) -> None:
-        self._column = column
+    def __init__(self, fn: Callable[[Any], bool], if_fail: str) -> None:
         self._callable = fn
         self._reason = if_fail
 
-    def validate(self, value: T):
+    def validate(self, value: Any):
         """Validate a value"""
         if not self._callable(value):
             err = ValidationError(self._reason)

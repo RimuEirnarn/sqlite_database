@@ -3,7 +3,7 @@
 # pylint: disable=unused-import,unused-argument,cyclic-import
 
 from contextlib import contextmanager
-from typing import Any, Type, TypeVar
+from typing import Any, Callable, Self, Type, TypeVar, overload
 from dataclasses import asdict, dataclass, fields, is_dataclass, MISSING
 
 from .helpers import Constraint, Unique, Primary, Foreign, TYPES, Validators
@@ -17,6 +17,15 @@ from ..operators import in_
 NULL = object()
 T = TypeVar("T", bound="BaseModel")
 
+VALID_HOOKS_NAME = (
+    "before_create",
+    "after_create",
+    "before_update",
+    "after_update",
+    "before_delete",
+    "after_delete",
+)
+
 ## Model functions
 
 
@@ -25,7 +34,8 @@ class BaseModel:  # pylint: disable=too-few-public-methods
 
     __table_name__ = ""
     __schema__: tuple[Constraint, ...] = ()
-    __validators__: tuple[Validators, ...] = ()
+    __validators__: dict[str, list[Validators]] = {}
+    __hooks__: "dict[str, list[Callable[[Self], None] | str]]" = {}
     _tbl: Table
     _primary: str | None
 
@@ -81,10 +91,29 @@ class BaseModel:  # pylint: disable=too-few-public-methods
         return QueryBuilder(cls).where(**kwargs)
 
     @classmethod
+    def _execute_hooks(cls, name: str, instance: Self):
+        for hook in cls.__hooks__.get(name, ()):
+            if isinstance(hook, str):
+                getattr(cls, hook)(instance)
+            else:
+                hook(instance)
+
+    @classmethod
+    def _execute_validators(cls, name: str, instance: Self):
+        for validator in cls.__validators__.get(name, ()):
+            validator.validate(instance)
+
+    @classmethod
     def create(cls, **kwargs):
         """Create data based on kwargs"""
+        instance = cls(**kwargs)
+
+        cls._execute_hooks("before_create", instance)
+        for key in kwargs:
+            cls._execute_validators(key, instance)
         cls._tbl.insert(kwargs)
-        return cls(**kwargs)  # pylint: disable=not-callable
+        cls._execute_hooks("after_create", instance)
+        return instance
 
     def update(self, __primary: str | object = NULL, /, **kwargs):
         """Update current data"""
@@ -94,9 +123,13 @@ class BaseModel:  # pylint: disable=too-few-public-methods
             raise ValueError(
                 "The table does not have any primary key, cannot update due to undefined selection"
             )
+        self._execute_hooks("before_update", self)
+        for key in kwargs:
+            self._execute_validators(key, self)
         self._tbl.update({primary: getattr(self, primary)}, kwargs)  # type: ignore
         for key, value in kwargs.items():
             setattr(self, key, value)
+        self._execute_hooks("after_update", self)
         return self
 
     def delete(self, __primary=NULL, /):
@@ -107,7 +140,9 @@ class BaseModel:  # pylint: disable=too-few-public-methods
             raise ValueError(
                 "The table does not have any primary key, cannot delete due to undefined selection"
             )
+        self._execute_hooks("before_delete", self)
         self._tbl.delete_one({primary: getattr(self, primary)})  # type: ignore
+        self._execute_hooks("after_delete", self)
 
     @classmethod
     def bulk_create(cls, records: list[dict]):
@@ -242,6 +277,46 @@ class BaseModel:  # pylint: disable=too-few-public-methods
             f"with {self.__class__.__name__}"
         )
 
+    @overload
+    def register(self, type_: str = 'hook', name: str = ""):
+        """Register a hooks under a name"""
+
+    @overload
+    def register(self, type_: str = 'validator', name: str = "", if_fail: str = ""):
+        """Register a validator under a name"""
+
+    def register(self, type_: str = 'hook', name: str = "", if_fail: str = ""):
+        """Register a hook/validator under a name"""
+        def function(func):
+            if name == '':
+                raise ValueError(f"{type_.title()} name needs to be declared.")
+            if type_ == 'hook':
+                if name not in VALID_HOOKS_NAME:
+                    raise ValueError("Name of a hook doesn't match with expected value")
+                self.__hooks__.setdefault(name, [])
+                if self.__hooks__[name]:
+                    self.__hooks__[name] = [func]
+                else:
+                    self.__hooks__[name].append(func)
+                return func
+
+            if not is_dataclass(self):
+                raise TypeError("Dataclass is required for this class")
+
+            fields_ = tuple((field.name for field in fields(self)))
+            if name not in fields_:
+                raise ValueError("Expected validator to has name as column field")
+
+            fail = if_fail or f"{name} fails certain validator"
+
+            self.__validators__.setdefault(name, [])
+            validator = Validators(func, fail)
+            if self.__validators__[name]:
+                self.__validators__[name] = [validator]
+            else:
+                self.__validators__[name].append(validator)
+            return func
+        return function
 
 def model(db: Database):
     """Initiate Model API compatible classes. Requires target to be a dataclass,
