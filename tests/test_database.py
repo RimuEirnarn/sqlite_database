@@ -15,7 +15,7 @@ from pytest import raises
 
 from sqlite_database._debug import STATE
 from sqlite_database import Column, Database, integer, text
-from sqlite_database.model import Primary, Unique, model, BaseModel
+from sqlite_database.model import Primary, Unique, model, BaseModel, Foreign
 from sqlite_database.signature import op
 from sqlite_database.operators import eq, in_, this
 from sqlite_database.errors import TableRemovedError, CuteDemonLordException
@@ -121,6 +121,28 @@ def setup_orderable(database: Database):
     items = database.create_table("items", [text("name"), integer("quantity")])
     items.insert_many([{"name": "a", "quantity": a} for a in range(100)])
     database.commit()
+
+
+def setup_model_api(database: Database):
+    # pylint: disable=missing-class-docstring
+    """Setup Model API Users/Posts"""
+
+    @model(database)
+    class Users(BaseModel):
+        __schema__ = (Primary("id"), Unique("username"))
+        id: str
+        username: str
+        is_active: bool = True
+
+    @model(database)
+    class Posts(BaseModel):
+        __schema__ = (Primary("id"), Foreign("user_id", "users/id"))
+        id: str
+        user_id: str
+        title: str
+        content: str
+
+    return Users, Posts
 
 
 database = Database(temp_dir / "test.db")  # type: ignore
@@ -256,10 +278,7 @@ def test_02_03_update_limited_order():
     setup_database_fns(database)
     checkout = database.table("checkout")
     assert (
-        checkout.update(
-            {"quantity": 50}, {"quantity": 70}, limit=2
-        )
-        == 2
+        checkout.update({"quantity": 50}, {"quantity": 70}, limit=2) == 2
     )  # type: ignore
     assert len(checkout.select({"quantity": 70}, limit=2)) == 2
 
@@ -419,6 +438,7 @@ def test_10_04_vacuum():
 
 
 def test_11_00_model_api():
+    # pylint: disable=protected-access
     """Test 1100 Model API"""
     db = Database(":memory:")
 
@@ -433,7 +453,8 @@ def test_11_00_model_api():
         is_active: bool = True
 
     assert (
-        db.table("users")._table == Users._tbl._table # pylint: disable=protected-access
+        db.table("users")._table
+        == Users._tbl._table
     )
     admin = Users.create(
         id=str(UUID(int=0)), username="admin", display_name="System Administrator"
@@ -443,17 +464,37 @@ def test_11_00_model_api():
     assert fetched == admin
 
 
+def test_11_01_model_relationship():
+    """Test 1101 Model API Relationship"""
+
+    db = Database(":memory:")
+
+    Users, Posts = setup_model_api(db)
+
+    admin = Users.create(id="0", username="Admin")
+    post0 = Posts.create(
+        id="0",
+        title="Hello, World!",
+        content="Lorem Ipsum Dolor sit Amet",
+        user_id=admin.id,
+    )
+    user0 = Posts.belongs_to(post0, Users)
+    assert admin == user0, "belongs_to() should return the correct user"
+    assert post0 in admin.has_many(Posts), "has_many() should return related posts to user"
+
+
 def test_98_00_test():
     """Gradual test"""
     db = Database(":memory:")
     setup_orderable(db)
-    items = db.table('items')
-    v0 = items.select({'quantity': this == 99})
-    STATE['DEBUG'] = True
-    values = items.select({'quantity': in_([99, 98, 97])})
+    items = db.table("items")
+    v0 = items.select({"quantity": this == 99})
+    STATE["DEBUG"] = True
+    values = items.select({"quantity": in_([99, 98, 97])})
     assert v0
     assert values
-    STATE['DEBUG'] = False
+    STATE["DEBUG"] = False
+
 
 def test_99_99_save_report():
     """FINAL 9999 Save reports"""
