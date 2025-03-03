@@ -277,6 +277,14 @@ class BaseModel:  # pylint: disable=too-few-public-methods
             f"with {self.__class__.__name__}"
         )
 
+    def hook(self, name: str):
+        """Register a hook"""
+        return self.register('hook', name)
+
+    def validator(self, column_name: str, if_fail: str):
+        """Register a validator"""
+        return self.register("validator", column_name, if_fail)
+
     @overload
     def register(self, type_: str = 'hook', name: str = ""):
         """Register a hooks under a name"""
