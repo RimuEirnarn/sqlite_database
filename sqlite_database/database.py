@@ -50,8 +50,10 @@ class Database: # pylint: disable=too-many-instance-attributes
         self._strict: bool = kwargs.get("strict", True)
         self._forgive: bool = kwargs.get("forgive", True)
         if not path in PLUGINS_PATH:
-            del kwargs['forgive']
-            del kwargs['strict']
+            if 'forgive' in kwargs:
+                del kwargs['forgive']
+            if 'strict' in kwargs:
+                del kwargs['strict']
             self._database = connect(path, **kwargs)
             self._database.row_factory = dict_factory
         else:
