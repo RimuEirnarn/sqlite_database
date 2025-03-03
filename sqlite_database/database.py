@@ -26,7 +26,7 @@ __all__ = ["Database"]
 IGNORE_TABLE_CHECKS = ("sqlite_master", "sqlite_temp_schema", "sqlite_temp_master")
 
 
-class Database:
+class Database: # pylint: disable=too-many-instance-attributes
     """Sqlite3 database, this provide basic integration.
 
     Custom flags:
@@ -47,7 +47,11 @@ class Database:
     def __init__(self, path: str, **kwargs) -> None:
         kwargs["check_same_thread"] = sqlite_multithread_check() != 3
         self._path = path
+        self._strict: bool = kwargs.get("strict", True)
+        self._forgive: bool = kwargs.get("forgive", True)
         if not path in PLUGINS_PATH:
+            del kwargs['forgive']
+            del kwargs['strict']
             self._database = connect(path, **kwargs)
             self._database.row_factory = dict_factory
         else:
@@ -55,8 +59,6 @@ class Database:
         self._config = None
         self._closed = False
         self._table_instances: dict[str, Table] = {}
-        self._strict: bool = kwargs.get("strict", True)
-        self._forgive: bool = kwargs.get("forgive", True)
         if not self._closed or self.__dict__.get("_initiated", False) is False:
             self._finalizer_fn = finalize(self, self.close)
             self._initiated = True
