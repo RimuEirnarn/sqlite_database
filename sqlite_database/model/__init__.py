@@ -172,7 +172,7 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
     def first(cls, **kwargs):
         """Return the first matching record or None if no match is found."""
         result = cls.where(**kwargs).limit(1).fetch_one()
-        return cls(**result) if result else None
+        return result
 
     @classmethod
     def one(cls, **kwargs):
@@ -180,7 +180,7 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
         results = cls.where(**kwargs).fetch()
         if len(results) > 1:
             raise ValueError(f"Expected one record, but found {len(results)}")
-        return cls(**results[0]) if results else None
+        return results[0] if results else None
 
     @classmethod
     def count(cls, **kwargs) -> int:
