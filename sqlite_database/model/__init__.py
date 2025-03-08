@@ -220,6 +220,13 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
             return {k: v for k, v in instance if k not in self.__hidden__}
         return {}
 
+    def to_safe_instance(self):
+        """Wrap instance that complies with __hidden__."""
+        if is_dataclass(self):
+            instance = {k: (v if not k in self.__hidden__ else None) for k, v in asdict(self)}
+            return type(self)(**instance)
+        raise TypeError("This class must be a dataclass")
+
     def raw(self, query: str, params: list[Any] | tuple[Any, ...] | dict[str, Any]):
         """Raw SQL query"""
         return self._tbl._sql.execute(query, params)  # pylint: disable=protected-access
