@@ -36,6 +36,7 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
     __schema__: tuple[Constraint, ...] = ()
     __validators__: dict[str, list[Validators]] = {}
     __hooks__: "dict[str, list[Callable[[Self], None] | str]]" = {}
+    __hidden__: tuple[str, ...] = ()
     _tbl: Table
     _primary: str | None
 
@@ -215,7 +216,8 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
     def to_dict(self):
         """Convert model instance to dictionary."""
         if is_dataclass(self):  # always true, though, just in case
-            return asdict(self)
+            instance = asdict(self)
+            return {k: v for k, v in instance if k not in self.__hidden__}
         return {}
 
     def raw(self, query: str, params: list[Any] | tuple[Any, ...] | dict[str, Any]):
@@ -291,14 +293,17 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
         return self.register("validator", column_name, if_fail)
 
     @overload
-    def register(self, type_: str = 'hook', name: str = ""):
+    @classmethod
+    def register(cls, type_: str = 'hook', name: str = ""):
         """Register a hooks under a name"""
 
     @overload
-    def register(self, type_: str = 'validator', name: str = "", if_fail: str = ""):
+    @classmethod
+    def register(cls, type_: str = 'validator', name: str = "", if_fail: str = ""):
         """Register a validator under a name"""
 
-    def register(self, type_: str = 'hook', name: str = "", if_fail: str = ""):
+    @classmethod
+    def register(cls, type_: str = 'hook', name: str = "", if_fail: str = ""):
         """Register a hook/validator under a name"""
         if type_ not in ("hook", "validator"):
             raise ValueError("Which do you want?")
@@ -308,28 +313,28 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
             if type_ == 'hook':
                 if name not in VALID_HOOKS_NAME:
                     raise ValueError("Name of a hook doesn't match with expected value")
-                self.__hooks__.setdefault(name, [])
-                if self.__hooks__[name]:
-                    self.__hooks__[name] = [func]
+                cls.__hooks__.setdefault(name, [])
+                if cls.__hooks__[name]:
+                    cls.__hooks__[name] = [func]
                 else:
-                    self.__hooks__[name].append(func)
+                    cls.__hooks__[name].append(func)
                 return func
 
-            if not is_dataclass(self):
+            if not is_dataclass(cls):
                 raise TypeError("Dataclass is required for this class")
 
-            fields_ = tuple((field.name for field in fields(self)))
+            fields_ = tuple((field.name for field in fields(cls)))
             if name not in fields_:
                 raise ValueError("Expected validator to has name as column field")
 
             fail = if_fail or f"{name} fails certain validator"
 
-            self.__validators__.setdefault(name, [])
+            cls.__validators__.setdefault(name, [])
             validator = Validators(func, fail)
-            if self.__validators__[name]:
-                self.__validators__[name] = [validator]
+            if cls.__validators__[name]:
+                cls.__validators__[name] = [validator]
             else:
-                self.__validators__[name].append(validator)
+                cls.__validators__[name].append(validator)
             return func
         return function
 
