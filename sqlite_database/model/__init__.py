@@ -334,23 +334,6 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
         """Return table instance"""
         return self._tbl
 
-    def chunk(self, limit: int, callback: Callable[[list[Self]], None] | None = None):
-        """Return specified instance by the amount of limit, or execute provided callback"""
-        offset = 0
-        while True:
-            batch = self.query().limit(limit).offset(offset).fetch()
-
-            if not batch:
-                break
-
-            if callback:
-                callback(batch)
-            else:
-                yield batch
-
-            if len(batch) != limit:
-                break
-
     @classmethod
     def where(cls, **kwargs):
         """Basic select operation"""
