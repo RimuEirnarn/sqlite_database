@@ -9,13 +9,14 @@ from tempfile import mkdtemp
 from pathlib import Path
 from random import randint, random
 from sqlite3 import OperationalError
-from uuid import UUID
+from uuid import UUID, uuid4
 from pytest import raises
 
 
 from sqlite_database._debug import STATE
 from sqlite_database import Column, Database, integer, text, Null
 from sqlite_database.model import Primary, Unique, model, BaseModel, Foreign
+from sqlite_database.model.mixin import ChunkableMixin, ScopeMixin
 from sqlite_database.signature import op
 from sqlite_database.operators import eq, in_, this
 from sqlite_database.errors import TableRemovedError, CuteDemonLordException
@@ -249,6 +250,7 @@ def test_01_01_insert_with():
         pass
     assert table.select() == []
 
+
 def test_01_02_insert_empty():
     """Test 0101 insert in with-statement"""
     db = Database(":memory:")
@@ -459,10 +461,7 @@ def test_11_00_model_api():
         display_name: str
         is_active: bool = True
 
-    assert (
-        db.table("users")._table
-        == Users._tbl._table
-    )
+    assert db.table("users")._table == Users._tbl._table
     admin = Users.create(
         id=str(UUID(int=0)), username="admin", display_name="System Administrator"
     )
@@ -487,7 +486,38 @@ def test_11_01_model_relationship():
     )
     user0 = Posts.belongs_to(post0, Users)
     assert admin == user0, "belongs_to() should return the correct user"
-    assert post0 in admin.has_many(Posts), "has_many() should return related posts to user"
+    assert post0 in admin.has_many(
+        Posts
+    ), "has_many() should return related posts to user"
+
+
+def test_11_02_model_mixin():
+    """Test 1102 Model API Mixins"""
+
+    db = Database(":memory:")
+
+    @model(db)
+    class Posts(BaseModel, ScopeMixin, ChunkableMixin):
+        """Posts"""
+
+        __schema__ = (Primary("id"),)
+
+        id: str
+        title: str
+        content: str
+        is_active: bool
+
+    Posts.bulk_create(
+        [
+            {"id": str(uuid4()), "title": "a", "content": "a", "is_active": True}
+            for _ in range(10)
+        ]
+    )
+
+    for posts in Posts.chunk_iter(5):
+        assert all(map(lambda post: post.title, posts))
+
+    assert Posts.active()
 
 
 def test_98_00_test():
