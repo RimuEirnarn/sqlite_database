@@ -16,6 +16,7 @@ from pytest import raises
 from sqlite_database._debug import STATE
 from sqlite_database import Column, Database, integer, text, Null
 from sqlite_database.model import Primary, Unique, model, BaseModel, Foreign
+from sqlite_database.model.errors import ValidationError
 from sqlite_database.model.mixin import ChunkableMixin, ScopeMixin
 from sqlite_database.signature import op
 from sqlite_database.operators import eq, in_, this
@@ -518,6 +519,30 @@ def test_11_02_model_mixin():
         assert all(map(lambda post: post.title, posts))
 
     assert Posts.active()
+
+def test_11_03_model_hooks_and_validator():
+    """Test 1103 Model API Hooks & Validators"""
+
+    db = Database(":memory:")
+
+    @model(db)
+    class Users(BaseModel):
+        """Base User class"""
+        id: str
+        username: str
+        is_active: bool
+
+    @Users.validator("is_active", "Active state is not True/False")
+    def _(instance: Users): # type: ignore
+        return isinstance(instance.is_active, bool)
+
+    @Users.hook("before_create")
+    def _(instance: Users):
+        assert instance
+
+    with raises(ValidationError):
+        Users.create(id='0', username='admin', is_active=7773)
+    Users.create(id='0', username='admin', is_active=True)
 
 
 def test_98_00_test():

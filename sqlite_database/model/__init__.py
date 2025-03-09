@@ -322,13 +322,15 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
             f"with {self.__class__.__name__}"
         )
 
-    def hook(self, name: str):
+    @classmethod
+    def hook(cls, name: str):
         """Register a hook"""
-        return self._register('hook', name)
+        return cls._register('hook', name)
 
-    def validator(self, column_name: str, if_fail: str):
+    @classmethod
+    def validator(cls, column_name: str, if_fail: str):
         """Register a validator"""
-        return self._register("validator", column_name, if_fail)
+        return cls._register("validator", column_name, if_fail)
 
     def get_table(self):
         """Return table instance"""
