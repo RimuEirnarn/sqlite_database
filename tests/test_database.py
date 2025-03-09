@@ -524,6 +524,10 @@ def test_11_03_model_hooks_and_validator():
     """Test 1103 Model API Hooks & Validators"""
 
     db = Database(":memory:")
+    STATE = {
+        "hooks": False,
+        "validators": False
+    }
 
     @model(db)
     class Users(BaseModel):
@@ -534,16 +538,20 @@ def test_11_03_model_hooks_and_validator():
 
     @Users.validator("is_active", "Active state is not True/False")
     def _(instance: Users): # type: ignore
+        STATE["validators"] = True
         return isinstance(instance.is_active, bool)
 
     @Users.hook("before_create")
     def _(instance: Users):
+        STATE['hooks'] = True
         assert instance
 
     with raises(ValidationError):
         Users.create(id='0', username='admin', is_active=7773)
     Users.create(id='0', username='admin', is_active=True)
 
+    assert STATE["hooks"]
+    assert STATE['validators']
 
 def test_98_00_test():
     """Gradual test"""
