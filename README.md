@@ -11,7 +11,7 @@
 ![Lines of code](https://img.shields.io/tokei/lines/github/RimuEirnarn/sqlite_database)
 ![GitHub all releases](https://img.shields.io/github/downloads/RimuEirnarn/sqlite_database/total)
 ![GitHub Workflow(pylint) Status](https://img.shields.io/github/actions/workflow/status/RimuEirnarn/sqlite_database/pylint.yml?label=lint)
-![GitHub Workflow(pytest) Status](https://img.shields.io/github/actions/workflow/status/RimuEirnarn/sqlite_database/python-app.yml?label=tests)
+![GitHub Workflow(pytest) Status](https://img.shields.io/github/actions/workflow/status/RimuEirnarn/sqlite_database/pytest.yml?label=tests)
 ![GitHub Workflow(pypi) Status](https://img.shields.io/github/actions/workflow/status/RimuEirnarn/sqlite_database/python-publish.yml)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/RimuEirnarn/sqlite_database)
 [![Documentation Status](https://readthedocs.org/projects/sqlite-database/badge/?version=latest)](https://sqlite-database.readthedocs.io/en/latest/?badge=latest)
