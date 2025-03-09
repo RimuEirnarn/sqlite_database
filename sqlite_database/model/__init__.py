@@ -87,11 +87,6 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
             cls._tbl = db.table(cls.__table_name__.lower())
 
     @classmethod
-    def where(cls, **kwargs):
-        """Basic select operation"""
-        return QueryBuilder(cls).where(**kwargs)
-
-    @classmethod
     def _execute_hooks(cls, name: str, instance: Self):
         for hook in cls.__hooks__.get(name, ()):
             if isinstance(hook, str):
@@ -103,6 +98,42 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
     def _execute_validators(cls, name: str, instance: Self):
         for validator in cls.__validators__.get(name, ()):
             validator.validate(instance)
+
+    @classmethod
+    def _register(cls, type_: str = 'hook', name: str = "", if_fail: str = ""):
+        """Register a hook/validator under a name"""
+        if type_ not in ("hook", "validator"):
+            raise ValueError("Which do you want?")
+        def function(func):
+            if name == '':
+                raise ValueError(f"{type_.title()} name needs to be declared.")
+            if type_ == 'hook':
+                if name not in VALID_HOOKS_NAME:
+                    raise ValueError("Name of a hook doesn't match with expected value")
+                cls.__hooks__.setdefault(name, [])
+                if cls.__hooks__[name]:
+                    cls.__hooks__[name] = [func]
+                else:
+                    cls.__hooks__[name].append(func)
+                return func
+
+            if not is_dataclass(cls):
+                raise TypeError("Dataclass is required for this class")
+
+            fields_ = tuple((field.name for field in fields(cls)))
+            if name not in fields_:
+                raise ValueError("Expected validator to has name as column field")
+
+            fail = if_fail or f"{name} fails certain validator"
+
+            cls.__validators__.setdefault(name, [])
+            validator = Validators(func, fail)
+            if cls.__validators__[name]:
+                cls.__validators__[name] = [validator]
+            else:
+                cls.__validators__[name].append(validator)
+            return func
+        return function
 
     @classmethod
     def create(cls, **kwargs):
@@ -293,57 +324,42 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
 
     def hook(self, name: str):
         """Register a hook"""
-        return self.register('hook', name)
+        return self._register('hook', name)
 
     def validator(self, column_name: str, if_fail: str):
         """Register a validator"""
-        return self.register("validator", column_name, if_fail)
+        return self._register("validator", column_name, if_fail)
 
-    @overload
-    @classmethod
-    def register(cls, type_: str = 'hook', name: str = ""):
-        """Register a hooks under a name"""
+    def get_table(self):
+        """Return table instance"""
+        return self._tbl
 
-    @overload
-    @classmethod
-    def register(cls, type_: str = 'validator', name: str = "", if_fail: str = ""):
-        """Register a validator under a name"""
+    def chunk(self, limit: int, callback: Callable[[list[Self]], None] | None = None):
+        """Return specified instance by the amount of limit, or execute provided callback"""
+        offset = 0
+        while True:
+            batch = self.query().limit(limit).offset(offset).fetch()
 
-    @classmethod
-    def register(cls, type_: str = 'hook', name: str = "", if_fail: str = ""):
-        """Register a hook/validator under a name"""
-        if type_ not in ("hook", "validator"):
-            raise ValueError("Which do you want?")
-        def function(func):
-            if name == '':
-                raise ValueError(f"{type_.title()} name needs to be declared.")
-            if type_ == 'hook':
-                if name not in VALID_HOOKS_NAME:
-                    raise ValueError("Name of a hook doesn't match with expected value")
-                cls.__hooks__.setdefault(name, [])
-                if cls.__hooks__[name]:
-                    cls.__hooks__[name] = [func]
-                else:
-                    cls.__hooks__[name].append(func)
-                return func
+            if not batch:
+                break
 
-            if not is_dataclass(cls):
-                raise TypeError("Dataclass is required for this class")
-
-            fields_ = tuple((field.name for field in fields(cls)))
-            if name not in fields_:
-                raise ValueError("Expected validator to has name as column field")
-
-            fail = if_fail or f"{name} fails certain validator"
-
-            cls.__validators__.setdefault(name, [])
-            validator = Validators(func, fail)
-            if cls.__validators__[name]:
-                cls.__validators__[name] = [validator]
+            if callback:
+                callback(batch)
             else:
-                cls.__validators__[name].append(validator)
-            return func
-        return function
+                yield batch
+
+            if len(batch) != limit:
+                break
+
+    @classmethod
+    def where(cls, **kwargs):
+        """Basic select operation"""
+        return QueryBuilder(cls).where(**kwargs)
+
+    @classmethod
+    def query(cls):
+        """Return Query Builder related to this model"""
+        return QueryBuilder(cls)
 
 def model(db: Database):
     """Initiate Model API compatible classes. Requires target to be a dataclass,
