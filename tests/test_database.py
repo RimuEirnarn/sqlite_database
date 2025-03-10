@@ -553,6 +553,26 @@ def test_11_03_model_hooks_and_validator():
     assert STATE["hooks"]
     assert STATE['validators']
 
+def test_11_04_model_auto_id():
+    """Test 1104 Model API Auto ID"""
+
+    db = Database(":memory:")
+
+    @model(db)
+    class Users(BaseModel):
+        """Base User class"""
+        __schema__ = (Primary('id'),)
+        id: str
+        username: str
+        is_active: bool
+
+        @staticmethod
+        def __auto_id__():
+            return str(uuid4())
+
+    assert Users.create(username="admin", is_active=False).id
+
+
 def test_98_00_test():
     """Gradual test"""
     db = Database(":memory:")

@@ -28,6 +28,10 @@ VALID_HOOKS_NAME = (
 
 ## Model functions
 
+@staticmethod
+def noop_autoid():
+    """Default no-op function for BaseModel __auto_id__"""
+    return None
 
 class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-methods
     """Base class for all Models using Model API"""
@@ -37,6 +41,7 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
     __validators__: dict[str, list[Validators]] = {}
     __hooks__: "dict[str, list[Callable[[Self], None] | str]]" = {}
     __hidden__: tuple[str, ...] = ()
+    __auto_id__ = noop_autoid
     _tbl: Table
     _primary: str | None
 
@@ -138,6 +143,10 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
     @classmethod
     def create(cls, **kwargs):
         """Create data based on kwargs"""
+        primary: str | None = cls._primary or kwargs.get('id', None)
+        id_present = bool(kwargs.get('id', None))
+        if primary and cls.__auto_id__ and not id_present:
+            kwargs[primary] = cls.__auto_id__()
         instance = cls(**kwargs)
 
         cls._execute_hooks("before_create", instance)
