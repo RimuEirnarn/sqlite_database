@@ -558,17 +558,22 @@ def test_11_04_model_auto_id():
 
     db = Database(":memory:")
 
+    def auto_id():
+        return str(uuid4())
+
     @model(db)
     class Users(BaseModel):
         """Base User class"""
         __schema__ = (Primary('id'),)
+        __auto_id__ = auto_id
         id: str
         username: str
         is_active: bool
 
-        @staticmethod
-        def __auto_id__():
-            return str(uuid4())
+        # This also works!
+        # @staticmethod
+        # def __auto_id__():
+        #     return str(uuid4())
 
     assert Users.create(username="admin", is_active=False).id
 
