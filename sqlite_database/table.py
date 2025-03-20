@@ -55,7 +55,8 @@ class Table: # pylint: disable=too-many-instance-attributes
         self,
         parent,  # type: ignore
         table: str,
-        __columns: Optional[Iterable[Column]] = None,  # type: ignore
+        columns: Optional[Iterable[Column]] = None,  # type: ignore
+        aggresive_select: bool = False,
     ) -> None:
         if parent.closed:
             raise ConnectionError("Connection to database is already closed.")
@@ -70,9 +71,9 @@ class Table: # pylint: disable=too-many-instance-attributes
         self._table = check_one(table)
         self._prev_autocommit = None
         self._prev_auto = True
-        self._columns: Optional[list[Column]] = list(__columns) if __columns else None
+        self._columns: Optional[list[Column]] = list(columns) if columns else None
 
-        if self._columns is None and table != "sqlite_master":
+        if (self._columns is None and aggresive_select) and table != "sqlite_master":
             self._fetch_columns()
 
     def __enter__(self):
