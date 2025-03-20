@@ -8,9 +8,7 @@ from typing import (
     Generator,
     Iterable,
     Literal,
-    NamedTuple,
     Optional,
-    Type,
     overload,
 )
 
@@ -49,7 +47,6 @@ _null = Function("__NULL__")()
 class Table: # pylint: disable=too-many-instance-attributes
     """Table. Make sure you remember how the table goes."""
 
-    _ns: dict[str, Type[NamedTuple]] = {}
 
     def __init__(
         self,
