@@ -14,8 +14,6 @@ from typing import (
     overload,
 )
 
-import weakref
-
 from sqlite_database.functions import ParsedFn, Function, count
 
 
@@ -73,7 +71,6 @@ class Table: # pylint: disable=too-many-instance-attributes
         self._prev_autocommit = None
         self._prev_auto = True
         self._columns: Optional[list[Column]] = list(__columns) if __columns else None
-        weakref.finalize(self, self._finalize)
 
         if self._columns is None and table != "sqlite_master":
             self._fetch_columns()
@@ -172,6 +169,8 @@ class Table: # pylint: disable=too-many-instance-attributes
         try:
             fn(query, data)
         except OperationalError as exc:
+            if str(exc).startswith("no such table:"):
+                raise TableRemovedError(f"Table {self._table} doesn't exists anymore") from None
             exc.add_note(f"SQL query: {query}")
             exc.add_note(
                 f"There's about {1 if isinstance(data, dict) else len(data)} value(s) inserted"

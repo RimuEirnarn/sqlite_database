@@ -1,10 +1,7 @@
 """Typing Extensions"""
 
 # pylint: disable=unnecessary-ellipsis
-from sys import maxsize as sys_maxsize
-from typing import Any, Literal, Protocol, SupportsIndex, TypedDict, TypeAlias, TypeVar
-
-from sqlite_database.functions import ParsedFn  # pylint: disable=unused-import
+from typing import Any, Literal, TypedDict, TypeAlias, TypeVar
 
 from ._utils import Row
 
@@ -17,7 +14,7 @@ OnlyColumn: TypeAlias = tuple[str, ...] | Literal["*"]
 JustAColumn: TypeAlias = str | tuple[str] # pylint: disable=invalid-name
 Queries: TypeAlias = list[Query] | Row[str, list[Any]]  # type: ignore
 SquashedSqueries: TypeAlias = Row[str, list[Any]]  # type: ignore
-tuple_list: TypeAlias = list[T] | tuple[T, ...]
+tuple_list: TypeAlias = list[T] | tuple[T, ...] # pylint: disable=invalid-name
 null = object()
 
 
@@ -29,24 +26,3 @@ class _MasterQuery(TypedDict):
     tbl_name: str
     rootpage: int
     sql: str
-
-
-class TypicalNamedTuple(Protocol):
-    """Typical Named Tuple"""
-
-    def __getitem__(self, __key: int) -> Any: ...
-
-    def count(self, __value: Any) -> int:
-        """count"""
-        ...
-
-    def index(
-        self,
-        __value: Any,
-        __start: SupportsIndex = 0,
-        __end: SupportsIndex = sys_maxsize,
-    ) -> int:
-        """index"""
-        ...
-
-    def _asdict(self) -> dict[str, Any]: ...

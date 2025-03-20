@@ -17,13 +17,6 @@ PLUGINS_PATH = ("--mysql",)
 
 _SQLITETYPES = ["blob", "null", "integer", "real", "text"]
 
-SQLITETYPES = (
-    Literal["text"]
-    | Literal["blob"]
-    | Literal["null"]
-    | Literal["integer"]
-    | Literal["real"]
-)
 SQLACTION = (
     Literal["null"]
     | Literal["cascade"]
@@ -31,8 +24,3 @@ SQLACTION = (
     | Literal["default"]
     | Literal["restrict"]
 )
-PRIMITIVE_TYPES = {"int": "integer", "str": "text", "bytes": "blob", "float": "real"}
-SQLITEPYTYPES = {"integer": "int", "text": "str", "blob": "bytes", "real": "float"}
-
-# ? I forgot what this should be...
-this = object()

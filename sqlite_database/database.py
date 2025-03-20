@@ -1,12 +1,11 @@
 """SQLite Database"""
 
-from weakref import finalize, WeakValueDictionary
+from atexit import register as finalize
 from sqlite3 import OperationalError, connect
-from typing import Iterable, Literal, Optional, Mapping
+from typing import Iterable, Literal, Optional
 
 from sqlite_database._debug import if_debug_print
 
-from .locals import PLUGINS_PATH
 from ._utils import (
     WithCursor,
     check_iter,
@@ -34,35 +33,22 @@ class Database: # pylint: disable=too-many-instance-attributes
         forgive: Certain actions are replaced when active, i.e, replacing .create_table to .table
                  when a table exists"""
 
-    _active: Mapping[str, "Database"] = WeakValueDictionary()
-
-    def __new__(cls, path: str, **kwargs):  # pylint: disable=unused-argument
-        if path in cls._active:
-            return cls._active[path]
-        self = object.__new__(cls)
-        if path != ":memory:" and cls == Database:
-            cls._active[str(path)] = self  # type: ignore
-        return self
-
     def __init__(self, path: str, **kwargs) -> None:
         kwargs["check_same_thread"] = sqlite_multithread_check() != 3
         self._path = path
         self._strict: bool = kwargs.get("strict", True)
         self._forgive: bool = kwargs.get("forgive", True)
-        if not path in PLUGINS_PATH:
-            if 'forgive' in kwargs:
-                del kwargs['forgive']
-            if 'strict' in kwargs:
-                del kwargs['strict']
-            self._database = connect(path, **kwargs)
-            self._database.row_factory = dict_factory
-        else:
-            pass
+        self._active = []
+        if 'forgive' in kwargs:
+            del kwargs['forgive']
+        if 'strict' in kwargs:
+            del kwargs['strict']
+        self._database = connect(path, **kwargs)
+        self._database.row_factory = dict_factory
         self._config = None
         self._closed = False
-        self._table_instances: dict[str, Table] = {}
         if not self._closed or self.__dict__.get("_initiated", False) is False:
-            self._finalizer_fn = finalize(self, self.close)
+            finalize(self._finalizer)
             self._initiated = True
         self._kwargs = kwargs
 
@@ -108,7 +94,6 @@ class Database: # pylint: disable=too-many-instance-attributes
             raise error
         table_ = self.table(table, columns)
         table_._deleted = False  # pylint: disable=protected-access
-        self._table_instances[table] = table_
         return table_
 
     def delete_table(self, table: str):
@@ -121,13 +106,10 @@ class Database: # pylint: disable=too-many-instance-attributes
         table_ = self.table(table)
         self._database.cursor().execute(f"drop table {table}")
         # pylint: disable-next=protected-access
-        del self._table_instances[table]
         table_._delete_hook()  # pylint: disable=protected-access
 
     def table(self, table: str, __columns: Optional[Iterable[Column]] = None):  # type: ignore
         """fetch table"""
-        if self._table_instances.get(table, None) is not None:
-            return self._table_instances[table]
 
         if self._strict and not self.check_table(table):
             raise DatabaseMissingError(f"table {table} does not exists.")
@@ -138,7 +120,6 @@ class Database: # pylint: disable=too-many-instance-attributes
             dberror = DatabaseMissingError(f"table {table} does not exists")
             dberror.add_note(f"{type(exc).__name__}: {exc!s}")
             raise dberror from None
-        self._table_instances[table] = this_table
         return this_table
 
     def reset_table(self, table: str, columns: Columns) -> Table:
@@ -179,13 +160,9 @@ class Database: # pylint: disable=too-many-instance-attributes
         if self._closed:
             return
         self._database.close()
-        for table in self._table_instances.copy():
-            del self._table_instances[table]
         if self.path == ":memory:":
             self._closed = True
             return
-        if self.path in self._active:
-            del type(self)._active[self.path]  # type: ignore
         self._closed = True
 
     def tables(self) -> tuple[Table, ...]:

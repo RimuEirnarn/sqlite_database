@@ -2,16 +2,14 @@
 
 # This module must not import anything from this package except errors.
 
-from inspect import get_annotations
 from re import Pattern
 from re import compile as re_compile
 from re import escape as re_escape
 from sqlite3 import Cursor, connect
 from string import punctuation
-from typing import Any, Iterable, Type
-from weakref import ref
+from typing import Any, Iterable
 
-from .errors import SecurityError, ObjectRemovedError
+from .errors import SecurityError
 
 
 _INVALID_STR = punctuation.replace("_", "")
@@ -141,35 +139,6 @@ class WithCursor(Cursor):
         return type(self).__name__
 
 
-class Ref:
-    """Weakref object Referece (descriptor)"""
-
-    _null = object()
-
-    def __init__(self):
-        self._ref = self._null
-
-    def __get__(self, obj, objtype=None):
-        if self._ref is self._null:
-            raise ValueError("Reference is null, no object is specified")
-        if object_ := self._ref():  # type: ignore
-            return object_
-        raise ObjectRemovedError("object is removed")
-
-    def __set__(self, obj, value):
-        self._ref = ref(value)
-
-
-def future_class_var_isdefined(type_: Type[Any], future_attr: str):
-    """Is a future class var defined?"""
-    annotations = get_annotations(type_)
-    if future_attr in annotations:
-        try:
-            getattr(type_, future_attr)
-        except AttributeError:
-            return True
-    return False
-
 
 def test_installed():
     """Test if project is truly installed. It was meant for docs compatibility and thus,
@@ -181,18 +150,9 @@ null = NullObject()
 Null = Sentinel()
 AttrDict = Row
 
-
-def get_type_from_mapping(type_: str, mapping: dict[str, str]) -> str:
-    """get type from mapping"""
-    if not type_ in mapping:
-        raise ValueError(f"{type_} was not defined in the mapping.")
-    return mapping[type_]
-
-
 __all__ = [
     "null",
     "Null",
-    "future_class_var_isdefined",
     "WithCursor",
     "check_iter",
     "check_one",
@@ -201,5 +161,4 @@ __all__ = [
     "AttrDict",
     "NullObject",
     "sqlite_multithread_check",
-    "get_type_from_mapping",
 ]
