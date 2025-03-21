@@ -33,7 +33,7 @@ tell(){
 
 ask(){
     printf "\033[32m?\033[0m $@" >&2
-    read inputted
+    read -r inputted
     printf "$inputted"
 }
 

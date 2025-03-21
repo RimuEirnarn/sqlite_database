@@ -8,8 +8,7 @@ fi
 
 . .venv/bin/activate
 
-pylint --rcfile ./dev-config/pylint.toml sqlite_database
-if [ ! "$?" = 0 ]; then
+if ! pylint --rcfile ./dev-config/pylint.toml sqlite_database; then
     echo "Pylint error"
     exit 1
 fi
