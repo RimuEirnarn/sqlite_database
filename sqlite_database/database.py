@@ -187,7 +187,7 @@ class Database: # pylint: disable=too-many-instance-attributes
         if bool_state not in ("ON", "OFF", ""):
             raise ValueError("Either ON/OFF for foreign key pragma.")
         return self._database.execute(
-            f"PRAGMA foreign_keys{'='+bool_state  if bool_state else ''}"
+            f"PRAGMA foreign_keys{'='+bool_state if bool_state else ''}"
         ).fetchone()  # pylint: disable=line-too-long
 
     def optimize(self):
