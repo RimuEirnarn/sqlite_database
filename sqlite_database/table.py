@@ -13,6 +13,7 @@ from typing import (
 )
 
 from sqlite_database.functions import ParsedFn, Function, count
+from sqlite_database.subquery import SubQuery
 
 
 from .utils import crunch
@@ -571,6 +572,10 @@ constraint is enabled."
         if self._columns is not None:
             self._columns.append(column)
         sql.execute(query)
+
+    def subquery(self, where: Condition, columns: OnlyColumn | str, limit: int = 0) -> SubQuery:
+        """Push subquery to current .select() of other table"""
+        return SubQuery(self, columns, where, limit)
 
     def rename_column(self, old_column: str, new_column: str):
         """Rename existing column to new column"""

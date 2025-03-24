@@ -228,6 +228,15 @@ def test_00_06_select_order_by():
     assert first_low == [99, 98, 97]
 
 
+def test_00_07_select_subquery():
+    """Test 0007 Select with subqueries"""
+    db = Database(":memory:")
+    notes = db.create_table("notes", [text("id").primary(), text("content")])
+    notes.insert({"id": "0", "content": "abc"})
+    data = notes.select_one({"id": notes.subquery({"id": "0"}, "id", limit=1)})
+    assert data is not None
+
+
 def test_01_insert():
     """test 0100 insert"""
     assert groups.insert_many(GROUP_NEW) is None
@@ -520,38 +529,38 @@ def test_11_02_model_mixin():
 
     assert Posts.active()
 
+
 def test_11_03_model_hooks_and_validator():
     """Test 1103 Model API Hooks & Validators"""
 
     db = Database(":memory:")
-    STATE = {
-        "hooks": False,
-        "validators": False
-    }
+    STATE = {"hooks": False, "validators": False}
 
     @model(db)
     class Users(BaseModel):
         """Base User class"""
+
         id: str
         username: str
         is_active: bool
 
     @Users.validator("is_active", "Active state is not True/False")
-    def _(instance: Users): # type: ignore
+    def _(instance: Users):  # type: ignore
         STATE["validators"] = True
         return isinstance(instance.is_active, bool)
 
     @Users.hook("before_create")
     def _(instance: Users):
-        STATE['hooks'] = True
+        STATE["hooks"] = True
         assert instance
 
     with raises(ValidationError):
-        Users.create(id='0', username='admin', is_active=7773)
-    Users.create(id='0', username='admin', is_active=True)
+        Users.create(id="0", username="admin", is_active=7773)
+    Users.create(id="0", username="admin", is_active=True)
 
     assert STATE["hooks"]
-    assert STATE['validators']
+    assert STATE["validators"]
+
 
 def test_11_04_model_auto_id():
     """Test 1104 Model API Auto ID"""
@@ -564,7 +573,8 @@ def test_11_04_model_auto_id():
     @model(db)
     class Users(BaseModel):
         """Base User class"""
-        __schema__ = (Primary('id'),)
+
+        __schema__ = (Primary("id"),)
         __auto_id__ = auto_id
         id: str
         username: str

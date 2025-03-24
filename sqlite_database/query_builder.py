@@ -3,8 +3,10 @@
 from dataclasses import dataclass
 from functools import lru_cache
 from shlex import shlex
-from typing import Any, Iterable, Literal, Optional
+from typing import Any, Iterable, Literal, Optional, TypeAlias
+from uuid import uuid4
 
+from .subquery import SubQuery
 from .functions import ParsedFn, _function_extract
 from .errors import SecurityError
 from ._utils import check_one, null, check_iter, Null
@@ -13,20 +15,25 @@ from .locals import _SQLITETYPES, SQLACTION
 from .signature import Signature
 from .typings import _MasterQuery, Data, Orders
 
-ConditionDict = dict[str, Signature | ParsedFn | Any]
-ConditionList = list[tuple[str, Signature | ParsedFn]]
-Condition = ConditionDict | ConditionList | None
-CacheCond = tuple[tuple[str, Signature | ParsedFn], ...] | None
-CacheOrders = tuple[str, Literal["asc", "desc"]] | ParsedFn | None
-CacheData = tuple[str, ...]
-OnlyColumn = tuple[str, ...] | str | ParsedFn
+ConditionDict: TypeAlias = dict[str, Signature | ParsedFn | SubQuery | Any]
+ConditionList: TypeAlias = list[tuple[str, Signature | SubQuery | ParsedFn]]
+Condition: TypeAlias = ConditionDict | ConditionList | None
+CacheCond: TypeAlias = tuple[tuple[str, Signature | SubQuery | ParsedFn], ...] | None
+CacheOrders: TypeAlias = tuple[str, Literal["asc", "desc"]] | ParsedFn | None
+CacheData: TypeAlias = tuple[str, ...]
+OnlyColumn  = tuple[str, ...] | str | ParsedFn
 DEFAULT_MAPPINGS = {value: value for value in _SQLITETYPES}
-SQL_ACTIONS = {
-    "null": 'set null'
-}
+SQL_ACTIONS = {"null": "set null"}
+
+
+def generate_ids():
+    """Generate ids for statements"""
+    return str(uuid4().int)
+
 
 class TableCreationExtractor:
     """Base processor for table creation"""
+
     def __init__(self, columns: Iterable[Column], type_mappings: dict[str, str] | None):
         self.columns = columns
         self.type_mappings = _get_type_mappings(type_mappings)
@@ -43,7 +50,9 @@ class TableCreationExtractor:
     def add_primary_keys(self):
         """Add primary key constraints"""
         if self.primaries:
-            self.string += f" primary key ({', '.join((col.name for col in self.primaries))}),"
+            self.string += (
+                f" primary key ({', '.join((col.name for col in self.primaries))}),"
+            )
 
     def add_foreign_keys(self):
         """Add foreign key constraints"""
@@ -51,8 +60,8 @@ class TableCreationExtractor:
             stable, sname = column.source, column.source_column
             self.string += (
                 f" foreign key ({column.name}) references {stable} ({sname})"
-                f" on delete {_iterate_sql_action(column.on_delete)}" # type: ignore
-                f" on update {_iterate_sql_action(column.on_update)}," # type: ignore
+                f" on delete {_iterate_sql_action(column.on_delete)}"  # type: ignore
+                f" on update {_iterate_sql_action(column.on_update)},"  # type: ignore
             )
 
     def extract(self) -> str:
@@ -62,9 +71,11 @@ class TableCreationExtractor:
         self.add_foreign_keys()
         return self.string[1:-1]
 
+
 @dataclass(frozen=True)
 class QueryParams:
     """Encapsulates parameters for building SQL queries."""
+
     table_name: str
     condition: Optional[CacheCond] = None
     only: Optional[OnlyColumn] = None
@@ -75,15 +86,18 @@ class QueryParams:
 
     def __hash__(self):
         """Custom hash function to ensure compatibility with lru_cache."""
-        return hash((
-            self.table_name,
-            self.condition,
-            self.only,
-            self.limit,
-            self.offset,
-            self.order,
-            self.data,
-        ))
+        return hash(
+            (
+                self.table_name,
+                self.condition,
+                self.only,
+                self.limit,
+                self.offset,
+                self.order,
+                self.data,
+            )
+        )
+
 
 def extract_table(  # pylint: disable=too-many-locals
     table_creation: str,
@@ -148,33 +162,50 @@ def fetch_columns(_master_query: _MasterQuery):
     return extract_table(sql)
 
 
-def extract_signature(
-    filter_: Condition | CacheCond = None, suffix: str = "_check"  # type: ignore
+def extract_signature( # pylint: disable=too-many-locals
+    filter_: Condition | CacheCond = None, suffix: str = "_check", depth: int = 0  # type: ignore
 ):
     """Extract filter signature."""
     if filter_ is None:
         return "", {}
     if isinstance(filter_, (list, tuple)):
         filter_: ConditionDict = dict(filter_)
+    call_id = generate_ids()
     string = "where"
     data: dict[str, Any] = {}
     last = 1
     for key, value in filter_.items():
+        condition_id = generate_ids()
+        print(key, value, data)
         if not isinstance(value, Signature):
             value = Signature(value, "=")
         old_data = value.value
         val = (
-            Signature(f":{key}{suffix}", value.generate(), value.data)
+            Signature(
+                f":{key}_{call_id}_{depth}_{condition_id}_{suffix}",
+                value.generate(),
+                value.data,
+            )
             if value.value is not null
             else value
         )
+        if isinstance(value.value, SubQuery):
+            subq, subq_data = extract_subquery(value.value, depth=depth + 1)
+            string += f" {key} in ({subq}) "
+            data.update(subq_data)
+            continue
+
         middle = val.generate()
         if val.normal_operator:
             string += f" {key}{middle}{val.value} and"
             last = 4
         if val.is_in:
             vals = tuple(
-                (f":prop_val_in{index}" for index, _ in enumerate(val.data)))  # type: ignore
+                (
+                    f":prop_{condition_id}_val_in{index}"
+                    for index, _ in enumerate(val.data)  # type: ignore
+                )
+            )
             string += f" {key} {middle} ({', '.join(vals)}) "
             for key0, val0 in zip(vals, val.data):  # type: ignore
                 data[key0[1:]] = val0
@@ -188,7 +219,7 @@ def extract_signature(
             vdata: str = val.data  # type: ignore
             string += f" {key} {middle} {vdata!r} and"
         if val.value is not null:
-            data[f"{key}{suffix}"] = old_data
+            data[f"{key}_{call_id}_{depth}_{condition_id}_{suffix}"] = old_data
 
     return string[:-last], data
 
@@ -348,6 +379,7 @@ def extract_single_column(column: Column):
         string += f"foreign key references {column.source} ({column.source_column})"
     return string
 
+
 def _process_column_constraints(column: Column, ctype: str) -> str:
     """Process constraints for a single column."""
     constraints = f" {column.name} {ctype}"
@@ -358,6 +390,7 @@ def _process_column_constraints(column: Column, ctype: str) -> str:
     if column.default:
         constraints += f" default {repr(column.default)}"
     return constraints
+
 
 def _iterate_etbc_step1(
     columns: Iterable[Column],
@@ -380,6 +413,7 @@ def _iterate_etbc_step1(
 def _iterate_sql_action(action: SQLACTION):
     return SQL_ACTIONS.get(action, action)
 
+
 def _get_type_mappings(type_mappings: dict[str, str] | None) -> dict[str, str]:
     """Get the merged type mappings."""
     maps = DEFAULT_MAPPINGS.copy()
@@ -394,6 +428,21 @@ def extract_table_creations(
     """Extract columns classes to sqlite table creation query."""
     extractor = TableCreationExtractor(columns, type_mappings)
     return extractor.extract()
+
+
+@lru_cache
+def extract_subquery(subquery: SubQuery, depth: int = 1):
+    """Extract subquery into a valid SQL statement"""
+    return _build_select(
+        QueryParams(
+            subquery.table,
+            subquery.where,
+            subquery.cols,
+            subquery.limit,
+            subquery.orders,  # type: ignore
+        ),
+        depth=depth,
+    )
 
 
 def _select_onlyparam_parse(data: str | ParsedFn):
@@ -440,20 +489,24 @@ def _parse_orders(order: CacheOrders):
         return ", ".join(f"{ord_} {order_by}" for ord_, order_by in order)
     raise TypeError("What?", type(order))
 
+
 def _remove_null(condition: dict[str, Any]) -> dict[str, Any]:
     new = condition.copy()
     for key, value in condition.items():
         if value is Null:
             del new[key]
     if not new:
-        raise ValueError("After removing Null sentinel value, new data that would be inserted"
-                         "/updated returns empty dictionary.")
+        raise ValueError(
+            "After removing Null sentinel value, new data that would be inserted"
+            "/updated returns empty dictionary."
+        )
     return new
 
+
 @lru_cache
-def _build_select(query_params: QueryParams):
+def _build_select(query_params: QueryParams, depth: int = 0):
     check_one(query_params.table_name)
-    cond, data = extract_signature(query_params.condition)
+    cond, data = extract_signature(query_params.condition, depth=depth)
     check_iter(query_params.only or ())  # type: ignore
     only_ = "*"
     if query_params.only and isinstance(query_params.only, ParsedFn):
@@ -480,7 +533,7 @@ def _build_select(query_params: QueryParams):
 def _build_update(query_params: QueryParams):
     check_one(query_params.table_name)
     cond, data = extract_signature(query_params.condition)
-    new_str, updated = build_update_data(query_params.data) # type: ignore
+    new_str, updated = build_update_data(query_params.data)  # type: ignore
     query = f"update {query_params.table_name} set {new_str} {cond}"
     if query_params.limit:
         query = query.replace(cond, "")
@@ -544,7 +597,7 @@ def build_select(  # pylint: disable=too-many-arguments
         only=only,
         limit=limit,
         offset=offset,
-        order=order_, # type: ignore
+        order=order_,  # type: ignore
     )
     return _build_select(params)
 
@@ -574,8 +627,8 @@ def build_update(
         table_name=table_name,
         condition=cond,
         limit=limit,
-        order=order_, # type: ignore
-        data=ndata
+        order=order_,  # type: ignore
+        data=ndata,
     )
     query, check, updated = _build_update(params)
     return query, check | combine_keyvals(updated, new_data)
@@ -601,10 +654,7 @@ def build_delete(
 
     cond, order_, _ = _setup_hashable(condition, order)
     params = QueryParams(
-        table_name,
-        condition=cond,
-        limit=limit,
-        order=order_ # type: ignore
+        table_name, condition=cond, limit=limit, order=order_  # type: ignore
     )
     return _build_delete(params)
 
