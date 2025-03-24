@@ -21,7 +21,7 @@ Condition: TypeAlias = ConditionDict | ConditionList | None
 CacheCond: TypeAlias = tuple[tuple[str, Signature | SubQuery | ParsedFn], ...] | None
 CacheOrders: TypeAlias = tuple[str, Literal["asc", "desc"]] | ParsedFn | None
 CacheData: TypeAlias = tuple[str, ...]
-OnlyColumn  = tuple[str, ...] | str | ParsedFn
+OnlyColumn = tuple[str, ...] | str | ParsedFn
 DEFAULT_MAPPINGS = {value: value for value in _SQLITETYPES}
 SQL_ACTIONS = {"null": "set null"}
 
