@@ -24,7 +24,14 @@ CacheData: TypeAlias = tuple[str, ...]
 OnlyColumn = tuple[str, ...] | str | ParsedFn
 DEFAULT_MAPPINGS = {value: value for value in _SQLITETYPES}
 SQL_ACTIONS = {"null": "set null"}
+MAX_SUBQUERY_STACK_LIMIT = 10
 
+def set_subquery_stack_limit(value: int):
+    """Set subquery stack limit"""
+    global MAX_SUBQUERY_STACK_LIMIT # pylint: disable=global-statement
+    if MAX_SUBQUERY_STACK_LIMIT <= 0:
+        raise ValueError("Cannot set limit below 1")
+    MAX_SUBQUERY_STACK_LIMIT =  value
 
 def generate_ids():
     """Generate ids for statements"""
@@ -166,6 +173,9 @@ def extract_signature( # pylint: disable=too-many-locals
     filter_: Condition | CacheCond = None, suffix: str = "_check", depth: int = 0  # type: ignore
 ):
     """Extract filter signature."""
+    if depth < 0 or depth >= MAX_SUBQUERY_STACK_LIMIT:
+        raise RecursionError("Subquery builder has reached recursion limit of"
+                             f"{MAX_SUBQUERY_STACK_LIMIT}")
     if filter_ is None:
         return "", {}
     if isinstance(filter_, (list, tuple)):
@@ -505,6 +515,9 @@ def _remove_null(condition: dict[str, Any]) -> dict[str, Any]:
 
 @lru_cache
 def _build_select(query_params: QueryParams, depth: int = 0):
+    if depth < 0 or depth >= MAX_SUBQUERY_STACK_LIMIT:
+        raise RecursionError("Subquery builder has reached recursion limit of"
+                             f"{MAX_SUBQUERY_STACK_LIMIT}")
     check_one(query_params.table_name)
     cond, data = extract_signature(query_params.condition, depth=depth)
     check_iter(query_params.only or ())  # type: ignore
@@ -689,4 +702,5 @@ __all__ = [
     "combine_keyvals",
     "extract_single_column",
     "extract_table_creations",
+    "set_subquery_stack_limit",
 ]
