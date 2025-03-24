@@ -169,7 +169,7 @@ def fetch_columns(_master_query: _MasterQuery):
     return extract_table(sql)
 
 
-def extract_signature( # pylint: disable=too-many-locals
+def extract_signature( # pylint: disable=too-many-locals,too-many-branches
     filter_: Condition | CacheCond = None, suffix: str = "_check", depth: int = 0  # type: ignore
 ):
     """Extract filter signature."""
