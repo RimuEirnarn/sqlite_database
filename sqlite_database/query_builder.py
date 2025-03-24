@@ -31,7 +31,7 @@ def set_subquery_stack_limit(value: int):
     global MAX_SUBQUERY_STACK_LIMIT # pylint: disable=global-statement
     if MAX_SUBQUERY_STACK_LIMIT <= 0:
         raise ValueError("Cannot set limit below 1")
-    MAX_SUBQUERY_STACK_LIMIT =  value
+    MAX_SUBQUERY_STACK_LIMIT = value
 
 def generate_ids():
     """Generate ids for statements"""
