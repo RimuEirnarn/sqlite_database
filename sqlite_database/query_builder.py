@@ -1,4 +1,4 @@
- """Query Builder"""
+"""Query Builder"""
 
 from dataclasses import dataclass
 from functools import lru_cache
