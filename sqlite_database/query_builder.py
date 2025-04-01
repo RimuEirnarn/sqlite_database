@@ -1,4 +1,4 @@
-"""Query Builder"""
+ """Query Builder"""
 
 from dataclasses import dataclass
 from functools import lru_cache
@@ -215,7 +215,7 @@ def extract_signature( # pylint: disable=too-many-locals,too-many-branches
                     for index, _ in enumerate(val.data)  # type: ignore
                 )
             )
-            string += f" {key} {middle} ({', '.join(vals)}) "
+            string += f" {key} {middle} ({', '.join(vals)}) and"
             for key0, val0 in zip(vals, val.data):  # type: ignore
                 data[key0[1:]] = val0
             continue
