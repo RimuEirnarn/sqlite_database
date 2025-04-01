@@ -1,4 +1,4 @@
-"""Query Builder"""
+ """Query Builder"""
 
 from dataclasses import dataclass
 from functools import lru_cache
@@ -186,7 +186,6 @@ def extract_signature( # pylint: disable=too-many-locals,too-many-branches
     last = 1
     for key, value in filter_.items():
         condition_id = generate_ids()
-        print(key, value, data)
         if not isinstance(value, Signature):
             value = Signature(value, "=")
         old_data = value.value
