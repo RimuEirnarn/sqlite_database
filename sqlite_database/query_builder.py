@@ -200,7 +200,8 @@ def extract_signature( # pylint: disable=too-many-locals,too-many-branches
         )
         if isinstance(value.value, SubQuery):
             subq, subq_data = extract_subquery(value.value, depth=depth + 1)
-            string += f" {key} in ({subq}) "
+            string += f" {key} in ({subq}) and"
+            last = 4
             data.update(subq_data)
             continue
 
@@ -216,6 +217,7 @@ def extract_signature( # pylint: disable=too-many-locals,too-many-branches
                 )
             )
             string += f" {key} {middle} ({', '.join(vals)}) and"
+            last = 4
             for key0, val0 in zip(vals, val.data):  # type: ignore
                 data[key0[1:]] = val0
             continue
@@ -224,9 +226,11 @@ def extract_signature( # pylint: disable=too-many-locals,too-many-branches
             if not all(map(lambda x: isinstance(x, (int, float)), vdata)):
                 raise SecurityError("Values for between constraint is not int/float")
             string += f" {key} {middle} {vdata[0]!r} and {vdata[1]!r} and"
+            last = 4
         if val.is_like:
             vdata: str = val.data  # type: ignore
             string += f" {key} {middle} {vdata!r} and"
+            last = 4
         if val.value is not null:
             data[f"{key}_{call_id}_{depth}_{condition_id}_{suffix}"] = old_data
 
