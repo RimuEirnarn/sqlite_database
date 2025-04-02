@@ -379,4 +379,9 @@ __all__ = [
     "Primary",
     "Foreign",
     "QueryBuilder",
+    "CASCADE",
+    "DEFAULT",
+    "NOACT",
+    "SETNULL",
+    "RESTRICT"
 ]
