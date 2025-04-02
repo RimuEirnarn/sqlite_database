@@ -193,14 +193,14 @@ class Table: # pylint: disable=too-many-instance-attributes
 
     def delete(
         self,
-        condition: Condition = None,
+        where: Condition = None,
         limit: int = 0,
         order: Optional[Orders] = None,
     ):
         """Delete row or rows
 
         Args:
-            condition (Condition, optional): Condition to determine deletion
+            where (Condition, optional): Condition to determine deletion
                 See `Signature` class about conditional stuff. Defaults to None.
             limit (int, optional): Limit deletion by integer. Defaults to 0.
             order (Optional[Orders], optional): Order of deletion. Defaults to None.
@@ -208,7 +208,7 @@ class Table: # pylint: disable=too-many-instance-attributes
         Returns:
             int: Rows affected
         """
-        query, data = build_delete(self._table, condition, limit, order)  # type: ignore
+        query, data = build_delete(self._table, where, limit, order)  # type: ignore
         self._control()
         cursor = self._exec(query, data)
         rcount = cursor.rowcount
@@ -218,15 +218,15 @@ class Table: # pylint: disable=too-many-instance-attributes
             self._dirty = True
         return rcount
 
-    def delete_one(self, condition: Condition = None, order: Optional[Orders] = None):
+    def delete_one(self, where: Condition = None, order: Optional[Orders] = None):
         """Delete a row
 
         Args:
-            condition (Condition, optional): Conditional to determine deletion.
+            where (Condition, optional): Conditional to determine deletion.
             Defaults to None.
             order (Optional[Orders], optional): Order of deletion. Defaults to None.
         """
-        return self.delete(condition, 1, order)
+        return self.delete(where, 1, order)
 
     def insert(self, data: Data):
         """Insert data to current table
@@ -267,7 +267,7 @@ class Table: # pylint: disable=too-many-instance-attributes
 
     def update(
         self,
-        condition: Condition | None = None,
+        where: Condition | None = None,
         data: Data | None = None,
         limit: int = 0,
         order: Optional[Orders] = None,
@@ -276,7 +276,7 @@ class Table: # pylint: disable=too-many-instance-attributes
 
         Args:
             data (Data): New data to update
-            condition (Condition, optional): Condition dictionary.
+            where (Condition, optional): Condition dictionary.
                 See `Signature` about how condition works. Defaults to None.
             limit (int, optional): Limit updates. Defaults to 0.
             order (Optional[Orders], optional): Order of change. Defaults to None.
@@ -287,7 +287,7 @@ class Table: # pylint: disable=too-many-instance-attributes
         if data is None:
             raise ValueError("data parameter must not be None")
         query, data = build_update(
-            self._table, data, condition, limit, order
+            self._table, data, where, limit, order
         )  # type: ignore
         self._control()
         cursor = self._exec(query, data)
@@ -300,75 +300,75 @@ class Table: # pylint: disable=too-many-instance-attributes
 
     def update_one(
         self,
-        condition: Condition | None = None,
-        new_data: Data | None = None,
+        where: Condition | None = None,
+        data: Data | None = None,
         order: Orders | None = None,
     ) -> int:
         """Update 1 data only"""
-        return self.update(condition, new_data, 1, order)
+        return self.update(where, data, 1, order)
 
     @overload
     def select(
         self,
-        condition: Condition = None,
-        only: OnlyColumn = "*",
+        where: Condition = None,
+        what: OnlyColumn = "*",
         limit: int = 0,
         offset: int = 0,
         order: Optional[Orders] = None,
-        squash: Literal[False] = False,
+        flatten: Literal[False] = False,
     ) -> Queries:  # type: ignore
         pass
 
     @overload
     def select(
         self,
-        condition: Condition = None,
-        only: OnlyColumn = "*",
+        where: Condition = None,
+        what: OnlyColumn = "*",
         limit: int = 0,
         offset: int = 0,
         order: Optional[Orders] = None,
-        squash: Literal[True] = True,
+        flatten: Literal[True] = True,
     ) -> SquashedSqueries:
         pass
 
     @overload
     def select(
         self,
-        condition: Condition = None,
-        only: ParsedFn = _null,
+        where: Condition = None,
+        what: ParsedFn = _null,
         limit: int = 0,
         offset: int = 0,
         order: Optional[Orders] = None,
-        squash: Literal[False] = False,
+        flatten: Literal[False] = False,
     ) -> Any:
         pass
 
     @overload
     def select(
         self,
-        condition: Condition = None,
-        only: JustAColumn = "_COLUMN",
+        where: Condition = None,
+        what: JustAColumn = "_COLUMN",
         limit: int = 0,
         offset: int = 0,
         order: Optional[Orders] = None,
-        squash: Literal[False] = False,
+        flatten: Literal[False] = False,
     ) -> list[Any]:
         pass
 
     def select(
         self,  # pylint: disable=too-many-arguments
-        condition: Condition = None,
-        only: OnlyColumn | ParsedFn | JustAColumn = "*",
+        where: Condition = None,
+        what: OnlyColumn | ParsedFn | JustAColumn = "*",
         limit: int = 0,
         offset: int = 0,
         order: Optional[Orders] = None,
-        squash: bool = False,
+        flatten: bool = False,
     ):
         """Select data in current table. Bare .select() returns all data.
 
         Args:
-            condition (Condition, optional): Conditions to used. Defaults to None.
-            only: (OnlyColumn, ParsedFn, optional): Select what you want. Default to None.
+            where (Condition, optional): Conditions to used. Defaults to None.
+            what: (OnlyColumn, ParsedFn, optional): Select what you want. Default to None.
             limit (int, optional): Limit of select. Defaults to 0.
             offset (int, optional): Offset. Defaults to 0
             order (Optional[Orders], optional): Selection order. Defaults to None.
@@ -380,72 +380,72 @@ class Table: # pylint: disable=too-many-instance-attributes
         self._control()
         self._query_control()
         query, data = build_select(
-            self._table, condition, only, limit, offset, order
+            self._table, where, what, limit, offset, order
         )  # type: ignore
-        just_a_column = (isinstance(only, tuple) and len(only) == 1) or (
-            isinstance(only, str) and only != "*"
+        just_a_column = (isinstance(what, tuple) and len(what) == 1) or (
+            isinstance(what, str) and what != "*"
         )
         with self._sql:
             cursor = self._exec(query, data)
             data = cursor.fetchall()
             if just_a_column:
-                return [d[only] for d in data]
-            if squash:
+                return [d[what] for d in data]
+            if flatten:
                 return crunch(data)
-            if isinstance(only, ParsedFn):
-                return data[0][only.parse_sql()[0]]
+            if isinstance(what, ParsedFn):
+                return data[0][what.parse_sql()[0]]
             return data
 
     @overload
     def paginate_select(
         self,
-        condition: Condition = None,
-        only: OnlyColumn = "*",
+        where: Condition = None,
+        what: OnlyColumn = "*",
         page: int = 0,
         length: int = 10,
         order: Optional[Orders] = None,
-        squash: Literal[False] = False,
+        flatten: Literal[False] = False,
     ) -> Generator[Queries, None, None]:  # type: ignore
         pass
 
     @overload
     def paginate_select(
         self,
-        condition: Condition = None,
-        only: JustAColumn = "_COLUMN",
+        where: Condition = None,
+        what: JustAColumn = "_COLUMN",
         page: int = 0,
         length: int = 10,
         order: Optional[Orders] = None,
-        squash: Literal[False] = False,
+        flatten: Literal[False] = False,
     ) -> Generator[list[Any], None, None]:  # type: ignore
         pass
 
     @overload
     def paginate_select(
         self,
-        condition: Condition = None,
-        only: OnlyColumn = "*",
+        where: Condition = None,
+        what: OnlyColumn = "*",
         page: int = 0,
         length: int = 10,
         order: Optional[Orders] = None,
-        squash: Literal[True] = True,
+        flatten: Literal[True] = True,
     ) -> Generator[SquashedSqueries, None, None]:
         pass
 
     def paginate_select(
         self,
-        condition: Condition = None,
-        only: OnlyColumn | JustAColumn = "*",
+        where: Condition = None,
+        what: OnlyColumn | JustAColumn = "*",
         page: int = 0,
         length: int = 10,
         order: Optional[Orders] = None,
-        squash: bool = False,
+        flatten: bool = False,
     ):
         """Paginate select
 
         Args:
-            condition (Condition, optional): Confitions to use. Defaults to None.
-            only (OnlyColumn, optional): Select what you want. Default to None.
+            where (Condition, optional): Confitions to use. Defaults to None.
+            what (OnlyColumn, optional): Select what you want. Default to None.
             page (int): Which page number be returned first
             length (int, optional): Pagination length. Defaults to 10.
             order (Optional[Orders], optional): Order. Defaults to None.
@@ -462,19 +462,19 @@ class Table: # pylint: disable=too-many-instance-attributes
         start = page * length
         # ! A `only` keyword as a string or tuple of 1 element will
         # ! actually be a problem if they left alone because the end result is a list
-        just_a_column = (isinstance(only, str) and only != "*") or (
-            isinstance(only, tuple) and len(only) == 1
+        just_a_column = (isinstance(what, str) and what != "*") or (
+            isinstance(what, tuple) and len(what) == 1
         )
         while True:
             query, data = build_select(
-                self._table, condition, only, length, start, order
+                self._table, where, what, length, start, order
             )  # type: ignore
             with self._sql:
                 cursor = self._exec(query, data)
                 fetched = cursor.fetchmany(length)
                 if len(fetched) == 0:
                     return
-                if squash and not just_a_column:
+                if flatten and not just_a_column:
                     fetched = crunch(fetched)
                 if len(fetched) != length:
                     yield fetched
@@ -485,8 +485,8 @@ class Table: # pylint: disable=too-many-instance-attributes
     @overload
     def select_one(
         self,
-        condition: Condition = None,
-        only: ParsedFn = _null,
+        where: Condition = None,
+        what: ParsedFn = _null,
         order: Optional[Orders] = None,
     ) -> Any:
         pass
@@ -494,8 +494,8 @@ class Table: # pylint: disable=too-many-instance-attributes
     @overload
     def select_one(
         self,
-        condition: Condition = None,
-        only: OnlyColumn = "*",
+        where: Condition = None,
+        what: OnlyColumn = "*",
         order: Optional[Orders] = None,
     ) -> Query:
         pass
@@ -503,23 +503,23 @@ class Table: # pylint: disable=too-many-instance-attributes
     @overload
     def select_one(
         self,
-        condition: Condition = None,
-        only: JustAColumn = "_COLUMN",
+        where: Condition = None,
+        what: JustAColumn = "_COLUMN",
         order: Optional[Orders] = None,
     ) -> Any:
         pass
 
     def select_one(
         self,
-        condition: Condition = None,
-        only: OnlyColumn | JustAColumn | ParsedFn = "*",
+        where: Condition = None,
+        what: OnlyColumn | JustAColumn | ParsedFn = "*",
         order: Optional[Orders] = None,
     ):
         """Select one data
 
         Args:
-            condition (Condition, optional): Condition to use. Defaults to None.
-            only: (OnlyColumn, optional): Select what you want. Default to None.
+            where (Condition, optional): Condition to use. Defaults to None.
+            what: (OnlyColumn, optional): Select what you want. Default to None.
             order (Optional[Orders], optional): Order of selection. Defaults to None.
 
         Returns:
@@ -528,19 +528,19 @@ class Table: # pylint: disable=too-many-instance-attributes
         self._control()
         self._query_control()
         query, data = build_select(
-            self._table, condition, only, 1, 0, order
+            self._table, where, what, 1, 0, order
         )  # type: ignore
         with self._sql:
             cursor = self._exec(query, data)
             data = cursor.fetchone()
-            if isinstance(only, ParsedFn):
-                return data[only.parse_sql()[0]]
+            if isinstance(what, ParsedFn):
+                return data[what.parse_sql()[0]]
             if not data:
                 return Row()
-            if isinstance(only, tuple) and len(only) == 1:
-                return data[only]
-            if isinstance(only, str) and only != "*":
-                return data[only]
+            if isinstance(what, tuple) and len(what) == 1:
+                return data[what]
+            if isinstance(what, str) and what != "*":
+                return data[what]
             return data
 
     def columns(self):
@@ -595,7 +595,7 @@ constraint is enabled."
     def count(self):
         """Count how much objects/rows stored in this table"""
         # ? Might as well uses __len__? But it's quite expensive.
-        return self.select(only=count("*"))
+        return self.select(what=count("*"))
 
     def __repr__(self) -> str:
         return f"<Table({self._table}) -> {self._parent_repr}>"

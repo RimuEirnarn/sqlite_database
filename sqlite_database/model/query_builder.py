@@ -59,4 +59,4 @@ class QueryBuilder(Generic[T]):
 
     def count(self) -> int:
         """Count how much data is within this operation"""
-        return self._model._tbl.select(self._filters, only=count('*'))
+        return self._model._tbl.select(self._filters, what=count('*'))

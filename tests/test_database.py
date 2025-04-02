@@ -206,7 +206,7 @@ def test_00_04_select_crunch():
     database = Database(":memory:")
     setup_database(database)
     groups = database.table("groups")
-    assert groups.select(squash=True) == GROUP_BASE_CRUNCHED
+    assert groups.select(flatten=True) == GROUP_BASE_CRUNCHED
 
 
 def test_00_05_select_one_only_one_item():
@@ -222,8 +222,8 @@ def test_00_06_select_order_by():
     database = Database(":memory:")
     setup_orderable(database)
     items = database.table("items")
-    first_high = items.select(only="quantity", limit=3, order=("quantity", "asc"))
-    first_low = items.select(only="quantity", limit=3, order=("quantity", "desc"))
+    first_high = items.select(what="quantity", limit=3, order=("quantity", "asc"))
+    first_low = items.select(what="quantity", limit=3, order=("quantity", "desc"))
     assert first_high == [0, 1, 2]
     assert first_low == [99, 98, 97]
 
@@ -404,7 +404,7 @@ def test_08_00_function_count():
     database = Database(":memory:")
     setup_database_fns(database)
     counted = count("*")
-    data = database.table("checkout").select(only=counted)
+    data = database.table("checkout").select(what=counted)
     print(data)
     assert data == 4
 
