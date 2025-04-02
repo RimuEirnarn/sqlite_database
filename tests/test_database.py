@@ -587,6 +587,28 @@ def test_11_04_model_auto_id():
 
     assert Users.create(username="admin", is_active=False).id
 
+def test_11_05_model_hidden():
+    """Test 1105 Model API __hidden__"""
+
+    db = Database(":memory:")
+
+    def auto_id():
+        return str(uuid4())
+
+    @model(db)
+    class Users(BaseModel):
+        """Base User class"""
+
+        __schema__ = (Primary("id"),)
+        __auto_id__ = auto_id
+        __hidden__ = ("password",)
+        id: str
+        username: str
+        password: str
+
+    admin = Users.create(username="admin", password="admin123")
+    admin_dict = admin.to_dict()
+    assert "password" not in admin_dict
 
 def test_98_00_test():
     """Gradual test"""

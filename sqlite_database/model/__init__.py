@@ -257,7 +257,7 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
         """Convert model instance to dictionary."""
         if is_dataclass(self):  # always true, though, just in case
             instance = asdict(self)
-            return {k: v for k, v in instance if k not in self.__hidden__}
+            return {k: v for k, v in instance.items() if k not in self.__hidden__}
         return {}
 
     def to_safe_instance(self):
