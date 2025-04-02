@@ -15,7 +15,7 @@ from pytest import raises
 
 from sqlite_database._debug import STATE
 from sqlite_database import Column, Database, integer, text, Null
-from sqlite_database.model import Primary, Unique, model, BaseModel, Foreign
+from sqlite_database.model import Primary, Unique, model, BaseModel, Foreign, CASCADE
 from sqlite_database.model.errors import ValidationError
 from sqlite_database.model.mixin import ChunkableMixin, ScopeMixin
 from sqlite_database.signature import op
@@ -138,7 +138,10 @@ def setup_model_api(database: Database):
 
     @model(database)
     class Posts(BaseModel):
-        __schema__ = (Primary("id"), Foreign("user_id", "users/id"))
+        __schema__ = (Primary("id"),
+                      Foreign("user_id", Users)\
+                              .on_delete(CASCADE)\
+                              .on_update(CASCADE))
         id: str
         user_id: str
         title: str

@@ -1,12 +1,15 @@
 """Model helpers"""
 # pylint: disable=invalid-name,too-few-public-methods,abstract-method
 
-from typing import Any, Callable, Type, TypeAlias
+from typing import Any, Callable, Type, TypeAlias, TypeVar
+from enum import StrEnum
 
+import sqlite_database
 from sqlite_database.model.errors import ValidationError
 from ..column import BuilderColumn, text, integer, blob, boolean
 
 TypeFunction: TypeAlias = Callable[[str], BuilderColumn]
+Model = TypeVar("Model", bound="sqlite_database.BaseModel")
 
 TYPES: dict[Type[Any], TypeFunction] = { # pylint: disable=possibly-used-before-assignment
     int: integer,
@@ -15,6 +18,19 @@ TYPES: dict[Type[Any], TypeFunction] = { # pylint: disable=possibly-used-before-
     bool: boolean
 }
 
+class ConstraintEnum(StrEnum):
+    """Constraints for update/delete"""
+    RESTRICT = "restrict"
+    SETNULL = "null"
+    CASCADE = "cascade"
+    NOACT = "no act"
+    DEFAULT = "default"
+
+RESTRICT = ConstraintEnum.RESTRICT
+SETNULL = ConstraintEnum.SETNULL
+CASCADE = ConstraintEnum.CASCADE
+NOACT = ConstraintEnum.NOACT
+DEFAULT = ConstraintEnum.DEFAULT
 
 class Constraint:
     """Base constraint class for models"""
@@ -39,17 +55,44 @@ class Unique(Constraint):
 class Foreign(Constraint):
     """Foreign constraint"""
 
-    def __init__(self, column: str, target: str) -> None:
+    def __init__(self, column: str, target: str | Type[Model]) -> None:
         super().__init__(column)
         self._target = target
+        self.resolve()
+        self._base = target
+        self._on_delete = DEFAULT
+        self._on_update = DEFAULT
 
     @property
     def target(self):
         """Target foreign constraint"""
         return self._target
 
+    def on_delete(self, constraint: ConstraintEnum):
+        """On delete constraint"""
+        self._on_delete = constraint
+        return self
+
+    def on_update(self, constraint: ConstraintEnum):
+        """On update constraint"""
+        self._on_update = constraint
+        return self
+
+    def resolve(self):
+        """Resolve if current target is a Model"""
+        if issubclass(self._target, sqlite_database.BaseModel):
+            name = self._target.__table_name__
+            target = self._target._primary # pylint: disable=protected-access
+            if not target:
+                raise ValueError(f"{type(self._target)} does not have primary key")
+            self._target = f"{name}/{target}"
+
     def apply(self, type_: BuilderColumn):
         type_.foreign(self._target)
+        if self._on_delete != DEFAULT:
+            type_.on_delete(self._on_delete.value)
+        if self._on_update != DEFAULT:
+            type_.on_update(self._on_update.value)
 
 class Primary(Constraint):
     """Primary constraint"""

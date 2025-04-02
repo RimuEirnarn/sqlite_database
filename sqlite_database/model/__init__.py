@@ -6,7 +6,8 @@ from contextlib import contextmanager
 from typing import Any, Callable, Self, Type, TypeVar, overload
 from dataclasses import asdict, dataclass, fields, is_dataclass, MISSING
 
-from .helpers import Constraint, Unique, Primary, Foreign, TYPES, Validators
+from .helpers import (Constraint, Unique, Primary, Foreign, TYPES, Validators,
+                      CASCADE, DEFAULT, NOACT, RESTRICT, SETNULL)
 from .query_builder import QueryBuilder
 from .errors import ConstraintError
 from ..errors import DatabaseExistsError
@@ -55,6 +56,7 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
         constraints: dict[str, list[Constraint]] = {
             col: [] for col in cls.__annotations__
         }  # pylint: disable=no-member
+        cls.__table_name__ = cls.__table_name__ or cls.__name__.lower()
         _primary = None
 
         # Extract constraints from __schema__
@@ -85,7 +87,6 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
             columns.append(col)
 
         cls._primary = _primary
-        cls.__table_name__ = cls.__table_name__ or cls.__name__.lower()
         try:
             cls._tbl = db.create_table(cls.__table_name__, columns)
         except DatabaseExistsError:
