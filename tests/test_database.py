@@ -609,6 +609,7 @@ def test_11_05_model_hidden():
     admin = Users.create(username="admin", password="admin123")
     admin_dict = admin.to_dict()
     assert "password" not in admin_dict
+    assert admin.to_safe_instance().password is None
 
 def test_98_00_test():
     """Gradual test"""

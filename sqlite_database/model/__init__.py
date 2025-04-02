@@ -263,7 +263,8 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
     def to_safe_instance(self):
         """Wrap instance that complies with __hidden__."""
         if is_dataclass(self):
-            instance = {k: (v if not k in self.__hidden__ else None) for k, v in asdict(self)}
+            dict_inst = asdict(self).items()
+            instance = {k: (v if not k in self.__hidden__ else None) for k, v in dict_inst}
             return type(self)(**instance)
         raise TypeError("This class must be a dataclass")
 
