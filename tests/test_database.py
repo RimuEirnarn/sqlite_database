@@ -15,9 +15,9 @@ from pytest import raises
 
 from sqlite_database._debug import STATE
 from sqlite_database import Column, Database, integer, text, Null
-from sqlite_database.model import Primary, Unique, model, BaseModel, Foreign
-from sqlite_database.model.errors import ValidationError
-from sqlite_database.model.mixin import ChunkableMixin, ScopeMixin
+from sqlite_database.models import Primary, Unique, model, BaseModel, Foreign
+from sqlite_database.models.errors import EmptyModelError, ValidationError
+from sqlite_database.models.mixin import ChunkableMixin, ScopeMixin
 from sqlite_database.signature import op
 from sqlite_database.operators import eq, in_, this
 from sqlite_database.errors import TableRemovedError, CuteDemonLordException
@@ -587,6 +587,32 @@ def test_11_04_model_auto_id():
 
     assert Users.create(username="admin", is_active=False).id
 
+def test_11_05_model_empty():
+    """Test 1105 Model API on empty model"""
+
+    db = Database(":memory:")
+
+    def auto_id():
+        return str(uuid4())
+
+    @model(db)
+    class Users(BaseModel):
+        """Base User class"""
+
+        __schema__ = (Primary("id"),)
+        __auto_id__ = auto_id
+        id: str
+        username: str
+        is_active: bool
+
+        # This also works!
+        # @staticmethod
+        # def __auto_id__():
+        #     return str(uuid4())
+
+    assert Users.first() is None
+    with raises(EmptyModelError):
+        Users.find_or_fail(10)
 
 def test_98_00_test():
     """Gradual test"""
