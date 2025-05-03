@@ -5,7 +5,7 @@ from typing import Any, Callable, Type, TypeAlias, TypeVar
 from enum import StrEnum
 
 import sqlite_database
-from sqlite_database.model.errors import ValidationError
+from .errors import ValidationError
 from ..column import BuilderColumn, text, integer, blob, boolean
 
 TypeFunction: TypeAlias = Callable[[str], BuilderColumn]
@@ -80,7 +80,7 @@ class Foreign(Constraint):
 
     def resolve(self):
         """Resolve if current target is a Model"""
-        if issubclass(self._target, sqlite_database.BaseModel):
+        if issubclass(self._target, sqlite_database.BaseModel): # type: ignore
             name = self._target.__table_name__
             target = self._target._primary # pylint: disable=protected-access
             if not target:
@@ -88,7 +88,7 @@ class Foreign(Constraint):
             self._target = f"{name}/{target}"
 
     def apply(self, type_: BuilderColumn):
-        type_.foreign(self._target)
+        type_.foreign(self._target) # type: ignore
         if self._on_delete != DEFAULT:
             type_.on_delete(self._on_delete.value)
         if self._on_update != DEFAULT:

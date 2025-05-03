@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 from typing import Any, Generic, Type, TypeVar
+from .errors import NoDataReturnedError
 from ..column import check_one
 from ..functions import Function
-from .. import model as models # pylint: disable=unused-import
+from .. import models # pylint: disable=unused-import
 
 T = TypeVar("T", bound="models.BaseModel")
 count = Function('COUNT')
@@ -19,6 +20,12 @@ class QueryBuilder(Generic[T]):
         self._limit = 0
         self._offset = 0
         self._order = None
+        self._failing = False
+
+    def throw(self):
+        """Set when fetch() returns nothing, will raise an error"""
+        self._failing = True
+        return self
 
     def where(self, **kwargs):
         """Sets conditioning"""
@@ -42,19 +49,25 @@ class QueryBuilder(Generic[T]):
 
     def fetch(self) -> list[T]:
         """Fetch data from table"""
-        return [
-            self._model(**record)
-            for record in self._model._tbl.select(  # pylint: disable=protected-access
+        records = self._model._tbl.select(  # pylint: disable=protected-access
                 self._filters, limit=self._limit, offset=self._offset, order=self._order
             )
+        if len(records) == 0 and self._failing:
+            raise NoDataReturnedError(f"Model {self._model.__name__} has no data for current scope")
+        return [
+            self._model(**record) for record in records
         ]
 
-    def fetch_one(self) -> T:
+    def fetch_one(self) -> T | None:
         """Fetch one data from table"""
         # pylint: disable=protected-access
         record = self._model._tbl.select_one(
             self._filters, order=self._order
         )
+        if not record and self._failing:
+            raise NoDataReturnedError(f"Model {self._model.__name__} has no data for current scope")
+        if not record:
+            return None
         return self._model(**record)
 
     def count(self) -> int:

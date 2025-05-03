@@ -211,6 +211,12 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
         cls._tbl.delete({key: in_(keys)})
 
     @classmethod
+    def first_or_fail(cls, **kwargs):
+        """Return the first matching record or raise an error if no match is found."""
+        result = cls.where(**kwargs).limit(1).throw().fetch_one()
+        return result
+
+    @classmethod
     def first(cls, **kwargs):
         """Return the first matching record or None if no match is found."""
         result = cls.where(**kwargs).limit(1).fetch_one()
@@ -223,6 +229,18 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
         if len(results) > 1:
             raise ValueError(f"Expected one record, but found {len(results)}")
         return results[0] if results else None
+
+    @classmethod
+    def find(cls, amount: int):
+        """Return models relative to the amount"""
+        results = cls.query().limit(amount).fetch()
+        return results
+
+    @classmethod
+    def find_or_fail(cls, amount: int):
+        """Return models relative to the amount and when returned is equal to 0, throws an error"""
+        results = cls.query().limit(amount).throw().fetch()
+        return results
 
     @classmethod
     def all(cls):
@@ -261,7 +279,7 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
             return {k: v for k, v in instance.items() if k not in self.__hidden__}
         return {}
 
-    def to_safe_instance(self):
+    def to_safe_instance(self) -> Self:
         """Wrap instance that complies with __hidden__."""
         if is_dataclass(self):
             dict_inst = asdict(self).items()
@@ -286,7 +304,7 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
         # Scan __schema__ of related model to find a Foreign key linking back
         for constraint in related.__schema__:
             if isinstance(constraint, Foreign):
-                table_ref, _ = constraint.target.split("/")
+                table_ref, _ = constraint.target.split("/") # type: ignore
                 if table_ref == self.__class__.__name__.lower():
                     foreign_key = constraint.column
                     break
@@ -304,11 +322,11 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
         """Retrieve the related model that this instance belongs to."""
         # Find the Foreign() constraint that references `related_model`
         for constraint in self.__schema__:
-            if isinstance(constraint, Foreign) and constraint.target.startswith(
+            if isinstance(constraint, Foreign) and constraint.target.startswith( # type: ignore
                 related_model.__table_name__ + "/"
             ):
                 foreign_key = constraint.column
-                referenced_column = constraint.target.split("/")[1]
+                referenced_column = constraint.target.split("/")[1] # type: ignore
                 return related_model.where(
                     **{referenced_column: getattr(self, foreign_key)}
                 ).fetch_one()
