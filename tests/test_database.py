@@ -615,7 +615,7 @@ def test_11_05_model_hidden():
     assert admin.to_safe_instance().password is None
 
 def test_11_06_model_fail():
-    """Test 1105 Model API __hidden__"""
+    """Test 1106 Model API failing method"""
 
     db = Database(":memory:")
 
@@ -636,6 +636,36 @@ def test_11_06_model_fail():
     Users.first()
     with raises(NoDataReturnedError):
         Users.find_or_fail(1)
+
+def test_11_07_model_foreign():
+    """Test 1107 Model API foriegn with model instance"""
+
+    db = Database(":memory:")
+
+    @model(db)
+    class Users(BaseModel):
+        """Users"""
+
+        __schema__ = (Primary('id'),)
+        __auto_id__ = lambda: str(uuid4())
+
+        id: str
+        username: str
+
+    @model(db)
+    class Posts(BaseModel):
+        """Posts"""
+
+        __schema__ = (Primary('id'), Foreign("author_id", Users))
+        __auto_id__ = lambda: str(uuid4())
+
+        id: str
+        author_id: str
+        title: str
+        content: str
+
+    assert Posts
+    assert Users
 
 def test_98_00_test():
     """Gradual test"""
