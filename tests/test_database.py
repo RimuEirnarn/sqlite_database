@@ -384,7 +384,7 @@ def test_07_00_export_csv():
     database = Database(":memory:")
     setup_database(database)
     csv = to_csv_string(database)
-    print("test_06_export_csv\n", csv, "\n", file=pstdout, flush=True)
+    print("test_07_00_export_csv\n", csv, "\n", file=pstdout, flush=True)
     assert csv
 
 
