@@ -16,7 +16,7 @@ from pytest import raises
 from sqlite_database._debug import STATE
 from sqlite_database import Column, Database, integer, text, Null
 from sqlite_database.models import Primary, Unique, model, BaseModel, Foreign, CASCADE
-from sqlite_database.models.errors import ValidationError
+from sqlite_database.models.errors import ValidationError, NoDataReturnedError
 from sqlite_database.models.mixin import ChunkableMixin, ScopeMixin
 from sqlite_database.signature import op
 from sqlite_database.operators import eq, in_, this
@@ -613,6 +613,29 @@ def test_11_05_model_hidden():
     admin_dict = admin.to_dict()
     assert "password" not in admin_dict
     assert admin.to_safe_instance().password is None
+
+def test_11_06_model_fail():
+    """Test 1105 Model API __hidden__"""
+
+    db = Database(":memory:")
+
+    def auto_id():
+        return str(uuid4())
+
+    @model(db)
+    class Users(BaseModel):
+        """Base User class"""
+
+        __schema__ = (Primary("id"),)
+        __auto_id__ = auto_id
+        __hidden__ = ("password",)
+        id: str
+        username: str
+        password: str
+
+    Users.first()
+    with raises(NoDataReturnedError):
+        Users.find_or_fail(1)
 
 def test_98_00_test():
     """Gradual test"""

@@ -211,6 +211,12 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
         cls._tbl.delete({key: in_(keys)})
 
     @classmethod
+    def first_or_fail(cls, **kwargs):
+        """Return the first matching record or raise an error if no match is found."""
+        result = cls.where(**kwargs).limit(1).throw().fetch_one()
+        return result
+
+    @classmethod
     def first(cls, **kwargs):
         """Return the first matching record or None if no match is found."""
         result = cls.where(**kwargs).limit(1).fetch_one()
@@ -223,6 +229,18 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
         if len(results) > 1:
             raise ValueError(f"Expected one record, but found {len(results)}")
         return results[0] if results else None
+
+    @classmethod
+    def find(cls, amount: int):
+        """Return models relative to the amount"""
+        results = cls.query().limit(amount).fetch()
+        return results
+
+    @classmethod
+    def find_or_fail(cls, amount: int):
+        """Return models relative to the amount and when returned is equal to 0, throws an error"""
+        results = cls.query().limit(amount).throw().fetch()
+        return results
 
     @classmethod
     def all(cls):
