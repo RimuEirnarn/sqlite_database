@@ -15,9 +15,9 @@ from pytest import raises
 
 from sqlite_database._debug import STATE
 from sqlite_database import Column, Database, integer, text, Null
-from sqlite_database.model import Primary, Unique, model, BaseModel, Foreign, CASCADE
-from sqlite_database.model.errors import ValidationError
-from sqlite_database.model.mixin import ChunkableMixin, ScopeMixin
+from sqlite_database.models import Primary, Unique, model, BaseModel, Foreign, CASCADE
+from sqlite_database.models.errors import ValidationError
+from sqlite_database.models.mixin import ChunkableMixin, ScopeMixin
 from sqlite_database.signature import op
 from sqlite_database.operators import eq, in_, this
 from sqlite_database.errors import TableRemovedError, CuteDemonLordException

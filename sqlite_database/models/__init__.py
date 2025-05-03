@@ -261,7 +261,7 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
             return {k: v for k, v in instance.items() if k not in self.__hidden__}
         return {}
 
-    def to_safe_instance(self):
+    def to_safe_instance(self) -> Self:
         """Wrap instance that complies with __hidden__."""
         if is_dataclass(self):
             dict_inst = asdict(self).items()
@@ -286,7 +286,7 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
         # Scan __schema__ of related model to find a Foreign key linking back
         for constraint in related.__schema__:
             if isinstance(constraint, Foreign):
-                table_ref, _ = constraint.target.split("/")
+                table_ref, _ = constraint.target.split("/") # type: ignore
                 if table_ref == self.__class__.__name__.lower():
                     foreign_key = constraint.column
                     break
@@ -304,11 +304,11 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
         """Retrieve the related model that this instance belongs to."""
         # Find the Foreign() constraint that references `related_model`
         for constraint in self.__schema__:
-            if isinstance(constraint, Foreign) and constraint.target.startswith(
+            if isinstance(constraint, Foreign) and constraint.target.startswith( # type: ignore
                 related_model.__table_name__ + "/"
             ):
                 foreign_key = constraint.column
-                referenced_column = constraint.target.split("/")[1]
+                referenced_column = constraint.target.split("/")[1] # type: ignore
                 return related_model.where(
                     **{referenced_column: getattr(self, foreign_key)}
                 ).fetch_one()
