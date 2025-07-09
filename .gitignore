@@ -171,3 +171,6 @@ records
 testdb.sqlite3
 /test*.py
 perf-counter.txt
+
+/transient/*
+!/transient/README.md
