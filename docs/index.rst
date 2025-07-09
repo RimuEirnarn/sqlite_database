@@ -14,7 +14,7 @@ SQLite Database
    :caption: SQLite Database
 
    SimpleGuide
-   usage
+..    usage
    api_reference
 
 

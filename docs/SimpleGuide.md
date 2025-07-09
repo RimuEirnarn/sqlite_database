@@ -1,10 +1,10 @@
-# SQLite Database (Beginner-Friendly Guide)
+# SQLite Database (Beginner-Friendly Guide to Table API)
 
 This library is a simple wrapper for Python's built-in SQLite package. It simplifies database operations, making it easier to interact with SQLite without writing complex SQL queries.
 
 ## Table of Contents
 
-- [SQLite Database (Beginner-Friendly Guide)](#sqlite-database-beginner-friendly-guide)
+- [SQLite Database (Beginner-Friendly Guide to Table API)](#sqlite-database-beginner-friendly-guide-to-table-api)
   - [Table of Contents](#table-of-contents)
   - [Introduction](#introduction)
   - [Getting Started](#getting-started)
