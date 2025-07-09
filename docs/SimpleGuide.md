@@ -109,8 +109,8 @@ print(all_users)  # Output: [Row(id=1, name='Alice'), Row(id=2, name='Bob'), Row
 To fetch only names:
 
 ```python
-user_names = users.select(only=("name",))
-print(user_names)  # Output: [Row(name='Alice'), Row(name='Bob'), Row(name='Charlie')]
+user_names = users.select(what=("name",))
+print(user_names)  # Output: [Rowname='Alice'), Row(name='Bob'), Row(name='Charlie')]
 ```
 
 ### Updating Data
