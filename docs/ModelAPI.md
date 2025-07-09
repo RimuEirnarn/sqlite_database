@@ -256,6 +256,6 @@ A: The models reflect SQLite tables. Everything is automatically synced on class
 
 ## 💡 Tips & Notes
 
-- You can use any Python types (e.g. `int`, `str`, `float`) in your model class.
+- You can use any primitive Python types (e.g. `int`, `str`, `float`) in your model class.
 - Keep `__auto_id__` short and efficient — UUIDs are recommended.
 - Don’t forget to call `Database()` only once and reuse the instance.
