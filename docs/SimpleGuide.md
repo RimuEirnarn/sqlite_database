@@ -39,6 +39,8 @@ SQLite is a small and fast database engine that stores all data in a single file
 
 This library itself is intended to help around your life from having to write SQL statements unless in specific cases. For now, implemented API is Table API which is what is this documentation will show to you.
 
+There's 2 taste what we've developed, both are named as "TableAPI" and "ModelAPI". Refer to [this for ModelAPI](./ModelAPI.md)
+
 ### Installation
 
 If the library is available on PyPI, install it using:
