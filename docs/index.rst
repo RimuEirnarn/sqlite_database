@@ -14,6 +14,7 @@ SQLite Database
    :caption: SQLite Database
 
    SimpleGuide
+   ModelAPI
 
 
 Indices and tables
