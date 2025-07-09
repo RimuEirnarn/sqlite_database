@@ -14,8 +14,6 @@ SQLite Database
    :caption: SQLite Database
 
    SimpleGuide
-..    usage
-   api_reference
 
 
 Indices and tables
