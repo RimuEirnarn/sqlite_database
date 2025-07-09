@@ -1,68 +1,69 @@
-# ModelAPI: Lightweight ORM for SQLite
+# 🍃 ModelAPI: Lightweight SQLite ORM
 
-> **Note:** `ModelAPI` uses a model-centric approach inspired by Laravel's Eloquent ORM. It differs significantly from `TableAPI`. Use the one that fits your style and project structure best.
+A simple, model-centric ORM for SQLite that feels familiar if you've used Laravel's Eloquent. Designed for fast prototyping and projects that value readability and minimalism.
+
+> **Heads up:** `ModelAPI` is **not** the same as `TableAPI`. While both serve as ORMs, `ModelAPI` focuses on declarative, class-based models — ideal for those who prefer OOP-style code.
 
 ---
 
-## 📚 Table of Contents
+## 📘 Table of Contents
 
-- [ModelAPI: Lightweight ORM for SQLite](#modelapi-lightweight-orm-for-sqlite)
-  - [📚 Table of Contents](#-table-of-contents)
-  - [🏁 Getting Started](#-getting-started)
-    - [Installation](#installation)
-    - [Database Setup](#database-setup)
+- [🍃 ModelAPI: Lightweight SQLite ORM](#-modelapi-lightweight-sqlite-orm)
+  - [📘 Table of Contents](#-table-of-contents)
+  - [🚀 Getting Started](#-getting-started)
+    - [🧩 Installation](#-installation)
+    - [🛠 Database Setup](#-database-setup)
   - [🧱 Defining Models](#-defining-models)
-    - [`__schema__` and Fields](#__schema__-and-fields)
-    - [`__auto_id__`](#__auto_id__)
-  - [🔧 CRUD Operations](#-crud-operations)
+    - [🏷 `__schema__` and Field Declarations](#-__schema__-and-field-declarations)
+    - [🔁 Auto-Generating IDs](#-auto-generating-ids)
+  - [🛠 CRUD Operations](#-crud-operations)
     - [✅ Create](#-create)
     - [🔍 Read](#-read)
-      - [`all()`, `first()`, `one()`](#all-first-one)
-      - [`where()` Queries](#where-queries)
+      - [`all()`, `first()`, and `one()`](#all-first-and-one)
+      - [Flexible Queries with `where()`](#flexible-queries-with-where)
     - [📝 Update](#-update)
     - [🗑 Delete](#-delete)
-  - [⚙️ Practical CLI Example](#️-practical-cli-example)
+  - [💻 CLI Example](#-cli-example)
   - [🧠 Best Practices](#-best-practices)
   - [⚠️ Common Pitfalls](#️-common-pitfalls)
 
 ---
 
-## 🏁 Getting Started
+## 🚀 Getting Started
 
-### Installation
+### 🧩 Installation
 
-Assuming you didn't have `sqlite_database` in your library, install it with:
+You’ll need the core dependency, `sqlite-database`:
 
 ```bash
 pip install sqlite-database
 ```
 
-> Otherwise, just make sure it's available in your project path.
+If you're developing locally and already have it, just ensure it's accessible in your Python path.
 
-### Database Setup
+---
 
-Initialize  SQLite database:
+### 🛠 Database Setup
 
-```py
+Start by initializing your database:
+
+```python
 # db.py
 from sqlite_database import Database
 
-db = Database("notes.db")  # or ":memory:" for in-memory DB
+db = Database("notes.db")  # Or use ":memory:" for an in-memory DB
 ```
+
+You’ll reuse `db` across all your models.
 
 ---
 
 ## 🧱 Defining Models
 
-Define your model using the `@model(db)` decorator and inherit from `BaseModel`.
+Models define how your data is structured. Think of each model as a table blueprint.
 
-### `__schema__` and Fields
-
-Declare your schema using `Primary`, `Unique`, or `Foreign` field descriptors:
-
-```py
+```python
 # model/notes.py
-from uuid import uuid4
 from sqlite_database import model, BaseModel, Primary
 from db import db
 
@@ -75,33 +76,52 @@ class Notes(BaseModel):
     content: str
 ```
 
-### `__auto_id__`
+### 🏷 `__schema__` and Field Declarations
 
-Optionally, auto-generate IDs (especially useful for `UUID`):
+Define your fields using schema helpers like:
 
-```py
-@model(db)
-class Notes(BaseModel):
-    ...
+- `Primary(field_name)`
+- `Unique(field_name)`
+- `Foreign(field_name, f"{ref_table}/{ref_column}")`
 
-    __auto_id__ = lambda: str(uuid4())
-
-    ...
-```
+These help ensure integrity and enforce constraints under the hood.
 
 ---
 
-## 🔧 CRUD Operations
+### 🔁 Auto-Generating IDs
+
+If your primary key is a UUID or something dynamic, define `__auto_id__`:
+
+```python
+from uuid import uuid4
+
+@model(db)
+class Notes(BaseModel):
+    __schema__ = (Primary("id"),)
+    __auto_id__ = lambda: str(uuid4())
+
+    id: str
+    title: str
+    content: str
+```
+
+Whenever you call `.create()` without an `id`, this auto-generator kicks in.
+
+---
+
+## 🛠 CRUD Operations
 
 ### ✅ Create
 
-```py
+Create a new record like this:
+
+```python
 Notes.create(title="Meeting", content="Discuss roadmap")
 ```
 
-Input-based example:
+Interactive input? No problem:
 
-```py
+```python
 title = input("Title: ")
 content = input("Content: ")
 Notes.create(title=title, content=content)
@@ -111,19 +131,19 @@ Notes.create(title=title, content=content)
 
 ### 🔍 Read
 
-#### `all()`, `first()`, `one()`
+#### `all()`, `first()`, and `one()`
 
-```py
-Notes.all()              # Returns all notes
-Notes.first(id="abc")    # Returns first match or None
-Notes.one(id="abc")      # Returns exactly one; errors if multiple
+```python
+Notes.all()                 # Returns a list of all notes
+Notes.first(id="abc")       # First match or None
+Notes.one(id="abc")         # Exactly one match; raises error if 0 or >1
 ```
 
-#### `where()` Queries
+#### Flexible Queries with `where()`
 
-The `where()` method returns a query builder with powerful chaining:
+Chainable query builder:
 
-```py
+```python
 Notes.where(title="Roadmap").fetch_one()
 Notes.where().limit(5).fetch()
 Notes.where().offset(5).fetch()
@@ -134,29 +154,33 @@ Notes.where().count()
 
 ### 📝 Update
 
-```py
+First, fetch a record — then update it:
+
+```python
 note = Notes.first(id="abc")
 if note:
-    note.update(title="Updated", content="Updated content")
+    note.update(title="Updated title", content="Updated body")
 ```
 
 ---
 
 ### 🗑 Delete
 
-```py
+```python
 note = Notes.first(id="abc")
 if note:
     note.delete()
 ```
 
+This permanently removes the record from the database.
+
 ---
 
-## ⚙️ Practical CLI Example
+## 💻 CLI Example
 
-A complete CLI that interacts with the `Notes` model:
+Here’s a complete interactive CLI app:
 
-```py
+```python
 # cli.py
 from model.notes import Notes
 from enum import IntEnum
@@ -211,19 +235,17 @@ if __name__ == '__main__':
 
 ## 🧠 Best Practices
 
-- ✅ Always define `__schema__` clearly; include all primary, foreign, and unique constraints.
-- ✅ Use `__auto_id__` to generate consistent primary keys, especially UUIDs.
-- ✅ Keep models slim—business logic should live outside models.
-- ✅ Use `.where().count()` to avoid expensive `.all()` calls when counting.
-- ✅ Use `.one()` only when you're sure the result is exactly one row.
+✅ **Define all constraints in `__schema__`** — Primary, Foreign, and Unique.
+✅ **Use `__auto_id__`** for consistent ID generation (especially UUIDs).
+✅ **Keep models minimal** — push business logic elsewhere (CLI, service layer, etc).
+✅ Use `.where().count()` instead of loading all records just to count them.
+✅ Only use `.one()` when you’re 100% sure the result is unique.
 
 ---
 
 ## ⚠️ Common Pitfalls
 
-- ❌ Forgetting to include `@model(db)` — your class won't be registered.
-- ❌ Using `.one()` when multiple records match — it will throw an exception.
-- ❌ Not calling `fetch()` or `fetch_one()` after `.where()` — query won't execute.
-- ❌ Assuming `create()` returns an object — it doesn’t.
-
----
+❌ Missing `@model(db)` — your model won’t be registered.
+❌ Using `.one()` on multi-match queries — it will throw an exception.
+❌ Forgetting `.fetch()` or `.fetch_one()` after `.where()` — it won’t run.
+❌ Assuming `.create()` returns an object — it returns `None`.
