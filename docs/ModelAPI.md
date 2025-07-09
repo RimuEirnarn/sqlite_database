@@ -1,103 +1,76 @@
-# 🍃 ModelAPI: Lightweight SQLite ORM
+# 📘 ModelAPI – A Friendly Guide to a Lightweight SQLite ORM
 
-A simple, model-centric ORM for SQLite that feels familiar if you've used Laravel's Eloquent. Designed for fast prototyping and projects that value readability and minimalism.
-
-> **Heads up:** `ModelAPI` is **not** the same as `TableAPI`. While both serve as ORMs, `ModelAPI` focuses on declarative, class-based models — ideal for those who prefer OOP-style code.
+> **Note**: ModelAPI uses a different structure than TableAPI! So if you're coming from that, treat this as a fresh start.
 
 ---
 
-## 📘 Table of Contents
+## 📚 Table of Contents
 
-- [🍃 ModelAPI: Lightweight SQLite ORM](#-modelapi-lightweight-sqlite-orm)
-  - [📘 Table of Contents](#-table-of-contents)
+- [📘 ModelAPI – A Friendly Guide to a Lightweight SQLite ORM](#-modelapi--a-friendly-guide-to-a-lightweight-sqlite-orm)
+  - [📚 Table of Contents](#-table-of-contents)
+  - [🧠 Introduction](#-introduction)
   - [🚀 Getting Started](#-getting-started)
-    - [🧩 Installation](#-installation)
-    - [🛠 Database Setup](#-database-setup)
-  - [🧱 Defining Models](#-defining-models)
-    - [🏷 `__schema__` and Field Declarations](#-__schema__-and-field-declarations)
-    - [🔁 Auto-Generating IDs](#-auto-generating-ids)
-  - [🛠 CRUD Operations](#-crud-operations)
-    - [✅ Create](#-create)
-    - [🔍 Read](#-read)
-      - [`all()`, `first()`, and `one()`](#all-first-and-one)
-      - [Flexible Queries with `where()`](#flexible-queries-with-where)
-    - [📝 Update](#-update)
-    - [🗑 Delete](#-delete)
-  - [💻 CLI Example](#-cli-example)
-  - [🧠 Best Practices](#-best-practices)
-  - [⚠️ Common Pitfalls](#️-common-pitfalls)
+    - [1. Bootstrapping the Database](#1-bootstrapping-the-database)
+    - [2. Creating a Model](#2-creating-a-model)
+      - [💡 How it works](#-how-it-works)
+    - [3. Running CRUD Operations](#3-running-crud-operations)
+      - [CREATE](#create)
+      - [READ](#read)
+        - [Advanced `.where()` filtering](#advanced-where-filtering)
+      - [UPDATE](#update)
+      - [DELETE](#delete)
+  - [🎮 Example App – CRUD in Action](#-example-app--crud-in-action)
+  - [🙋 FAQ](#-faq)
+  - [💡 Tips \& Notes](#-tips--notes)
+
+---
+
+## 🧠 Introduction
+
+**ModelAPI** gives you a Laravel-style, class-based ORM interface for SQLite in Python. It's minimal, fast, and easy to use.
+
+Think of it like this:
+
+- You define your data with Python classes.
+- The ORM handles schema definition, inserts, reads, updates, and deletes.
+- It's flexible enough for small scripts and powerful enough for CLI tools.
 
 ---
 
 ## 🚀 Getting Started
 
-### 🧩 Installation
-
-You’ll need the core dependency, `sqlite-database`:
-
-```bash
-pip install sqlite-database
-```
-
-If you're developing locally and already have it, just ensure it's accessible in your Python path.
+Let’s walk through setting things up step-by-step!
 
 ---
 
-### 🛠 Database Setup
+### 1. Bootstrapping the Database
 
-Start by initializing your database:
+Create a file like `db.py` to initialize your SQLite database.
 
-```python
+```py
 # db.py
 from sqlite_database import Database
 
-db = Database("notes.db")  # Or use ":memory:" for an in-memory DB
+db = Database(":memory:")  # or use "your_file.db" to persist data
 ```
 
-You’ll reuse `db` across all your models.
+This creates a simple in-memory SQLite database. For persistent storage, pass a filename instead of `":memory:"`.
 
 ---
 
-## 🧱 Defining Models
+### 2. Creating a Model
 
-Models define how your data is structured. Think of each model as a table blueprint.
+Each model is a Python class with typed fields and a schema definition.
 
-```python
+```py
 # model/notes.py
+from uuid import uuid4
 from sqlite_database import model, BaseModel, Primary
-from db import db
+from ..db import db
 
 @model(db)
 class Notes(BaseModel):
     __schema__ = (Primary('id'),)
-
-    id: str
-    title: str
-    content: str
-```
-
-### 🏷 `__schema__` and Field Declarations
-
-Define your fields using schema helpers like:
-
-- `Primary(field_name)`
-- `Unique(field_name)`
-- `Foreign(field_name, f"{ref_table}/{ref_column}")`
-
-These help ensure integrity and enforce constraints under the hood.
-
----
-
-### 🔁 Auto-Generating IDs
-
-If your primary key is a UUID or something dynamic, define `__auto_id__`:
-
-```python
-from uuid import uuid4
-
-@model(db)
-class Notes(BaseModel):
-    __schema__ = (Primary("id"),)
     __auto_id__ = lambda: str(uuid4())
 
     id: str
@@ -105,85 +78,130 @@ class Notes(BaseModel):
     content: str
 ```
 
-Whenever you call `.create()` without an `id`, this auto-generator kicks in.
+#### 💡 How it works
+
+- `@model(db)` binds the class to the database.
+- `__schema__` defines your table schema. You can use `Primary()`, `Unique()`, `Foreign()`, etc.
+- `__auto_id__` is optional. It helps generate IDs automatically (e.g. UUIDs).
 
 ---
 
-## 🛠 CRUD Operations
+### 3. Running CRUD Operations
 
-### ✅ Create
+#### CREATE
 
-Create a new record like this:
-
-```python
-Notes.create(title="Meeting", content="Discuss roadmap")
+```py
+Notes.create(title="Hello", content="World!")
 ```
 
-Interactive input? No problem:
+You can gather user input too:
 
-```python
-title = input("Title: ")
-content = input("Content: ")
+```py
+title = input('Title: ')
+content = input('Content: ')
 Notes.create(title=title, content=content)
 ```
 
 ---
 
-### 🔍 Read
+#### READ
 
-#### `all()`, `first()`, and `one()`
+You can fetch all rows, one row, or use filters:
 
-```python
-Notes.all()                 # Returns a list of all notes
-Notes.first(id="abc")       # First match or None
-Notes.one(id="abc")         # Exactly one match; raises error if 0 or >1
+```py
+Notes.all()                  # Returns a list of all notes
+Notes.first(id="123")        # Returns the first match or None
+Notes.one(id="123")          # Returns exactly one result, else throws error
 ```
 
-#### Flexible Queries with `where()`
+##### Advanced `.where()` filtering
 
-Chainable query builder:
+```py
+# Find a note by title
+note = Notes.where(title="Shopping List").fetch_one()
 
-```python
-Notes.where(title="Roadmap").fetch_one()
-Notes.where().limit(5).fetch()
-Notes.where().offset(5).fetch()
-Notes.where().count()
-```
+# Limit or offset
+Notes.where().limit(5).fetch()     # Get top 5 notes
+Notes.where().offset(5).fetch()    # Skip 5 and get the rest
 
----
-
-### 📝 Update
-
-First, fetch a record — then update it:
-
-```python
-note = Notes.first(id="abc")
-if note:
-    note.update(title="Updated title", content="Updated body")
+# Count matching rows
+count = Notes.where().count()
 ```
 
 ---
 
-### 🗑 Delete
+#### UPDATE
 
-```python
-note = Notes.first(id="abc")
-if note:
-    note.delete()
+Updating a row is super simple. Fetch it first, then call `.update()`:
+
+```py
+note = Notes.first(id="some-id")
+note.update(title="Updated", content="Updated content here.")
 ```
-
-This permanently removes the record from the database.
 
 ---
 
-## 💻 CLI Example
+#### DELETE
 
-Here’s a complete interactive CLI app:
+Delete just like you'd update:
 
-```python
-# cli.py
-from model.notes import Notes
+```py
+note = Notes.first(id="some-id")
+note.delete()
+```
+
+---
+
+## 🎮 Example App – CRUD in Action
+
+Here’s a small CLI app to tie it all together:
+
+```py
 from enum import IntEnum
+from uuid import uuid4
+from sqlite_database import Database, model, BaseModel, Primary
+
+db = Database(":memory:")
+
+@model(db)
+class Notes(BaseModel):
+    __schema__ = (Primary('id'),)
+    __auto_id__ = lambda: str(uuid4())
+
+    id: str
+    title: str
+    content: str
+
+def display():
+    print('-'*3)
+    for note in Notes.all():
+        print(f"ID      : {note.id}")
+        print(f"Title   : {note.title}")
+        print(f"Content : {note.content}")
+        print("-"*3)
+
+def create():
+    title = input("Title: ")
+    content = input("Content: ")
+    Notes.create(title=title, content=content)
+
+def update():
+    note_id = input('ID: ')
+    note = Notes.first(id=note_id)
+    if note:
+        title = input("New title: ")
+        content = input("New content: ")
+        note.update(title=title, content=content)
+    else:
+        print("Note not found.")
+
+def delete():
+    note_id = input('ID: ')
+    note = Notes.first(id=note_id)
+    if note:
+        note.delete()
+    else:
+        print("Note not found.")
 
 class CMD(IntEnum):
     DISPLAY = 1
@@ -192,60 +210,52 @@ class CMD(IntEnum):
     DELETE = 4
     EXIT = 5
 
-def display():
-    print("---")
-    for note in Notes.all():
-        print(f"ID: {note.id}\nTitle: {note.title}\nContent: {note.content}\n---")
-
-def create():
-    Notes.create(title=input("Title: "), content=input("Content: "))
-
-def update():
-    note = Notes.first(id=input("ID: "))
-    if note:
-        note.update(title=input("Title: "), content=input("Content: "))
-    else:
-        print("Note not found.")
-
-def delete():
-    note = Notes.first(id=input("ID: "))
-    if note:
-        note.delete()
-    else:
-        print("Note not found.")
-
 def main():
     while True:
-        print("1. Display\n2. Create\n3. Update\n4. Delete\n5. Exit")
+        print('-'*8)
+        print('1. Display all notes')
+        print('2. Create a note')
+        print('3. Update a note')
+        print('4. Delete a note')
+        print('5. Exit')
         try:
-            cmd = int(input("Select: "))
-            if cmd == CMD.DISPLAY: display()
-            elif cmd == CMD.CREATE: create()
-            elif cmd == CMD.UPDATE: update()
-            elif cmd == CMD.DELETE: delete()
-            elif cmd == CMD.EXIT: break
-        except Exception as e:
-            print(f"{type(e).__name__}: {e}")
+            cmd = int(input("Command: "))
+            if cmd == CMD.DISPLAY:
+                display()
+            elif cmd == CMD.CREATE:
+                create()
+            elif cmd == CMD.UPDATE:
+                update()
+            elif cmd == CMD.DELETE:
+                delete()
+            elif cmd == CMD.EXIT:
+                break
+        except KeyboardInterrupt:
+            break
+        except Exception as exc:
+            print(f"{type(exc).__name__}: {exc}")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
 ```
 
 ---
 
-## 🧠 Best Practices
+## 🙋 FAQ
 
-✅ **Define all constraints in `__schema__`** — Primary, Foreign, and Unique.
-✅ **Use `__auto_id__`** for consistent ID generation (especially UUIDs).
-✅ **Keep models minimal** — push business logic elsewhere (CLI, service layer, etc).
-✅ Use `.where().count()` instead of loading all records just to count them.
-✅ Only use `.one()` when you’re 100% sure the result is unique.
+**Q: Can I define relationships between models?**
+A: Yes, using `Foreign()` in `__schema__`. This doc will be updated with examples soon.
+
+**Q: Does it support migrations?**
+A: Not directly. The schema is defined per-model, so migrations require manual changes.
+
+**Q: How are models stored?**
+A: The models reflect SQLite tables. Everything is automatically synced on class definition.
 
 ---
 
-## ⚠️ Common Pitfalls
+## 💡 Tips & Notes
 
-❌ Missing `@model(db)` — your model won’t be registered.
-❌ Using `.one()` on multi-match queries — it will throw an exception.
-❌ Forgetting `.fetch()` or `.fetch_one()` after `.where()` — it won’t run.
-❌ Assuming `.create()` returns an object — it returns `None`.
+- You can use any Python types (e.g. `int`, `str`, `float`) in your model class.
+- Keep `__auto_id__` short and efficient — UUIDs are recommended.
+- Don’t forget to call `Database()` only once and reuse the instance.
