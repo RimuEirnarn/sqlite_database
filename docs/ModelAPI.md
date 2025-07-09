@@ -31,7 +31,7 @@
 
 ### Installation
 
-Assuming you've published `sqlite_database` as your library, install it with:
+Assuming you didn't have `sqlite_database` in your library, install it with:
 
 ```bash
 pip install sqlite-database
@@ -41,7 +41,7 @@ pip install sqlite-database
 
 ### Database Setup
 
-Initialize your SQLite database:
+Initialize  SQLite database:
 
 ```py
 # db.py
