@@ -224,6 +224,6 @@ if __name__ == '__main__':
 - ❌ Forgetting to include `@model(db)` — your class won't be registered.
 - ❌ Using `.one()` when multiple records match — it will throw an exception.
 - ❌ Not calling `fetch()` or `fetch_one()` after `.where()` — query won't execute.
-- ❌ Assuming `create()` returns an object — it doesn’t unless your ORM explicitly does so.
+- ❌ Assuming `create()` returns an object — it doesn’t.
 
 ---
