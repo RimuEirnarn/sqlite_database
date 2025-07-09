@@ -372,7 +372,7 @@ class Table: # pylint: disable=too-many-instance-attributes
             limit (int, optional): Limit of select. Defaults to 0.
             offset (int, optional): Offset. Defaults to 0
             order (Optional[Orders], optional): Selection order. Defaults to None.
-            squash (bool): Is it squashed?
+            flatten (bool): Flatten returned data into dict of lists. Defaults to False.
 
         Returns:
             Queries: Selected data
@@ -449,6 +449,7 @@ class Table: # pylint: disable=too-many-instance-attributes
             page (int): Which page number be returned first
             length (int, optional): Pagination length. Defaults to 10.
             order (Optional[Orders], optional): Order. Defaults to None.
+            flatten (bool): Flatten returned data into dict of lists. Defaults to False.
 
         Yields:
             Generator[Queries, None, None]: Step-by-step paginated result.
@@ -600,5 +601,7 @@ constraint is enabled."
     def __repr__(self) -> str:
         return f"<Table({self._table}) -> {self._parent_repr}>"
 
+class AsyncTable(Table):
+    """Async (threads, subprocess) ready"""
 
 __all__ = ["Table"]

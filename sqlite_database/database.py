@@ -1,7 +1,8 @@
 """SQLite Database"""
 
 from atexit import register as finalize
-from sqlite3 import OperationalError, connect
+from sqlite3 import OperationalError, connect, Connection
+from threading import local
 from typing import Iterable, Literal, Optional
 
 from sqlite_database._debug import if_debug_print
@@ -43,14 +44,17 @@ class Database: # pylint: disable=too-many-instance-attributes
             del kwargs['forgive']
         if 'strict' in kwargs:
             del kwargs['strict']
-        self._database = connect(path, **kwargs)
-        self._database.row_factory = dict_factory
         self._config = None
         self._closed = False
         if not self._closed or self.__dict__.get("_initiated", False) is False:
             finalize(self._finalizer)
             self._initiated = True
         self._kwargs = kwargs
+        self._create_connection()
+
+    def _create_connection(self):
+        self._database = connect(self._path, **self._kwargs)
+        self._database.row_factory = dict_factory
 
     def _finalizer(self):
         self.close()
@@ -224,3 +228,30 @@ class Database: # pylint: disable=too-many-instance-attributes
     def sql(self):
         """SQL Connection"""
         return self._database
+
+class AsyncDatabase(Database):
+    """Async (threads, subprocess) ready"""
+
+    def __init__(self, path: str, **kwargs) -> None:
+        super().__init__(path, **kwargs)
+        self._local = local()
+
+    def _create_connection(self):
+        conn = getattr(self._local, "conn", None)
+        if conn is None:
+            timeout = self._kwargs.pop('timeout', 30)
+            conn = connect(
+                self._path,
+                timeout=timeout,
+                isolation_level=self._kwargs.pop("isolation_level", None),
+                check_same_thread=self._kwargs.pop("check_same_thread", False)
+            )
+            conn.row_factory = dict_factory
+            conn.execute("PRAGMA journal_mode=WAL;")
+            if isinstance(timeout, int):
+                conn.execute(f'PRAGMA busy_timeout={timeout * 1000};')
+            self._local.conn = conn
+
+    @property
+    def _database(self) -> Connection:
+        return self._local.conn
