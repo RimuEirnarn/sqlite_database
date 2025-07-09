@@ -110,7 +110,7 @@ To fetch only names:
 
 ```python
 user_names = users.select(what=("name",))
-print(user_names)  # Output: [Rowname='Alice'), Row(name='Bob'), Row(name='Charlie')]
+print(user_names)  # Output: ['Alice', 'Bob', 'Charlie']
 ```
 
 ### Updating Data
