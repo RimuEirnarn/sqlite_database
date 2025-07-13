@@ -615,7 +615,7 @@ def test_11_05_model_hidden():
     assert admin.to_safe_instance().password is None
 
 def test_11_06_model_fail():
-    """Test 1105 Model API fail-able methods"""
+    """Test 1106 Model API fail-able methods"""
 
     db = Database(":memory:")
 
