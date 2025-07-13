@@ -2,16 +2,17 @@
 
 from typing import TYPE_CHECKING, Any, Type
 from dataclasses import fields, is_dataclass
+from .helpers import validate
 
 if TYPE_CHECKING:
     from . import BaseModel
 
-def infer_type(cls: "Type[BaseModel]", name: str, type_: "Type[Any]"):
+def infer_type(name: str, type_: "Type[Any]"):
     """Infer type checking for specific columns"""
     if not isinstance(type_, type):
         return None
 
-    @cls.validator(name, f"{name} type is not {type_.__name__}")
+    @validate(name, f"{name} type is not {type_.__name__}") # type: ignore
     def function(instance: "Type[BaseModel]"):
         return isinstance(getattr(instance, name), type_)
     return function
@@ -23,4 +24,4 @@ def typecheck(cls: "Type[BaseModel]"):
 
     for field in fields(cls):
         name, type_ = field.name, field.type
-        infer_type(cls, name, type_) # type: ignore
+        yield infer_type(name, type_) # type: ignore

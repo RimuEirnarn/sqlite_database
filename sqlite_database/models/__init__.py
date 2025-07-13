@@ -1,6 +1,6 @@
 """Models"""
 
-# pylint: disable=unused-import,unused-argument,cyclic-import
+# pylint: disable=unused-import,unused-argument,cyclic-import,protected-access
 
 from contextlib import contextmanager
 from typing import Any, Callable, Self, Type, TypeVar, overload
@@ -8,8 +8,21 @@ from dataclasses import asdict, dataclass, fields, is_dataclass, MISSING
 
 from sqlite_database.models.type_checkers import typecheck
 
-from .helpers import (Constraint, Unique, Primary, Foreign, TYPES, Validators,
-                      CASCADE, DEFAULT, NOACT, RESTRICT, SETNULL)
+from .helpers import (
+    Constraint,
+    Unique,
+    Primary,
+    Foreign,
+    TYPES,
+    Validators,
+    CASCADE,
+    DEFAULT,
+    NOACT,
+    RESTRICT,
+    SETNULL,
+)
+
+from .helpers import VALID_HOOKS_NAME, hook, validate, initiate_hook, initiate_validators
 from .query_builder import QueryBuilder
 from .errors import ConstraintError
 from ..errors import DatabaseExistsError
@@ -20,21 +33,14 @@ from ..operators import in_
 NULL = object()
 T = TypeVar("T", bound="BaseModel")
 
-VALID_HOOKS_NAME = (
-    "before_create",
-    "after_create",
-    "before_update",
-    "after_update",
-    "before_delete",
-    "after_delete",
-)
-
 ## Model functions
+
 
 @staticmethod
 def noop_autoid():
     """Default no-op function for BaseModel __auto_id__"""
     return None
+
 
 class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-methods
     """Base class for all Models using Model API"""
@@ -44,7 +50,7 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
     __validators__: dict[str, list[Validators]] = {}
     __hooks__: "dict[str, list[Callable[[Self], None] | str]]" = {}
     __hidden__: tuple[str, ...] = ()
-    __auto_id__ = noop_autoid
+    __auto_id__: Callable[[], Any] = noop_autoid
     _tbl: Table
     _primary: str | None
 
@@ -96,26 +102,27 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
 
     @classmethod
     def _execute_hooks(cls, name: str, instance: Self):
-        for hook in cls.__hooks__.get(name, ()):
-            if isinstance(hook, str):
-                getattr(cls, hook)(instance)
+        for hook_fn in cls.__hooks__.get(name, ()):
+            if isinstance(hook_fn, str):
+                getattr(cls, hook_fn)(instance)
             else:
-                hook(instance)
+                hook_fn(instance)
 
     @classmethod
     def _execute_validators(cls, name: str, instance: Self):
-        for validator in cls.__validators__.get(name, ()):
-            validator.validate(instance)
+        for validator_fn in cls.__validators__.get(name, ()):
+            validator_fn.validate(instance)
 
     @classmethod
-    def _register(cls, type_: str = 'hook', name: str = "", if_fail: str = ""):
+    def _register(cls, type_: str = "hook", name: str = "", if_fail: str = ""):
         """Register a hook/validator under a name"""
         if type_ not in ("hook", "validator"):
             raise ValueError("Which do you want?")
+
         def function(func):
-            if name == '':
+            if name == "":
                 raise ValueError(f"{type_.title()} name needs to be declared.")
-            if type_ == 'hook':
+            if type_ == "hook":
                 if name not in VALID_HOOKS_NAME:
                     raise ValueError("Name of a hook doesn't match with expected value")
                 cls.__hooks__.setdefault(name, [])
@@ -130,26 +137,27 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
 
             fields_ = tuple((field.name for field in fields(cls)))
             if name not in fields_:
-                raise ValueError("Expected validator to has name as column field")
+                raise ValueError(f"Expected validator to has name as column field. Got {name!r}")
 
             fail = if_fail or f"{name} fails certain validator"
 
             cls.__validators__.setdefault(name, [])
-            validator = Validators(func, fail)
+            validator_entry = Validators(func, fail)
             if cls.__validators__[name]:
-                cls.__validators__[name] = [validator]
+                cls.__validators__[name] = [validator_entry]
             else:
-                cls.__validators__[name].append(validator)
+                cls.__validators__[name].append(validator_entry)
             return func
+
         return function
 
     @classmethod
     def create(cls, **kwargs):
         """Create data based on kwargs"""
-        primary: str | None = cls._primary or kwargs.get('id', None)
-        id_present = bool(kwargs.get('id', None))
-        if primary and cls.__auto_id__ and not id_present:
-            kwargs[primary] = cls.__auto_id__()
+        primary: str | None = cls._primary or kwargs.get("id", None)
+        id_present = bool(kwargs.get("id", None))
+        if primary and cls.__auto_id__ and not id_present:  # type: ignore
+            kwargs[primary] = cls.__auto_id__()  # type: ignore
         instance = cls(**kwargs)
 
         cls._execute_hooks("before_create", instance)
@@ -285,7 +293,9 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
         """Wrap instance that complies with __hidden__."""
         if is_dataclass(self):
             dict_inst = asdict(self).items()
-            instance = {k: (v if not k in self.__hidden__ else None) for k, v in dict_inst}
+            instance = {
+                k: (v if not k in self.__hidden__ else None) for k, v in dict_inst
+            }
             return type(self)(**instance)
         raise TypeError("This class must be a dataclass")
 
@@ -306,7 +316,7 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
         # Scan __schema__ of related model to find a Foreign key linking back
         for constraint in related.__schema__:
             if isinstance(constraint, Foreign):
-                table_ref, _ = constraint.target.split("/") # type: ignore
+                table_ref, _ = constraint.target.split("/")  # type: ignore
                 if table_ref == self.__class__.__name__.lower():
                     foreign_key = constraint.column
                     break
@@ -324,11 +334,11 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
         """Retrieve the related model that this instance belongs to."""
         # Find the Foreign() constraint that references `related_model`
         for constraint in self.__schema__:
-            if isinstance(constraint, Foreign) and constraint.target.startswith( # type: ignore
+            if isinstance(constraint, Foreign) and constraint.target.startswith(  # type: ignore
                 related_model.__table_name__ + "/"
             ):
                 foreign_key = constraint.column
-                referenced_column = constraint.target.split("/")[1] # type: ignore
+                referenced_column = constraint.target.split("/")[1]  # type: ignore
                 return related_model.where(
                     **{referenced_column: getattr(self, foreign_key)}
                 ).fetch_one()
@@ -352,16 +362,6 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
             f"{related_model.__name__} does not have a one-to-one relationship "
             f"with {self.__class__.__name__}"
         )
-
-    @classmethod
-    def hook(cls, name: str):
-        """Register a hook"""
-        return cls._register('hook', name)
-
-    @classmethod
-    def validator(cls, column_name: str, if_fail: str):
-        """Register a validator"""
-        return cls._register("validator", column_name, if_fail)
 
     def get_table(self):
         """Return table instance"""
@@ -388,7 +388,12 @@ def model(db: Database, type_checking: bool = False):
             cls = dataclass(cls)
         cls.create_table(db)
         if type_checking:
-            typecheck(cls)
+            for fn in typecheck(cls):
+                initiate_validators(cls, fn)
+
+        for member in cls.__dict__.values():
+            initiate_hook(cls, member)
+            initiate_validators(cls, member)
         return cls
 
     return outer
@@ -405,5 +410,7 @@ __all__ = [
     "DEFAULT",
     "NOACT",
     "SETNULL",
-    "RESTRICT"
+    "RESTRICT",
+    "validate",
+    "hook"
 ]

@@ -3,6 +3,7 @@
 from uuid import UUID, uuid4
 from pytest import raises
 from sqlite_database import Database, model, Primary, Unique, BaseModel
+from sqlite_database.models import hook, validate
 from sqlite_database.models.mixin import ScopeMixin, ChunkableMixin
 from sqlite_database.models.errors import ValidationError, NoDataReturnedError
 
@@ -85,7 +86,7 @@ def test_model_hooks_usability():
     """Test Model API if hooks can be used"""
 
     db = Database(":memory:")
-    called = {"before_create": False}
+    called = {"before_create": False, "after_create": False}
 
     @model(db)
     class Users(BaseModel):
@@ -95,13 +96,22 @@ def test_model_hooks_usability():
         username: str
         is_active: bool
 
-    @Users.hook("before_create")
-    def before_create_hook(_: Users):
-        called["before_create"] = True
+        @hook
+        def before_create(_):
+            """Before create"""
+            called["before_create"] = True
+
+        @hook("after_create")
+        def hook0(_):
+            """After create"""
+            called['after_create'] = True
+
+    assert hasattr(Users, "before_create")
 
     Users.create(id="2", username="admin", is_active=True)
 
     assert called['before_create'] is True, "Hooks is not called"
+    assert called['after_create'] is True, "Hooks is not called"
 
 def test_model_hooks_and_validator():
     """Test Model API Validators"""
@@ -116,9 +126,17 @@ def test_model_hooks_and_validator():
         username: str
         is_active: bool
 
-    @Users.validator("is_active", "Active state is not True/False")
-    def _(instance: Users):  # type: ignore
-        return isinstance(instance.is_active, bool)
+        @validate
+        def validate_is_active(instance: "Users"):  # type: ignore
+            """Is active must be a boolean"""
+            return isinstance(instance.is_active, bool)
+
+        @validate("username", "Username must be admin")
+        def is_admin_vld(instance: "Users"):
+            """Username must be admin"""
+            return instance.username == 'admin'
+
+    assert hasattr(Users, "validate_is_active")
 
     with raises(ValidationError):
         Users.create(id="0", username="admin", is_active=7773)

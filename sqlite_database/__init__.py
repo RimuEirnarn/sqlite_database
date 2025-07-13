@@ -1,6 +1,6 @@
 """Database"""
 
-from .models import BaseModel, model, Foreign, Primary, Unique
+from .models import BaseModel, model, Foreign, Primary, Unique, hook, validate
 from .database import Database
 from ._utils import null, Row, Null
 from .column import Column, text, integer, blob, real
@@ -32,5 +32,8 @@ __all__ = [
     "models",
     "Foreign",
     "Primary",
-    "Unique"
+    "Unique",
+    "model",
+    "hook",
+    "validate"
 ]
