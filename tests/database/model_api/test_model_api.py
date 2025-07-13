@@ -195,3 +195,27 @@ def test_model_fail():
     assert Users.first() is None, "Users class has unexpected data"
     with raises(NoDataReturnedError):
         Users.find_or_fail(1)
+
+def test_model_api_runtime_typechecking():
+    """Test Model API runtime type checking"""
+
+    db = Database(":memory:")
+
+    def auto_id():
+        return str(uuid4())
+
+    @model(db, True)
+    class Users(BaseModel):
+        """Base User class"""
+
+        __schema__ = (Primary("id"),)
+        __auto_id__ = auto_id
+        __hidden__ = ("password",)
+        id: str
+        username: str
+        password: str
+
+    with raises(ValidationError):
+        Users.create(id=0, username=0, password=0)
+
+    assert Users.first() is None, "How?"

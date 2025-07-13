@@ -159,7 +159,7 @@ Here’s a small CLI app to tie it all together:
 ```py
 from enum import IntEnum
 from uuid import uuid4
-from sqlite_database import Database, model, BaseModel, Primary
+from sqlite_database import Database, model, BaseModel, Primary, Null
 
 db = Database(":memory:")
 
@@ -180,6 +180,12 @@ def display():
         print(f"Content : {note.content}")
         print("-"*3)
 
+def read(prompt: str):
+    try:
+        return input(prompt)
+    except KeyboardInterrupt:
+        return Null
+
 def create():
     title = input("Title: ")
     content = input("Content: ")
@@ -189,8 +195,8 @@ def update():
     note_id = input('ID: ')
     note = Notes.first(id=note_id)
     if note:
-        title = input("New title: ")
-        content = input("New content: ")
+        title = read("New title: ")
+        content = read("New content: ")
         note.update(title=title, content=content)
     else:
         print("Note not found.")

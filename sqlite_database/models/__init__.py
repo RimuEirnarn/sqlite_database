@@ -6,6 +6,8 @@ from contextlib import contextmanager
 from typing import Any, Callable, Self, Type, TypeVar, overload
 from dataclasses import asdict, dataclass, fields, is_dataclass, MISSING
 
+from sqlite_database.models.type_checkers import typecheck
+
 from .helpers import (Constraint, Unique, Primary, Foreign, TYPES, Validators,
                       CASCADE, DEFAULT, NOACT, RESTRICT, SETNULL)
 from .query_builder import QueryBuilder
@@ -375,7 +377,7 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
         """Return Query Builder related to this model"""
         return QueryBuilder(cls)
 
-def model(db: Database):
+def model(db: Database, type_checking: bool = False):
     """Initiate Model API compatible classes. Requires target to be a dataclass,
     the app automatically injects dataclass if this isn't a dataclass"""
 
@@ -385,6 +387,8 @@ def model(db: Database):
         if not is_dataclass(cls):
             cls = dataclass(cls)
         cls.create_table(db)
+        if type_checking:
+            typecheck(cls)
         return cls
 
     return outer

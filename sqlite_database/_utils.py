@@ -66,6 +66,7 @@ class Sentinel: # pylint: disable=too-few-public-methods
     Pre-defined value:
         - Null, use this one if you're unsure if the data you pulled exists or not.
             The query builder will remove it if it detects Null sentinel."""
+
     def __repr__(self) -> str:
         return "<Sentinel>"
 
