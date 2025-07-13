@@ -126,8 +126,8 @@ def setup_model_api(database: Database):
     @model(database)
     class Posts(BaseModel):
         __schema__ = (Primary("id"),
-                      Foreign("user_id", Users)\
-                              .on_delete(CASCADE)\
+                      Foreign("user_id", Users)
+                              .on_delete(CASCADE)
                               .on_update(CASCADE))
         id: str
         user_id: str
