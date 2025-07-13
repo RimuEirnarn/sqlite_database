@@ -379,7 +379,9 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
 
 def model(db: Database, type_checking: bool = False):
     """Initiate Model API compatible classes. Requires target to be a dataclass,
-    the app automatically injects dataclass if this isn't a dataclass"""
+    the app automatically injects dataclass if this isn't a dataclass.
+
+    Use `type_checking` if you want automatic runtime type checker."""
 
     def outer(cls: Type[T]) -> Type[T]:
         if not issubclass(cls, BaseModel):
