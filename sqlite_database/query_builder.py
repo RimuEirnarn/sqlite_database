@@ -26,12 +26,14 @@ DEFAULT_MAPPINGS = {value: value for value in _SQLITETYPES}
 SQL_ACTIONS = {"null": "set null"}
 MAX_SUBQUERY_STACK_LIMIT = 10
 
+
 def set_subquery_stack_limit(value: int):
     """Set subquery stack limit"""
-    global MAX_SUBQUERY_STACK_LIMIT # pylint: disable=global-statement
+    global MAX_SUBQUERY_STACK_LIMIT  # pylint: disable=global-statement
     if MAX_SUBQUERY_STACK_LIMIT <= 0:
         raise ValueError("Cannot set limit below 1")
     MAX_SUBQUERY_STACK_LIMIT = value
+
 
 def generate_ids():
     """Generate ids for statements"""
@@ -169,26 +171,60 @@ def fetch_columns(_master_query: _MasterQuery):
     return extract_table(sql)
 
 
-def extract_signature( # pylint: disable=too-many-locals,too-many-branches
-    filter_: Condition | CacheCond = None, suffix: str = "_check", depth: int = 0  # type: ignore
+def _handle_subquery(key, value, depth):
+    subq, subq_data = extract_subquery(value.value, depth=depth + 1)
+    clause = f" {key} in ({subq})"
+    return clause, subq_data
+
+
+def _handle_in(key, middle, val, condition_id):
+    vals = tuple(
+        f":prop_{condition_id}_val_in{index}" for index, _ in enumerate(val.data)
+    )
+    clause = f" {key} {middle} ({', '.join(vals)})"
+    data = {key0[1:]: val0 for key0, val0 in zip(vals, val.data)}
+    return clause, data
+
+
+def _handle_between(key, middle, val):
+    vdata = val.data
+    if not all(isinstance(x, (int, float)) for x in vdata):
+        raise SecurityError("Values for between constraint is not int/float")
+    clause = f" {key} {middle} {vdata[0]!r} and {vdata[1]!r}"
+    return clause
+
+
+def _handle_like(key, middle, val):
+    vdata = val.data
+    clause = f" {key} {middle} {vdata!r}"
+    return clause
+
+
+def extract_signature( # pylint: disable=too-many-locals
+    filter_: Condition | CacheCond = None, suffix: str = "_check", depth: int = 0
 ):
     """Extract filter signature."""
     if depth < 0 or depth >= MAX_SUBQUERY_STACK_LIMIT:
-        raise RecursionError("Subquery builder has reached recursion limit of"
-                             f"{MAX_SUBQUERY_STACK_LIMIT}")
+        raise RecursionError(
+            "Subquery builder has reached recursion limit of"
+            f"{MAX_SUBQUERY_STACK_LIMIT}"
+        )
     if filter_ is None:
         return "", {}
+
     if isinstance(filter_, (list, tuple)):
-        filter_: ConditionDict = dict(filter_)
+        filter_ = dict(filter_)
+
     call_id = generate_ids()
-    string = "where"
+    clauses = []
     data: dict[str, Any] = {}
-    last = 1
+
     for key, value in filter_.items():
         condition_id = generate_ids()
         if not isinstance(value, Signature):
             value = Signature(value, "=")
         old_data = value.value
+
         val = (
             Signature(
                 f":{key}_{call_id}_{depth}_{condition_id}_{suffix}",
@@ -198,43 +234,36 @@ def extract_signature( # pylint: disable=too-many-locals,too-many-branches
             if value.value is not null
             else value
         )
+
         if isinstance(value.value, SubQuery):
-            subq, subq_data = extract_subquery(value.value, depth=depth + 1)
-            string += f" {key} in ({subq}) and"
-            last = 4
+            clause, subq_data = _handle_subquery(key, value, depth)
+            clauses.append(clause)
             data.update(subq_data)
             continue
 
         middle = val.generate()
         if val.normal_operator:
-            string += f" {key}{middle}{val.value} and"
-            last = 4
-        if val.is_in:
-            vals = tuple(
-                (
-                    f":prop_{condition_id}_val_in{index}"
-                    for index, _ in enumerate(val.data)  # type: ignore
-                )
-            )
-            string += f" {key} {middle} ({', '.join(vals)}) and"
-            last = 4
-            for key0, val0 in zip(vals, val.data):  # type: ignore
-                data[key0[1:]] = val0
+            clauses.append(f" {key}{middle}{val.value}")
+        elif val.is_in:
+            clause, in_data = _handle_in(key, middle, val, condition_id)
+            clauses.append(clause)
+            data.update(in_data)
             continue
-        if val.is_between:
-            vdata: tuple[int, int] = val.data  # type: ignore
-            if not all(map(lambda x: isinstance(x, (int, float)), vdata)):
-                raise SecurityError("Values for between constraint is not int/float")
-            string += f" {key} {middle} {vdata[0]!r} and {vdata[1]!r} and"
-            last = 4
-        if val.is_like:
-            vdata: str = val.data  # type: ignore
-            string += f" {key} {middle} {vdata!r} and"
-            last = 4
+        elif val.is_between:
+            clause = _handle_between(key, middle, val)
+            clauses.append(clause)
+        elif val.is_like:
+            clause = _handle_like(key, middle, val)
+            clauses.append(clause)
+
         if val.value is not null:
             data[f"{key}_{call_id}_{depth}_{condition_id}_{suffix}"] = old_data
 
-    return string[:-last], data
+    if not clauses:
+        return "", data
+
+    where_clause = "where" + " and".join(clauses)
+    return where_clause, data
 
 
 def basic_extract(table_creation: str):  # pylint: disable=too-many-locals
@@ -519,8 +548,10 @@ def _remove_null(condition: dict[str, Any]) -> dict[str, Any]:
 @lru_cache
 def _build_select(query_params: QueryParams, depth: int = 0):
     if depth < 0 or depth >= MAX_SUBQUERY_STACK_LIMIT:
-        raise RecursionError("Subquery builder has reached recursion limit of"
-                             f"{MAX_SUBQUERY_STACK_LIMIT}")
+        raise RecursionError(
+            "Subquery builder has reached recursion limit of"
+            f"{MAX_SUBQUERY_STACK_LIMIT}"
+        )
     check_one(query_params.table_name)
     cond, data = extract_signature(query_params.condition, depth=depth)
     check_iter(query_params.only or ())  # type: ignore
