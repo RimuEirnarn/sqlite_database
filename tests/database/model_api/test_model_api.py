@@ -9,6 +9,9 @@ from sqlite_database.models.errors import ValidationError, NoDataReturnedError
 
 from ..setup import setup_model_api
 
+def auto_id():
+    return str(uuid4())
+
 def test_model_api():
     # pylint: disable=protected-access
     """Test 1100 Model API"""
@@ -147,9 +150,6 @@ def test_model_auto_id():
 
     db = Database(":memory:")
 
-    def auto_id():
-        return str(uuid4())
-
     @model(db)
     class Users(BaseModel):
         """Base User class"""
@@ -172,9 +172,6 @@ def test_model_hidden():
 
     db = Database(":memory:")
 
-    def auto_id():
-        return str(uuid4())
-
     @model(db)
     class Users(BaseModel):
         """Base User class"""
@@ -196,9 +193,6 @@ def test_model_fail():
 
     db = Database(":memory:")
 
-    def auto_id():
-        return str(uuid4())
-
     @model(db)
     class Users(BaseModel):
         """Base User class"""
@@ -219,9 +213,6 @@ def test_model_api_runtime_typechecking():
 
     db = Database(":memory:")
 
-    def auto_id():
-        return str(uuid4())
-
     @model(db, True)
     class Users(BaseModel):
         """Base User class"""
@@ -237,3 +228,22 @@ def test_model_api_runtime_typechecking():
         Users.create(id=0, username=0, password=0)
 
     assert Users.first() is None, "How?"
+
+def test_model_api_query_builder_update():
+    """Test Model API Querybuilder update()"""
+
+    db = Database(":memory:")
+
+    Users, _ = setup_model_api(db)
+    admin = Users.create(id=auto_id(), username="admin", is_active=True)
+    assert Users.where(id=admin.id).throw().patch(username="system") == 1, "Changes should be 1"
+
+def test_model_api_query_builder_delete():
+    """Test Model API QueryBuilder delete()"""
+
+    db = Database(":memory:")
+
+    Users, _ = setup_model_api(db)
+    admin = Users.create(id=auto_id(), username='admin', is_active=True)
+
+    assert Users.where(id=admin.id).throw().delete() == 1, "Changes should be 1"

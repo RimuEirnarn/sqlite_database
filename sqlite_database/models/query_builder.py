@@ -1,14 +1,17 @@
 """Model QueryBuilder"""
 
+# pylint: disable=protected-access
+
 from __future__ import annotations
 from typing import Any, Generic, Type, TypeVar
 from .errors import NoDataReturnedError
 from ..column import check_one
 from ..functions import Function
-from .. import models # pylint: disable=unused-import
+from .. import models  # pylint: disable=unused-import
 
 T = TypeVar("T", bound="models.BaseModel")
-count = Function('COUNT')
+count = Function("COUNT")
+
 
 class QueryBuilder(Generic[T]):
     # pylint: disable=protected-access
@@ -27,7 +30,7 @@ class QueryBuilder(Generic[T]):
         self._failing = True
         return self
 
-    def where(self, **kwargs):
+    def where(self, **kwargs: Any):
         """Sets conditioning"""
         self._filters.update(kwargs)
         return self
@@ -50,26 +53,51 @@ class QueryBuilder(Generic[T]):
     def fetch(self) -> list[T]:
         """Fetch data from table"""
         records = self._model._tbl.select(  # pylint: disable=protected-access
-                self._filters, limit=self._limit, offset=self._offset, order=self._order
-            )
+            self._filters, limit=self._limit, offset=self._offset, order=self._order
+        )
         if len(records) == 0 and self._failing:
-            raise NoDataReturnedError(f"Model {self._model.__name__} has no data for current scope")
-        return [
-            self._model(**record) for record in records
-        ]
+            raise NoDataReturnedError(
+                f"Model {self._model.__name__} has no data for current scope"
+            )
+        return [self._model(**record) for record in records]
 
     def fetch_one(self) -> T | None:
         """Fetch one data from table"""
         # pylint: disable=protected-access
-        record = self._model._tbl.select_one(
-            self._filters, order=self._order
-        )
+        record = self._model._tbl.select_one(self._filters, order=self._order)
         if not record and self._failing:
-            raise NoDataReturnedError(f"Model {self._model.__name__} has no data for current scope")
+            raise NoDataReturnedError(
+                f"Model {self._model.__name__} has no data for current scope"
+            )
         if not record:
             return None
         return self._model(**record)
 
+    def patch(self, **kwargs: Any):
+        """Update a data based on the filter according to passed keyword args"""
+        affected_rows = self._model._tbl.update(
+            self._filters, kwargs, self._limit, self._order
+        )
+
+        if affected_rows == 0 and self._failing:
+            raise NoDataReturnedError(
+                f"Model {self._model.__name__} updates no data for current scope"
+            )
+        return affected_rows
+
+    def delete(self):
+        """Delete data based on the filter"""
+        affected_rows = self._model._tbl.delete(self._filters, self._limit, self._order)
+
+        if affected_rows == 0 and self._failing:
+            raise NoDataReturnedError(
+                f"Model {self._model.__name__} delete exactly no rows"
+            )
+
+        return affected_rows
+
     def count(self) -> int:
         """Count how much data is within this operation"""
-        return self._model._tbl.select(self._filters, what=count('*'))
+        return self._model._tbl.select(self._filters, what=count("*"))
+
+    update = patch
