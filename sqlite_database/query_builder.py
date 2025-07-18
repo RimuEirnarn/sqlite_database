@@ -257,7 +257,7 @@ def extract_signature( # pylint: disable=too-many-locals
             clauses.append(clause)
 
         if val.value is not null:
-            data[f"{key}_{call_id}_{depth}_{condition_id}_{suffix}"] = old_data
+            data[f"{key}__{suffix}_{call_id}_{depth}_{condition_id}"] = old_data
 
     if not clauses:
         return "", data
