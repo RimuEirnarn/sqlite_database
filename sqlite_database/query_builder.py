@@ -26,6 +26,8 @@ DEFAULT_MAPPINGS = {value: value for value in _SQLITETYPES}
 SQL_ACTIONS = {"null": "set null"}
 MAX_SUBQUERY_STACK_LIMIT = 10
 
+NAMING_FORMAT = "{key}{suffix}__{call_id}_{depth}_{condition_id}"
+
 
 def set_subquery_stack_limit(value: int):
     """Set subquery stack limit"""
@@ -200,7 +202,7 @@ def _handle_like(key, middle, val):
     return clause
 
 
-def extract_signature( # pylint: disable=too-many-locals
+def extract_signature(  # pylint: disable=too-many-locals
     filter_: Condition | CacheCond = None, suffix: str = "_check", depth: int = 0
 ):
     """Extract filter signature."""
@@ -227,7 +229,13 @@ def extract_signature( # pylint: disable=too-many-locals
 
         val = (
             Signature(
-                f":{key}_{call_id}_{depth}_{condition_id}_{suffix}",
+                ":"+NAMING_FORMAT.format(
+                    key=key,
+                    suffix=suffix,
+                    call_id=call_id,
+                    depth=depth,
+                    condition_id=condition_id,
+                ),
                 value.generate(),
                 value.data,
             )
@@ -257,7 +265,15 @@ def extract_signature( # pylint: disable=too-many-locals
             clauses.append(clause)
 
         if val.value is not null:
-            data[f"{key}__{suffix}_{call_id}_{depth}_{condition_id}"] = old_data
+            data[
+                NAMING_FORMAT.format(
+                    key=key,
+                    suffix=suffix,
+                    call_id=call_id,
+                    depth=depth,
+                    condition_id=condition_id,
+                )
+            ] = old_data
 
     if not clauses:
         return "", data
