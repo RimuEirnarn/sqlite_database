@@ -155,7 +155,7 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
     def create(cls, **kwargs):
         """Create data based on kwargs"""
         primary: str | None = cls._primary or kwargs.get("id", None)
-        id_present = bool(kwargs.get("id", None))
+        id_present = bool(kwargs.get(cls._primary or "id", None))
         if primary and cls.__auto_id__ and not id_present:  # type: ignore
             kwargs[primary] = cls.__auto_id__()  # type: ignore
         instance = cls(**kwargs)

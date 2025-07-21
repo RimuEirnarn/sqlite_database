@@ -247,3 +247,18 @@ def test_model_api_query_builder_delete():
     admin = Users.create(id=auto_id(), username='admin', is_active=True)
 
     assert Users.where(id=admin.id).throw().delete() == 1, "Changes should be 1"
+
+def test_model_api_custom_id():
+    """Test Model API Custom Primary ID"""
+
+    db = Database(":memory:")
+    db.foreign_pragma('ON')
+
+    @model(db)
+    class Users(BaseModel):
+        __schema__ = (Primary('uid'),)
+
+        uid: str
+        username: str
+
+    assert Users.create(uid="1", username='admin')
