@@ -1,6 +1,6 @@
 """Table"""
 
-# pylint: disable=too-many-arguments,too-many-public-methods
+# pylint: disable=too-many-arguments,too-many-public-methods,R0801
 
 from contextvars import ContextVar
 from sqlite3 import Connection, Error, OperationalError
