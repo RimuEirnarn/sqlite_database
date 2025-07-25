@@ -45,6 +45,7 @@ class Database: # pylint: disable=too-many-instance-attributes
             del kwargs['strict']
         self._config = None
         self._closed = False
+        self._table_class = Table
         if not self._closed or self.__dict__.get("_initiated", False) is False:
             finalize(self._finalizer)
             self._initiated = True
@@ -118,7 +119,7 @@ class Database: # pylint: disable=too-many-instance-attributes
             raise DatabaseMissingError(f"table {table} does not exists.")
 
         try:
-            this_table = Table(self, table, __columns)
+            this_table = self._table_class(self, table, __columns)
         except OperationalError as exc:
             dberror = DatabaseMissingError(f"table {table} does not exists")
             dberror.add_note(f"{type(exc).__name__}: {exc!s}")

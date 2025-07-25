@@ -2,6 +2,8 @@
 
 from sqlite3 import connect, Connection
 from threading import local
+
+from .table import AsyncTable
 from ..database import Database
 from .._utils import dict_factory
 
@@ -10,8 +12,9 @@ class AsyncDatabase(Database):
     """Async (threads, subprocess) ready"""
 
     def __init__(self, path: str, **kwargs) -> None:
-        super().__init__(path, **kwargs)
         self._local = local()
+        self._table_class = AsyncTable
+        super().__init__(path, **kwargs)
 
     def _create_connection(self):
         conn = getattr(self._local, "conn", None)
