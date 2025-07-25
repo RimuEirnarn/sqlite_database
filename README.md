@@ -59,6 +59,23 @@ When pulling this repository with latest commit, make sure to install all `dev-r
 
 When using `pytest`, do this: `pytest --config-file=./dev-config/pytest.ini` or check any check scripts in `bin/`
 
+### How to install?
+
+```sh
+git clone https://github.com/RimuEirnarn/sqlite_database
+cd sqlite_database
+
+python -m venv .venv
+.venv/bin/activate
+
+pip install -r ./dev-requirements.txt
+./bin/check.sh
+
+# Above script is equivalent to:
+pylint --rcfile ./dev-config/pylint.toml sqlite_database
+pytest --config-file ./dev-config/pytest.ini
+```
+
 ## License
 
 This library/wrapper/repo/project is licensed with/in BSD 3-Clause "New" or "Revised" License.
