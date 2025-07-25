@@ -2,9 +2,11 @@
 
 from sqlite3 import OperationalError
 from random import randint
+import sys
 
-from pytest import raises
+from pytest import mark, raises
 from sqlite_database import Database, integer
+from sqlite_database.workers import DatabaseWorker
 
 from ..setup import setup_database_fns, setup_database, count
 
@@ -63,3 +65,13 @@ def test_vacuum():
     _ = [t.delete_one({"a": randint(0, 1000)})]
     t.commit()
     db.vacuum()
+
+@mark.skipif(sys.version_info < (3, 13), reason="Worker feature is exclusive in 3.13")
+def test_worker():
+    """Test worker"""
+
+    db = DatabaseWorker(":memory:")
+    t = db.create_table("t", [integer('a')])
+    t.insert({'a': 1})
+    t.commit()
+    assert t.select_one({'a': 1}) is not None

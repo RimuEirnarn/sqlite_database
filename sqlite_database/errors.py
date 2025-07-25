@@ -30,3 +30,9 @@ class ObjectRemovedError(BaseException):
 
 class CuteDemonLordException(Exception):
     """A demon lord (cute one, somehow a dude) aborts an SQL statement"""
+
+class FeatureGatekeep(ValueError):
+    """A feature is gatekeeped"""
+
+class VersionError(FeatureGatekeep):
+    """Current version cannot use this feature"""

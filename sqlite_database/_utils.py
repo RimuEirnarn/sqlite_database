@@ -139,6 +139,13 @@ class WithCursor(Cursor):
     def __repr__(self) -> str:
         return type(self).__name__
 
+class NoopResource:
+    """No-op resource control"""
+    def close(self):
+        """Close this resource"""
+
+    def open(self, *_, **__):
+        """open something"""
 
 
 def test_installed():
@@ -162,4 +169,5 @@ __all__ = [
     "AttrDict",
     "NullObject",
     "sqlite_multithread_check",
+    "NoopResource"
 ]
