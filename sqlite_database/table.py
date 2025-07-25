@@ -2,7 +2,8 @@
 
 # pylint: disable=too-many-arguments,too-many-public-methods
 
-from sqlite3 import Connection, OperationalError
+from contextvars import ContextVar
+from sqlite3 import Connection, Error, OperationalError
 from typing import (
     Any,
     Generator,
@@ -44,6 +45,7 @@ from .typings import (
 
 # Let's add a little bit of 'black' magic here.
 _null = Function("__NULL__")()
+_tx_stack = ContextVar("_tx_stack", default=[])
 
 class Table: # pylint: disable=too-many-instance-attributes
     """Table. Make sure you remember how the table goes."""
@@ -74,20 +76,38 @@ class Table: # pylint: disable=too-many-instance-attributes
         if (self._columns is None and aggresive_select) and table != "sqlite_master":
             self._fetch_columns()
 
+    # def __enter__(self):
+    #     self._prev_auto = self._auto
+    #     self._prev_autocommit = self._sql.isolation_level
+
+    #     self._sql.isolation_level = None
+    #     self._auto = False
+    #     self._sql.execute("BEGIN TRANSACTION")
+    #     return self
+
+    # def __exit__(self, exc_type, _, __):
+    #     if exc_type is None:
+    #         self._sql.commit()
+    #     else:
+    #         self._sql.rollback()
+    #     self._sql.isolation_level = self._prev_autocommit
+    #     self._auto = self._prev_auto
+
     def __enter__(self):
         self._prev_auto = self._auto
         self._prev_autocommit = self._sql.isolation_level
 
-        self._sql.isolation_level = None
         self._auto = False
-        self._sql.execute("BEGIN TRANSACTION")
+        self._sql.isolation_level = None
+        self._begin_transaction()
         return self
 
     def __exit__(self, exc_type, _, __):
         if exc_type is None:
-            self._sql.commit()
+            self.commit()
         else:
-            self._sql.rollback()
+            self.rollback()
+
         self._sql.isolation_level = self._prev_autocommit
         self._auto = self._prev_auto
 
@@ -167,10 +187,11 @@ class Table: # pylint: disable=too-many-instance-attributes
         fn = cursor.execute if which == "execute" else cursor.executemany
         try:
             fn(query, data)
-        except OperationalError as exc:
+        except Error as exc:
             if str(exc).startswith("no such table:"):
                 raise TableRemovedError(f"Table {self._table} doesn't exists anymore") from None
             exc.add_note(f"SQL query: {query}")
+            exc.add_note(f"Arguments: {data}")
             exc.add_note(
                 f"There's about {1 if isinstance(data, dict) else len(data)} value(s) inserted"
             )
@@ -586,12 +607,54 @@ constraint is enabled."
 
     def commit(self):
         """Commit changes"""
-        self._sql.commit()
+        self._commit_transaction()
 
     def rollback(self):
         """Rollback"""
-        self._sql.rollback()
+        self._rollback_transaction()
         self._dirty = False
+
+    def _begin_transaction(self):
+        """Start a transaction or savepoint depending on depth."""
+        stack = list(_tx_stack.get())  # copy since ContextVar values are immutable
+        depth = len(stack)
+
+        if depth == 0:
+            self._sql.execute("BEGIN TRANSACTION")
+        else:
+            savepoint_name = f"sp_{depth}"
+            self._sql.execute(f"SAVEPOINT {savepoint_name}")
+
+        stack.append(True)
+        _tx_stack.set(stack)
+
+    def _commit_transaction(self):
+        """Commit or release savepoint depending on depth."""
+        stack = list(_tx_stack.get())
+        depth = len(stack)
+
+        if depth == 1:
+            self._sql.commit()
+        elif depth > 1:
+            savepoint_name = f"sp_{depth-1}"
+            self._sql.execute(f"RELEASE SAVEPOINT {savepoint_name}")
+        stack.pop()
+        _tx_stack.set(stack)
+
+    def _rollback_transaction(self):
+        """Rollback or rollback to savepoint depending on depth."""
+        stack = list(_tx_stack.get())
+        depth = len(stack)
+
+        if depth == 1:
+            self._sql.rollback()
+        elif depth > 1:
+            savepoint_name = f"sp_{depth-1}"
+            self._sql.execute(f"ROLLBACK TO SAVEPOINT {savepoint_name}"
+            )
+
+        stack.pop()
+        _tx_stack.set(stack)
 
     def count(self):
         """Count how much objects/rows stored in this table"""

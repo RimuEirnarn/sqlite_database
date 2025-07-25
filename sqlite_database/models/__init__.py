@@ -363,9 +363,10 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
             f"with {self.__class__.__name__}"
         )
 
-    def get_table(self):
+    @classmethod
+    def get_table(cls):
         """Return table instance"""
-        return self._tbl
+        return cls._tbl
 
     @classmethod
     def where(cls, **kwargs):
