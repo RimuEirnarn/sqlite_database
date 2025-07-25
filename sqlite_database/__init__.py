@@ -1,5 +1,6 @@
 """Database"""
 
+from . import models
 from .models import BaseModel, model, Foreign, Primary, Unique, hook, validate
 from .database import Database
 from ._utils import Row, Null
@@ -14,7 +15,7 @@ def test_installed():
     return True
 
 
-__version__ = "0.7.8-alpha"
+__version__ = "0.7.8"
 __all__ = [
     "Database",
     "Table",
