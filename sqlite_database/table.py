@@ -104,9 +104,11 @@ class Table: # pylint: disable=too-many-instance-attributes
 
     def __exit__(self, exc_type, _, __):
         if exc_type is None:
-            self.commit()
+            self._commit_transaction()
+            self._dirty = False
         else:
-            self.rollback()
+            self._rollback_transaction()
+            self._dirty = False
 
         self._sql.isolation_level = self._prev_autocommit
         self._auto = self._prev_auto
@@ -607,11 +609,12 @@ constraint is enabled."
 
     def commit(self):
         """Commit changes"""
-        self._commit_transaction()
+        self._sql.commit()
+        self._dirty = False
 
     def rollback(self):
         """Rollback"""
-        self._rollback_transaction()
+        self._sql.rollback()
         self._dirty = False
 
     def _begin_transaction(self):
