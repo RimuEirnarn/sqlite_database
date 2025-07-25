@@ -53,6 +53,12 @@ You can read why this library exists by reading [the history](History.md). The p
 
 You can submit any issue if you found a good issue. You can submit a pull request as long as the thing you want complies with what this project aims for.
 
+## Development
+
+When pulling this repository with latest commit, make sure to install all `dev-requirements.txt` depending on your intentions. It's mostly pylint and pytest.
+
+When using `pytest`, do this: `pytest --config-file=./dev-config/pytest.ini` or check any check scripts in `bin/`
+
 ## License
 
 This library/wrapper/repo/project is licensed with/in BSD 3-Clause "New" or "Revised" License.
