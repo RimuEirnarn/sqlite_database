@@ -1,8 +1,7 @@
 """SQLite Database"""
 
 from atexit import register as finalize
-from sqlite3 import OperationalError, connect, Connection
-from threading import local
+from sqlite3 import OperationalError, connect
 from typing import Iterable, Literal, Optional
 
 from sqlite_database._debug import if_debug_print
@@ -228,30 +227,3 @@ class Database: # pylint: disable=too-many-instance-attributes
     def sql(self):
         """SQL Connection"""
         return self._database
-
-class AsyncDatabase(Database):
-    """Async (threads, subprocess) ready"""
-
-    def __init__(self, path: str, **kwargs) -> None:
-        super().__init__(path, **kwargs)
-        self._local = local()
-
-    def _create_connection(self):
-        conn = getattr(self._local, "conn", None)
-        if conn is None:
-            timeout = self._kwargs.pop('timeout', 30)
-            conn = connect(
-                self._path,
-                timeout=timeout,
-                isolation_level=self._kwargs.pop("isolation_level", None),
-                check_same_thread=self._kwargs.pop("check_same_thread", False)
-            )
-            conn.row_factory = dict_factory
-            conn.execute("PRAGMA journal_mode=WAL;")
-            if isinstance(timeout, int):
-                conn.execute(f'PRAGMA busy_timeout={timeout * 1000};')
-            self._local.conn = conn
-
-    @property
-    def _database(self) -> Connection:
-        return self._local.conn

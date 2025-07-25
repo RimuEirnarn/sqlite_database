@@ -174,3 +174,4 @@ perf-counter.txt
 
 /transient/*
 !/transient/README.md
+transient.db

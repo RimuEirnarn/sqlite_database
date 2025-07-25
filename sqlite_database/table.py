@@ -601,13 +601,4 @@ constraint is enabled."
     def __repr__(self) -> str:
         return f"<Table({self._table}) -> {self._parent_repr}>"
 
-class AsyncTable(Table):
-    """Async (threads, subprocess) ready"""
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, _, __):
-        pass
-
 __all__ = ["Table"]
