@@ -1,6 +1,6 @@
 """CSV module, used to export database/table to csv"""
 
-from csv import DictWriter
+from csv import DictWriter, DictReader
 from io import StringIO
 from os import mkdir
 from os.path import join as join_path, isfile, exists
@@ -65,3 +65,15 @@ def to_csv_file(table_or_database: Table | Database, file: str):
     with open(file, "w", encoding="utf-8") as fio:
         fio.write(readed)
     return True
+
+def from_csv_string(table: Table, data: str):
+    """Insert from CSV data"""
+    reader = DictReader(data)
+    for entry in reader:
+        table.insert(entry)
+
+def from_csv_file(table: Table, data: str):
+    """Insert from CSV file"""
+    with open(data, encoding='utf-8') as f:
+        fdata = f.read()
+    return from_csv_string(table, fdata)

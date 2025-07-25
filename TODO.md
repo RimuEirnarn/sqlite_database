@@ -9,11 +9,11 @@
 What API should we bring? These todo's is for simplification; you can do anything with `Database.sql` property
 
 - [x] sqlite function support
-- [ ] sqlite aggregate function support
-- [ ] sqlite window function support
-- [ ] sqlite collation support
+- [x] sqlite aggregate function support
+- [x] sqlite window function support
+- [x] sqlite collation support
 - [x] sqlite pragma
-- [ ] sqlite branching subquery (??)
+- [x] sqlite branching subquery (??)
 - [ ] sqlite 'as' keyword (??)
 - [x] sqlite select data crunching[^1] by using Database config option (crunch=True)
 - [x] sqlite select 'only' data. Instead of using `select *`, we should also have `only`. Bring up few data than select everything.[^2]
@@ -25,7 +25,7 @@ The functionality here is outside of sqlite features such as export and import.
 
 - [ ] YAML/JSON/TOML/CUSTOM scheme/table include
 - [x] CSV Export
-- [ ] CSV Import
+- [x] CSV Import
 
 1. abc
    - a
