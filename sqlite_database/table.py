@@ -665,6 +665,6 @@ constraint is enabled."
         return self.select(what=count("*"))
 
     def __repr__(self) -> str:
-        return f"<Table({self._table}) -> {self._parent_repr}>"
+        return f"<{type(self).__name__}({self._table}) -> {self._parent_repr}>"
 
 __all__ = ["Table"]

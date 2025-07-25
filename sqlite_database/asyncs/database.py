@@ -13,8 +13,8 @@ class AsyncDatabase(Database):
 
     def __init__(self, path: str, **kwargs) -> None:
         self._local = local()
-        self._table_class = AsyncTable
         super().__init__(path, **kwargs)
+        self._table_class = AsyncTable
 
     def _create_connection(self):
         conn = getattr(self._local, "conn", None)
