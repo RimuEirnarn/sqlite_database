@@ -12,9 +12,9 @@ sqlite_database Documentation
    :caption: SQLite Database
 
    SimpleGuide
-   ModelAPI
-   DatabaseModes
-   sqlite_database
+..    ModelAPI
+..    DatabaseModes
+..    sqlite_database
 
 
 Indices and tables
