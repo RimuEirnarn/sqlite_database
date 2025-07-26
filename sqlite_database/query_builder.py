@@ -593,9 +593,8 @@ def _build_select(query_params: QueryParams, depth: int = 0):
             (query_params.only.name, *(a for a in query_params.only.values if a != "*"))
         )
     elif isinstance(query_params.only, tuple):
-        only_ = f"{', '.join(
-            column_name for column_name in query_params.only \
-                if check_one(column_name))}"
+        generator = (column_name for column_name in query_params.only if check_one(column_name))
+        only_ = f"{', '.join(generator)}"
     elif query_params.only != "*" and isinstance(query_params.only, str):
         only_ = check_one(query_params.only)  # type: ignore
 
