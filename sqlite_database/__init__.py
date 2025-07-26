@@ -15,7 +15,7 @@ def test_installed():
     return True
 
 
-__version__ = "0.7.9-alpha"
+__version__ = "0.7.9"
 __all__ = [
     "Database",
     "Table",
