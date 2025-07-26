@@ -24,7 +24,7 @@
 
 </div>
 
-SQLite Database is a weird wrapper for SQLite Connection. It's intended to be easy to use and simple.
+SQLite Database is an easy and simple way to use SQLite, almost as easy as using Laravel Eloquent ORM.
 
 > [!WARNING]
 > This project as per version number (<1.0) is not either efficient (in term of memory usage) and fast. If you found a serious problem, please let us know.
@@ -41,7 +41,7 @@ From previous versions, installations can be done using `pip install https://git
 
 ## Features
 
-Feature overview can be found in [Features.md](https://github.com/RimuEirnarn/sqlite_database/blob/main/Features.md)
+Feature overview can be found in [Features.md](https://github.com/RimuEirnarn/sqlite_database/blob/main/docs/SimpleGuide.md)
 
 It's still recommended to see the [short docs](https://sqlite-database.rtfd.io/)
 
@@ -55,9 +55,11 @@ You can submit any issue if you found a good issue. You can submit a pull reques
 
 ## Development
 
-When pulling this repository with latest commit, make sure to install all `dev-requirements.txt` depending on your intentions. It's mostly pylint and pytest.
+Thanks for considering in contributing to sqlite_database!
 
-When using `pytest`, do this: `pytest --config-file=./dev-config/pytest.ini` or check any check scripts in `bin/`
+For development kits, you only need `pytest` and `pylint`, `sphinx` is required for documentation. Please refer to their own `dev-requirements.txt` and `docs-requirements.txt`
+
+When using `pytest`, do this: `pytest --config-file=./dev-config/pytest.ini` or check any check scripts in `bin/` (e.g `bin/check.sh`)
 
 ### How to install?
 

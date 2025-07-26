@@ -21,8 +21,8 @@ import sqlite_database
 sqlite_database.test_installed()
 
 project = 'sqlite_database'
-copyright = '2023, RimuEirnarn'
-author = 'RimuEirnarn'
+copyright = '2025, Rimu Aerisya (Rimu Eirnarn)'
+author = 'Rimu Aerisya (Rimu Eirnarn)'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -34,6 +34,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'myst_parser',
     'sphinx.ext.napoleon',
+
 ]
 
 templates_path = ['_templates']

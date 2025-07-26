@@ -1,7 +1,7 @@
-sqlite\_database.query\_builder module
+sqlite\_database.models.helpers module
 ======================================
 
-.. automodule:: sqlite_database.query_builder
+.. automodule:: sqlite_database.models.helpers
    :members:
    :show-inheritance:
    :undoc-members:

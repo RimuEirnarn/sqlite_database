@@ -1,7 +1,7 @@
-sqlite\_database.database module
+sqlite\_database.subquery module
 ================================
 
-.. automodule:: sqlite_database.database
+.. automodule:: sqlite_database.subquery
    :members:
    :show-inheritance:
    :undoc-members:

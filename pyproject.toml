@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sqlite_database"
-description = "A weird wrapper for SQLite Connection"
+description = "Easy to use SQLite wrapper"
 authors = [
     {name = "Rimu Eirnarn", email = "rimuru720@proton.me"}
 ]
@@ -25,7 +25,7 @@ Repository = "https://github.com/RimuEirnarn/sqlite_database.git"
 
 [tool.setuptools]
 zip-safe = true
-packages = ["sqlite_database", "sqlite_database.models"]
+packages = ["sqlite_database", "sqlite_database.models", "sqlite_database.workers"]
 
 [project.optional-dependencies]
 dev = ["pytest", "pylint", "black"]
