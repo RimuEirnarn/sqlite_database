@@ -32,9 +32,6 @@ _SQLITE_KEYWORDS = {
     "VIEW","VIRTUAL","WHEN","WHERE","WITH","WITHOUT",
 }
 
-# I hate it when i can't import stuff
-
-
 class NullObject:
     """Null object"""
 
