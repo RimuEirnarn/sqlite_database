@@ -3,20 +3,28 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-.. toctree::
-   :maxdepth: 12
-
-   :caption: SQLite Database
-
-   SimpleGuide
-   ModelAPI
-   DatabaseModes
-   sqlite_database
-
 sqlite_database Documentation
 =============================
 
-SimpleGuide
+.. toctree::
+    :maxdepth: 12
+
+    :caption: SQLite Database
+
+    SimpleGuide
+    ModelAPI
+    DatabaseModes
+
+
+API Documentation
+=============================
+
+.. toctree::
+    :maxdepth: 24
+
+    :caption: API Documentation
+
+    sqlite_database
 
 
 Indices and tables
