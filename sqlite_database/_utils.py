@@ -108,22 +108,25 @@ def matches(pattern: Pattern, value: str):
     return True
 
 
-def check_one(data: str):
+def check_one(data: str, bypass_list: tuple[str, ...] | None = None):
     """check one to check if a string contains illegal character OR
     if it is a reserved SQL keyword"""
     if matches(_re_valid, data) is True:
         exc = SecurityError("Cannot parse unsafe data.")
         exc.add_note(f"Target: {data}")
         raise exc
+    bp = bypass_list or []
     if data.upper() in _SQLITE_KEYWORDS:
+        if data in bp:
+            return data
         raise SecurityError(f'"{data}" is a reserved SQL keyword and cannot be used.')
     return data
 
 
-def check_iter(data: Iterable[str]):
+def check_iter(data: Iterable[str], bypass_list: tuple[str, ...] | None = None):
     """An iterable checks as it's check_one"""
     for val in data:
-        check_one(val)
+        check_one(val, bypass_list)
 
 
 class WithCursor(Cursor):

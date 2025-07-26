@@ -505,7 +505,8 @@ def extract_subquery(subquery: SubQuery, depth: int = 1):
             subquery.where,
             subquery.cols,
             subquery.limit,
-            subquery.orders,  # type: ignore
+            0,  # type: ignore
+            subquery.orders # type: ignore
         ),
         depth=depth,
     )
@@ -551,14 +552,14 @@ def _parse_orders(order: CacheOrders):
     if isinstance(order, tuple) and not isinstance(order[0], tuple):
         ord_, order_by = order
         # print('here')
-        check_iter(order)  # type: ignore
+        check_iter(order, ("asc", "desc"))  # type: ignore
         return f"{ord_} {order_by}"
     if isinstance(order, tuple) and isinstance(order[0], tuple):
 
         return ", ".join(
             f"{ord_} {order_by}"
             for ord_, order_by in order
-            if check_iter((ord_, order_by))
+            if check_iter((ord_, order_by), ("asc", "desc"))
         )
     raise TypeError("What?", type(order))
 
