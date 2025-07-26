@@ -112,7 +112,9 @@ def check_one(data: str):
     """check one to check if a string contains illegal character OR
     if it is a reserved SQL keyword"""
     if matches(_re_valid, data) is True:
-        raise SecurityError("Cannot parse unsafe data.")
+        exc = SecurityError("Cannot parse unsafe data.")
+        exc.add_note(f"Target: {data}")
+        raise exc
     if data.upper() in _SQLITE_KEYWORDS:
         raise SecurityError(f'"{data}" is a reserved SQL keyword and cannot be used.')
     return data
