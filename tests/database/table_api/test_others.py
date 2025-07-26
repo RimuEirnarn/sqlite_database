@@ -66,7 +66,7 @@ def test_vacuum():
     t.commit()
     db.vacuum()
 
-@mark.skipif(sys.version_info < (3, 13), reason="Worker feature is exclusive in 3.13")
+# @mark.skipif(sys.version_info < (3, 13), reason="Worker feature is exclusive in 3.13")
 def test_worker():
     """Test worker"""
 

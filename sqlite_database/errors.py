@@ -38,3 +38,6 @@ class FeatureGatekeep(ValueError):
 
 class VersionError(FeatureGatekeep):
     """Current version cannot use this feature"""
+
+class ImplementationWarning(FutureWarning):
+    """The implementation of specific feature is not supported"""

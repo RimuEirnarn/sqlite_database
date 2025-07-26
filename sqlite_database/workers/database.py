@@ -1,5 +1,7 @@
 """Database Worker"""
 
+import warnings
+
 from sqlite_database._utils import dict_factory, NoopResource
 from sqlite_database.database import Database
 from sqlite_database.workers.connection import WorkerConnection, WorkerType
@@ -46,3 +48,15 @@ class DatabaseWorker(Database):
     def join(self):
         """Join the worker thread/process"""
         self._database.join() # type: ignore
+
+    def __del__(self):
+        warnings.warn(
+            (f"Instance of {self} was not properly closed." # type: ignore
+             "The process is threathened to be stalled indefinitely"
+             ),
+            ResourceWarning,
+            stacklevel=2
+        )
+
+    def __repr__(self) -> str:
+        return f"<{type(self).__name__} {self._database._real.name}>" # type: ignore

@@ -7,15 +7,17 @@ from sys import version_info
 from concurrent.futures import Future
 from queue import Empty, Queue
 from sqlite3 import Connection, Cursor
-from multiprocessing import Event as EventProcess, Process, freeze_support
+# from multiprocessing import Event as EventProcess, Process, freeze_support
 from threading import Thread, Event as EventThread
 from typing import Any, Literal, TypeAlias
 from atexit import register as finalize
+import warnings
 
-from ..errors import Rejection
+from ..errors import Rejection, ImplementationWarning
 
 WorkerType: TypeAlias = Literal["thread"] | Literal["process"]
 FEATURE_MIN_VERSION = (3, 13)
+POSSIBLE_STACKTRACE_COUNT = 6
 
 if version_info > FEATURE_MIN_VERSION:
     from queue import ShutDown  # type: ignore
@@ -40,13 +42,18 @@ class Worker:
         self.queue = Queue()
         self.name = f"WorkerDB[{worker_type}]"
         self.daemon = False
-        if worker_type == "thread":
+        if worker_type in ("thread", "process"):
             self.event = EventThread()
             self.worker = Thread(target=self._run, name=self.name, daemon=self.daemon)
-        elif worker_type == "process":
-            freeze_support()
-            self.event = EventProcess()
-            self.worker = Process(target=self._run, name=self.name, daemon=self.daemon)
+        # elif worker_type == "process":
+            # freeze_support()
+            # self.event = EventProcess()
+            # self.worker = Process(target=self._run, name=self.name, daemon=self.daemon)
+        if worker_type == 'process':
+            warnings.warn(
+                "Worker Process implementation is not supported, reverting back to threading.",
+                ImplementationWarning,
+                POSSIBLE_STACKTRACE_COUNT)
         self.accepting = self.event
         self._closing = False
         self.event.set()
