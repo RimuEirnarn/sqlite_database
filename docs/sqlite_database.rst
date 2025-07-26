@@ -1,4 +1,4 @@
-sqlite\_database package
+API Documentation (sqlite_database)
 ========================
 
 Subpackages
