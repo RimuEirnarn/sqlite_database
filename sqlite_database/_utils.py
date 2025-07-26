@@ -123,7 +123,7 @@ def check_one(data: str):
 def check_iter(data: Iterable[str]):
     """An iterable checks as it's check_one"""
     for val in data:
-        yield check_one(val)
+        check_one(val)
 
 
 class WithCursor(Cursor):

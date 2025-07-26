@@ -95,6 +95,12 @@ class QueryParams:
     order: Optional[CacheOrders] = None
     data: Optional[CacheData] = None
 
+    def __post_init__(self):
+        if not all(
+            (isinstance(getattr(self, item), int) for item in ("limit", "offset"))
+        ):
+            raise TypeError("Expected limit/offset to be integer")
+
     def __hash__(self):
         """Custom hash function to ensure compatibility with lru_cache."""
         return hash(
@@ -230,7 +236,8 @@ def extract_signature(  # pylint: disable=too-many-locals
 
         val = (
             Signature(
-                ":"+NAMING_FORMAT.format(
+                ":"
+                + NAMING_FORMAT.format(
                     key=key,
                     suffix=suffix,
                     call_id=call_id,
@@ -543,9 +550,16 @@ def _setup_limit_patch(table_name: str, condition: str, limit):
 def _parse_orders(order: CacheOrders):
     if isinstance(order, tuple) and not isinstance(order[0], tuple):
         ord_, order_by = order
+        # print('here')
+        check_iter(order)  # type: ignore
         return f"{ord_} {order_by}"
     if isinstance(order, tuple) and isinstance(order[0], tuple):
-        return ", ".join(f"{ord_} {order_by}" for ord_, order_by in order)
+
+        return ", ".join(
+            f"{ord_} {order_by}"
+            for ord_, order_by in order
+            if check_iter((ord_, order_by))
+        )
     raise TypeError("What?", type(order))
 
 
@@ -571,12 +585,14 @@ def _build_select(query_params: QueryParams, depth: int = 0):
         )
     check_one(query_params.table_name)
     cond, data = extract_signature(query_params.condition, depth=depth)
-    check_iter(query_params.only or ())  # type: ignore
     only_ = "*"
     if query_params.only and isinstance(query_params.only, ParsedFn):
         only_, _ = query_params.only.parse_sql()
+        check_iter(
+            (query_params.only.name, *(a for a in query_params.only.values if a != "*"))
+        )
     elif isinstance(query_params.only, tuple):
-        only_ = f"{', '.join(column_name for column_name in query_params.only)}"
+        only_ = f"{', '.join(column_name for column_name in query_params.only if check_one(column_name))}"
     elif query_params.only != "*" and isinstance(query_params.only, str):
         only_ = check_one(query_params.only)  # type: ignore
 
