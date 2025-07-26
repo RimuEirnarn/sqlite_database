@@ -38,3 +38,11 @@ class DatabaseWorker(Database):
         except VersionError:
             self._database = NoopResource()
             raise
+
+    def close(self):
+        self._database.close()
+        self._database.join() # type: ignore
+
+    def join(self):
+        """Join the worker thread/process"""
+        self._database.join() # type: ignore

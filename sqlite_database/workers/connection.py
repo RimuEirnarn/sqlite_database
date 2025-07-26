@@ -24,6 +24,12 @@ else:
         """Raised when put/get with shut-down queue."""
 
 
+def is_shutdown(worker: "Worker"):
+    """Is shutdown?"""
+    if worker.is_closed:
+        return lambda *a, **kw: None
+    return lambda *a, **kw: worker.push(worker.conn.close, *a, **kw)
+
 class Worker:
     """Worker"""
 
@@ -100,7 +106,9 @@ class Worker:
     def push(self, fn, *args, **kwargs):
         """Push to worker"""
         if not self.accepting.is_set() or self._closing:
-            raise Rejection("Cannot push during shutdown")
+            exc = Rejection("Cannot push during shutdown")
+            exc.add_note(f"Caller: {fn}")
+            raise exc
         fut = Future()
         try:
             self.queue.put((fn, args, kwargs, fut))
@@ -108,6 +116,11 @@ class Worker:
             fut.set_result(None)
             return fut.result()
         return fut.result()  # blocks until worker finishes
+
+    @property
+    def is_closed(self):
+        """Return true if worker is closed"""
+        return self._closing
 
     def close(self, push=True):
         """Close this worker"""
@@ -122,6 +135,9 @@ class Worker:
             fut.result()
         self.worker.join()
 
+    def join(self, timeout: float = 0):
+        """Join this worker"""
+        self.worker.join(timeout)
 
 class WorkerCursor:
     """Worker cursor"""
@@ -136,6 +152,9 @@ class WorkerCursor:
         # print(self, item)
         if item in self.__slots__:
             return super().__getattribute__(item)
+        if item == "close":
+            return is_shutdown(self._worker)
+
         attr = getattr(self._cursor, item)
         if callable(attr):
             return lambda *a, **kw: self._worker.push(attr, *a, **kw)
@@ -152,8 +171,15 @@ class WorkerConnection:
         # print(self, item)
         if item in ("_real", "cursor"):
             return super().__getattribute__(item)
+
+        if item in ("join",):
+            return getattr(self._real, item)
+
         conn = self._real.conn
         attr = getattr(conn, item)
+        if item == "close":
+            return is_shutdown(self._real)
+
         if callable(attr):
             return lambda *a, **kw: self._real.push(attr, *a, **kw)
         return attr
