@@ -1,5 +1,7 @@
 """Errors"""
 
+class Rejection(RuntimeError):
+    """Cannot push into worker db"""
 
 class DependencyError(ImportError):
     """Specific dependency is missing"""

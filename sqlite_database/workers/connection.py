@@ -1,5 +1,6 @@
 """Worker Connection"""
-# pylint: disable=ungrouped-imports,possibly-used-before-assignment,too-few-public-methods
+
+# pylint: disable=ungrouped-imports,possibly-used-before-assignment,too-few-public-methods,no-name-in-module,no-member
 
 # import os
 from sys import version_info
@@ -11,29 +12,26 @@ from threading import Thread, Event as EventThread
 from typing import Any, Literal, TypeAlias
 from atexit import register as finalize
 
-from ..errors import VersionError
+from ..errors import Rejection
 
 WorkerType: TypeAlias = Literal["thread"] | Literal["process"]
 FEATURE_MIN_VERSION = (3, 13)
 
 if version_info > FEATURE_MIN_VERSION:
-    from queue import ShutDown
+    from queue import ShutDown # type: ignore
+else:
+    class ShutDown(RuntimeError):
+        """Raised when put/get with shut-down queue."""
+
 
 class Worker:
     """Worker"""
 
     def __init__(self, *args, worker_type: WorkerType = "thread", **kwargs):
-        # print(args, worker_type, kwargs)
-        if version_info < FEATURE_MIN_VERSION:
-            version = f"{version_info.major}.{version_info.minor}"
-            minimal = f"{FEATURE_MIN_VERSION[0]}.{FEATURE_MIN_VERSION[1]}"
-            raise VersionError(
-                f"Python {version} (current version) cannot use Worker feature, min {minimal}"
-            )
         self.conn = Connection(*args, **kwargs)
         self.queue = Queue()
         self.name = f"WorkerDB[{worker_type}]"
-        self.daemon = True
+        self.daemon = False
         if worker_type == "thread":
             self.event = EventThread()
             self.worker = Thread(target=self._run, name=self.name, daemon=self.daemon)
@@ -41,44 +39,68 @@ class Worker:
             freeze_support()
             self.event = EventProcess()
             self.worker = Process(target=self._run, name=self.name, daemon=self.daemon)
+        self.accepting = self.event
+        self._closing = False
         self.event.set()
         self.worker.start()
         finalize(self.close)
 
-    def _run(self):
-        while self.event.is_set():
+    def recall(self):
+        """Recall remainding queues"""
+        while True:
             try:
-                # print(f"[{self.name}] Fetching...")
-                fn, args, kwargs, fut = self.queue.get(timeout=0.01)
+                fn, args, kwargs, fut = self.queue.get_nowait()
             except Empty:
-                # print(f"[{self.name}] Empty!")
-                continue
-            except ShutDown:
-                break
-            if fn is None:
-                # print(f"[{self.name}] Receives stop signal, closing self...")
-                fut.set_result(None)
-                self.queue.task_done()
-                self.queue.shutdown(True)
                 break
             try:
                 if callable(fn):
-                    # print(f'[{self.name}] what={fn!r} args={args} kwargs={kwargs}')
                     res = fn(*args, **kwargs)
                     fut.set_result(res)
                 else:
-                    # print(f'[{self.name}] what={fn!r} value={kwargs["value"]}')
-                    setattr(self.conn, fn, kwargs["value"])
                     fut.set_result(None)
-            except Exception as e:  # pylint: disable=broad-exception-caught
+            except Exception as e: # pylint: disable=broad-exception-caught
                 fut.set_exception(e)
             finally:
                 self.queue.task_done()
-            # print(f"[{self.name}] Stalling...")
-        # print(f"[{self.name}] Quit")
+
+    def _run(self):
+        while True:
+            try:
+                fn, args, kwargs, fut = self.queue.get(timeout=0.01)
+            except Empty:
+                if self._closing:
+                    break
+                continue
+            except ShutDown:
+                break
+
+            # If close signal is received, finish all tasks and quit
+            if fn is None or getattr(fn, "__name__", "") == "close":
+                fut.set_result(None)
+                self.queue.task_done()
+                self._closing = True
+                self.event.clear()
+                self.recall()  # Finish all remaining tasks
+                break
+
+            try:
+                if callable(fn):
+                    res = fn(*args, **kwargs)
+                    fut.set_result(res)
+                else:
+                    setattr(self.conn, fn, kwargs["value"])
+                    fut.set_result(None)
+            except Exception as e: # pylint: disable=broad-exception-caught
+                fut.set_exception(e)
+            finally:
+                self.queue.task_done()
+        # Ensure connection is closed
+        self.conn.close()
 
     def push(self, fn, *args, **kwargs):
         """Push to worker"""
+        if not self.accepting.is_set() or self._closing:
+            raise Rejection("Cannot push during shutdown")
         fut = Future()
         try:
             self.queue.put((fn, args, kwargs, fut))
@@ -89,12 +111,16 @@ class Worker:
 
     def close(self, push=True):
         """Close this worker"""
-        # print(f"[{self.name}] close() is called, shutting down")
+        if self._closing:
+            return
+        self._closing = True
         self.event.clear()
         if push:
-            self.push(None)
-        self.worker.join(0)
-        self.conn.close()
+            # Push a close signal to the queue
+            fut = Future()
+            self.queue.put((lambda: None, (), {}, fut))
+            fut.result()
+        self.worker.join()
 
 
 class WorkerCursor:
