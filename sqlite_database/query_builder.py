@@ -222,6 +222,7 @@ def extract_signature(  # pylint: disable=too-many-locals
     data: dict[str, Any] = {}
 
     for key, value in filter_.items():
+        check_one(key)
         condition_id = generate_ids()
         if not isinstance(value, Signature):
             value = Signature(value, "=")
