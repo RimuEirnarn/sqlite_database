@@ -24,9 +24,7 @@ API Documentation
 
     :caption: API Documentation
 
-    If you want to read or see the API documentation, go ahead and good luck!
-
-    sqlite_database
+    api_reference
 
 
 Indices and tables
