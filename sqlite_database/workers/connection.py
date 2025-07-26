@@ -6,7 +6,7 @@
 from sys import version_info
 from concurrent.futures import Future
 from queue import Empty, Queue
-from sqlite3 import Connection
+from sqlite3 import Connection, Cursor
 from multiprocessing import Event as EventProcess, Process, freeze_support
 from threading import Thread, Event as EventThread
 from typing import Any, Literal, TypeAlias
@@ -18,8 +18,9 @@ WorkerType: TypeAlias = Literal["thread"] | Literal["process"]
 FEATURE_MIN_VERSION = (3, 13)
 
 if version_info > FEATURE_MIN_VERSION:
-    from queue import ShutDown # type: ignore
+    from queue import ShutDown  # type: ignore
 else:
+
     class ShutDown(RuntimeError):
         """Raised when put/get with shut-down queue."""
 
@@ -28,7 +29,8 @@ def is_shutdown(worker: "Worker"):
     """Is shutdown?"""
     if worker.is_closed:
         return lambda *a, **kw: None
-    return lambda *a, **kw: worker.push(worker.conn.close, *a, **kw)
+    return lambda *a, **kw: worker.push(worker.conn.close, "connection", *a, **kw)
+
 
 class Worker:
     """Worker"""
@@ -55,7 +57,7 @@ class Worker:
         """Recall remainding queues"""
         while True:
             try:
-                fn, args, kwargs, fut = self.queue.get_nowait()
+                fn, _, args, kwargs, fut = self.queue.get_nowait()
             except Empty:
                 break
             try:
@@ -64,7 +66,7 @@ class Worker:
                     fut.set_result(res)
                 else:
                     fut.set_result(None)
-            except Exception as e: # pylint: disable=broad-exception-caught
+            except Exception as e:  # pylint: disable=broad-exception-caught
                 fut.set_exception(e)
             finally:
                 self.queue.task_done()
@@ -72,7 +74,7 @@ class Worker:
     def _run(self):
         while True:
             try:
-                fn, args, kwargs, fut = self.queue.get(timeout=0.01)
+                fn, owner, args, kwargs, fut = self.queue.get(timeout=0.01)
             except Empty:
                 if self._closing:
                     break
@@ -81,7 +83,9 @@ class Worker:
                 break
 
             # If close signal is received, finish all tasks and quit
-            if fn is None or getattr(fn, "__name__", "") == "close":
+            if fn is None or (
+                getattr(fn, "__name__", "") == "close" and owner == "connection"
+            ):
                 fut.set_result(None)
                 self.queue.task_done()
                 self._closing = True
@@ -96,14 +100,14 @@ class Worker:
                 else:
                     setattr(self.conn, fn, kwargs["value"])
                     fut.set_result(None)
-            except Exception as e: # pylint: disable=broad-exception-caught
+            except Exception as e:  # pylint: disable=broad-exception-caught
                 fut.set_exception(e)
             finally:
                 self.queue.task_done()
         # Ensure connection is closed
         self.conn.close()
 
-    def push(self, fn, *args, **kwargs):
+    def push(self, fn, owner: str, *args, **kwargs):
         """Push to worker"""
         if not self.accepting.is_set() or self._closing:
             exc = Rejection("Cannot push during shutdown")
@@ -111,7 +115,7 @@ class Worker:
             raise exc
         fut = Future()
         try:
-            self.queue.put((fn, args, kwargs, fut))
+            self.queue.put((fn, owner, args, kwargs, fut))
         except ShutDown:
             fut.set_result(None)
             return fut.result()
@@ -131,7 +135,7 @@ class Worker:
         if push:
             # Push a close signal to the queue
             fut = Future()
-            self.queue.put((lambda: None, (), {}, fut))
+            self.queue.put((lambda: None, "connection", (), {}, fut))
             fut.result()
         self.worker.join()
 
@@ -139,25 +143,24 @@ class Worker:
         """Join this worker"""
         self.worker.join(timeout)
 
+
 class WorkerCursor:
     """Worker cursor"""
 
     __slots__ = ("_worker", "_cursor")
 
-    def __init__(self, worker, real_cursor):
-        self._worker = worker
-        self._cursor = real_cursor
+    def __init__(self, worker: Worker, real_cursor: Cursor):
+        self._worker: Worker = worker
+        self._cursor: Cursor = real_cursor
 
     def __getattr__(self, item):
         # print(self, item)
         if item in self.__slots__:
             return super().__getattribute__(item)
-        if item == "close":
-            return is_shutdown(self._worker)
 
         attr = getattr(self._cursor, item)
         if callable(attr):
-            return lambda *a, **kw: self._worker.push(attr, *a, **kw)
+            return lambda *a, **kw: self._worker.push(attr, "cursor", *a, **kw)
         return attr
 
 
@@ -165,7 +168,7 @@ class WorkerConnection:
     """Worker connection"""
 
     def __init__(self, *args, worker_type: WorkerType = "thread", **kwargs):
-        self._real = Worker(*args, worker_type=worker_type, **kwargs)
+        self._real: Worker = Worker(*args, worker_type=worker_type, **kwargs)
 
     def __getattr__(self, item):
         # print(self, item)
@@ -181,19 +184,21 @@ class WorkerConnection:
             return is_shutdown(self._real)
 
         if callable(attr):
-            return lambda *a, **kw: self._real.push(attr, *a, **kw)
+            return lambda *a, **kw: self._real.push(attr, "connection", *a, **kw)
         return attr
 
     def cursor(self, *args, **kwargs):
         """Return cursor object"""
-        real = self._real.push(getattr(self._real.conn, "cursor"), *args, **kwargs)
+        real = self._real.push(
+            getattr(self._real.conn, "cursor"), "connection", *args, **kwargs
+        )
         return WorkerCursor(self._real, real)
 
     def __setattr__(self, name: str, value: Any) -> None:
         if name == "_real":
             super().__setattr__(name, value)
             return
-        self._real.push(name, value=value)
+        self._real.push(name, "connection", value=value)
 
     def __enter__(self):
         return self.cursor()
