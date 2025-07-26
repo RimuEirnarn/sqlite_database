@@ -75,3 +75,4 @@ def test_worker():
     t.insert({'a': 1})
     t.commit()
     assert t.select_one({'a': 1}) is not None
+    db.close()
