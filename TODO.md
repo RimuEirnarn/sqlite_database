@@ -41,8 +41,6 @@ The functionality here is outside of sqlite features such as export and import.
 
 [^4]: I need a way to implement migrations to advance to version `v0.7.10`, I need to know how migration works, how a Python code can translate into SQL, though I can just ask Table API query builder to parse columns. However, Table API's query builder sucks when we parse SQL query into Python objects, it can't translate inline column definitions for now. Can it? Maybe, if it can, some metadata is guaranteed lost if constraints are inlined. Table API has `rename_column` and `add_column` for convenience. Modify? Remove? not now.
 
----
-
 Migration schematics:
 
 The Schema table is described using Table API Builder column:
