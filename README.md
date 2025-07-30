@@ -24,62 +24,104 @@
 
 </div>
 
-SQLite Database is an easy and simple way to use SQLite, almost as easy as using Laravel Eloquent ORM.
+**SQLite Database** is a lightweight, developer-friendly wrapper for SQLite—designed to feel as intuitive as Laravel's Eloquent ORM, but in Python.
 
 > [!WARNING]
-> This project as per version number (<1.0) is not either efficient (in term of memory usage) and fast. If you found a serious problem, please let us know.
+> ⚠️ This library is still pre-1.0, which means it's not optimized for high performance or low memory usage (yet). Use with care. If you run into serious issues, feel free to open an issue—we’re listening.
 
-## Usage/Showcase
+---
 
-Want to know how I use sqlite-database? [Visit this demo](https://github.com/RimuEirnarn/sqlite_database_demo)
+## 🚀 Usage & Demo
 
-## Installation
+Curious how it works in action?  
+Check out the live example here: [sqlite-database demo](https://github.com/RimuEirnarn/sqlite_database_demo)
 
-Installation from PyPI is now available, `pip install sqlite-database`
+---
 
-From previous versions, installations can be done using `pip install https://github.com/RimuEirnarn/sqlite_database/archive/refs/tags/<latest version>.zip`
+## 📦 Installation
 
-## Features
+The library is available via PyPI:
 
-Feature overview can be found in [Features.md](https://github.com/RimuEirnarn/sqlite_database/blob/main/docs/SimpleGuide.md)
+```sh
+pip install sqlite-database
+```
 
-It's still recommended to see the [short docs](https://sqlite-database.rtfd.io/)
+Prefer to install directly from GitHub? You can still do this the old-school way:
 
-## History & Pre-contributors
+```sh
+pip install https://github.com/RimuEirnarn/sqlite_database/archive/refs/tags/<latest-version>.zip
+```
 
-You can read why this library exists by reading [the history](History.md). The pre-contributor is only ChatGPT.
+---
 
-## Contributing
+## ✨ Features
 
-You can submit any issue if you found a good issue. You can submit a pull request as long as the thing you want complies with what this project aims for.
+A quick feature overview is available in [Features.md](https://github.com/RimuEirnarn/sqlite_database/blob/main/docs/SimpleGuide.md)
 
-## Development
+Or check out the full short docs at:  
+📚 [sqlite-database.rtfd.io](https://sqlite-database.rtfd.io/)
 
-Thanks for considering in contributing to sqlite_database!
+---
 
-For development kits, you only need `pytest` and `pylint`, `sphinx` is required for documentation. Please refer to their own `dev-requirements.txt` and `docs-requirements.txt`
+## 📖 Origin Story & Acknowledgements
 
-When using `pytest`, do this: `pytest --config-file=./dev-config/pytest.ini` or check any check scripts in `bin/` (e.g `bin/check.sh`)
+Wondering why this exists?  
+Read the [History.md](History.md) to learn what led to the birth of this project.
 
-### How to install?
+> Pre-contributor: just ChatGPT—so blame the AI if anything’s weird.
+
+---
+
+## 🤝 Contributing
+
+Found a bug? Got an idea? Want to improve something?
+
+- Open an issue for anything noteworthy.
+- PRs are welcome—as long as they align with the project's vision and design goals.
+
+---
+
+## 🛠️ Development Setup
+
+Thanks for considering contributing to `sqlite_database`! Here's what you'll need:
+
+- **Testing**: `pytest`
+- **Linting**: `pylint`
+- **Docs**: `sphinx`
+
+Dependencies are split between:
+- `dev-requirements.txt` (core development)
+- `docs-requirements.txt` (documentation)
+
+To get started:
 
 ```sh
 git clone https://github.com/RimuEirnarn/sqlite_database
 cd sqlite_database
 
 python -m venv .venv
-.venv/bin/activate
+source .venv/bin/activate  # or `.venv\Scripts\activate` on Windows
 
 pip install -r ./dev-requirements.txt
 ./bin/check.sh
+```
 
-# Above script is equivalent to:
+The `check.sh` script will run:
+
+```sh
 pylint --rcfile ./dev-config/pylint.toml sqlite_database
 pytest --config-file ./dev-config/pytest.ini
 ```
 
-## License
+Simple and clean.
 
-This library/wrapper/repo/project is licensed with/in BSD 3-Clause "New" or "Revised" License.
+---
 
+## 📄 License
+
+This project is licensed under the **BSD 3-Clause "New" or "Revised" License**.
+
+Read the full license here:  
 [LICENSE](https://github.com/RimuEirnarn/sqlite_database/blob/main/LICENSE)
+
+---
