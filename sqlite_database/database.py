@@ -14,7 +14,7 @@ from ._utils import (
     sqlite_multithread_check,
 )
 from .column import BuilderColumn, Column
-from .query_builder import extract_table_creations
+from .query_builder.table_creation import extract_table_creations
 from .table import Table
 from .errors import DatabaseExistsError, DatabaseMissingError
 

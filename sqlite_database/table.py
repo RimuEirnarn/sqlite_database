@@ -23,21 +23,22 @@ from ._debug import if_debug_print
 from .column import BuilderColumn, Column
 from .errors import TableRemovedError
 from .query_builder import (
-    Condition,
-    extract_single_column,
-    fetch_columns,
+    # extract_single_column,
+    # fetch_columns,
     build_select,
     build_insert,
     build_delete,
     build_update,
 )
-from .signature import op
+from .query_builder.typings import Condition
+from .query_builder.table_creation import extract_single_column
+# from .signature import op
 from .typings import (
     Data,
     Orders,
     Queries,
     Query,
-    _MasterQuery,
+    # _MasterQuery,
     OnlyColumn,
     SquashedSqueries,
     JustAColumn,
@@ -56,7 +57,7 @@ class Table: # pylint: disable=too-many-instance-attributes
         parent,  # type: ignore
         table: str,
         columns: Optional[Iterable[Column]] = None,  # type: ignore
-        aggresive_select: bool = False,
+        # aggresive_select: bool = False,
     ) -> None:
         if parent.closed:
             raise ConnectionError("Connection to database is already closed.")
@@ -73,8 +74,8 @@ class Table: # pylint: disable=too-many-instance-attributes
         self._prev_auto = True
         self._columns: Optional[list[Column]] = list(columns) if columns else None
 
-        if (self._columns is None and aggresive_select) and table != "sqlite_master":
-            self._fetch_columns()
+        # if (self._columns is None and aggresive_select) and table != "sqlite_master":
+        #     self._fetch_columns()
 
     # def __enter__(self):
     #     self._prev_auto = self._auto
@@ -160,22 +161,22 @@ class Table: # pylint: disable=too-many-instance-attributes
         except OperationalError:
             self._deleted = True
 
-    def _fetch_columns(self):
-        table = self._table
-        try:
-            query, data = build_select(
-                "sqlite_master", {"type": op == "table", "name": op == table}
-            )
-            cursor = self._sql.cursor()
-            cursor.execute(query, data)
-            tabl = cursor.fetchone()
-            if tabl is None:
-                raise ValueError("What the hell?")
-            cols = fetch_columns(_MasterQuery(**tabl))
-            self._columns = cols
-            return 0
-        except Exception:  # pylint: disable=broad-except
-            return 1
+    # def _fetch_columns(self):
+    #     table = self._table
+    #     try:
+    #         query, data = build_select(
+    #             "sqlite_master", {"type": op == "table", "name": op == table}
+    #         )
+    #         cursor = self._sql.cursor()
+    #         cursor.execute(query, data)
+    #         tabl = cursor.fetchone()
+    #         if tabl is None:
+    #             raise ValueError("What the hell?")
+    #         cols = fetch_columns(_MasterQuery(**tabl))
+    #         self._columns = cols
+    #         return 0
+    #     except Exception:  # pylint: disable=broad-except
+    #         return 1
 
     def _exec(
         self,

@@ -1,6 +1,7 @@
 """Universal utility"""
 
 from typing import Any
+from uuid import uuid4
 
 from ._utils import Row
 from .typings import Queries
@@ -18,3 +19,7 @@ def crunch(query: Queries | list[dict[str, Any]]) -> Row[str, list[Any]]:  # typ
                 data[key] = []
             data[key].append(val)
     return data
+
+def generate_ids():
+    """Generate ids for statements"""
+    return str(uuid4().int)
