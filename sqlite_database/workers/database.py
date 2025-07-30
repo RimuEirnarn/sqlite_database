@@ -2,7 +2,7 @@
 
 import warnings
 
-from sqlite_database._utils import dict_factory, NoopResource
+from sqlite_database.utils import dict_factory, NoopResource
 from sqlite_database.database import Database
 from sqlite_database.workers.connection import WorkerConnection, WorkerType
 from sqlite_database.errors import VersionError

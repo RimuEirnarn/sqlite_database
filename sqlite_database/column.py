@@ -2,7 +2,7 @@
 
 from typing import Any, Self, Callable
 from .locals import _PATH, SQLACTION
-from ._utils import check_one, matches
+from .utils import check_one, matches
 from .typings import null
 
 

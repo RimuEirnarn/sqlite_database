@@ -17,8 +17,7 @@ from sqlite_database.functions import ParsedFn, Function, count
 from sqlite_database.subquery import SubQuery
 
 
-from .utils import crunch
-from ._utils import check_iter, check_one, Row
+from .utils import check_iter, check_one, Row, crunch
 from ._debug import if_debug_print
 from .column import BuilderColumn, Column
 from .errors import TableRemovedError

@@ -6,7 +6,7 @@ from typing import Iterable, Literal, Optional
 
 from sqlite_database._debug import if_debug_print
 
-from ._utils import (
+from .utils import (
     WithCursor,
     check_iter,
     check_one,

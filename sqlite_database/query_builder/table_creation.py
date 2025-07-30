@@ -5,7 +5,7 @@ from shlex import shlex
 
 from .utils import filter_extraction, SQL_ACTIONS, DEFAULT_MAPPINGS
 
-from ..typings import _MasterQuery
+from ..typings import MasterQuery
 from ..column import Column
 from ..locals import SQLACTION, _SQLITETYPES
 
@@ -226,8 +226,8 @@ def extract_table(  # pylint: disable=too-many-locals
         cols.append(Column(*upheld_column))
     return cols
 
-def fetch_columns(_master_query: _MasterQuery):
-    """Fetch columns of a table. `_master_query` is originated from select()
+def fetch_columns(_master_query: MasterQuery):
+    """Fetch columns of a table. `master_query` is originated from select()
     on sqlite_master table"""
     sql = _master_query["sql"]
     return extract_table(sql)

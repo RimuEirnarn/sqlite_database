@@ -3,7 +3,7 @@
 from . import models
 from .models import BaseModel, model, Foreign, Primary, Unique, hook, validate
 from .database import Database
-from ._utils import Row, Null
+from .utils import Row, Null
 from .column import Column, text, integer, blob, real
 from .signature import op
 from .operators import this

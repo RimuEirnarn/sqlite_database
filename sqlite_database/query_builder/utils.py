@@ -4,7 +4,7 @@ from typing import Optional, Any
 
 from ..typings import Orders, Data
 from ..functions import ParsedFn, _function_extract
-from .._utils import check_one, check_iter, Null
+from ..utils import check_one, check_iter, Null
 from ..locals import _SQLITETYPES
 
 from .typings import Condition, CacheOrders, CacheData
