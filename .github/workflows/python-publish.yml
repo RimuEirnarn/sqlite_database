@@ -61,6 +61,7 @@ jobs:
   deploy:
     name: Deploy to PyPI
     if: github.event.release.prerelease == false
+    needs: [lint, pytest]
 
     permissions:
       id-token: write
@@ -84,7 +85,8 @@ jobs:
 
   fake-deploy:
     name: (Fake) deploy to PyPI
-    if: github.event.release.prerelease == false
+    if: github.event.release.prerelease == true
+    needs: [lint, pytest]
     runs-on: ubuntu-latest
 
     steps:
