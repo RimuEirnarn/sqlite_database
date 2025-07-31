@@ -11,7 +11,7 @@ from .utils import (
 )
 
 from ..typings import Orders, Data
-from ..functions import ParsedFn
+from ..functions import ParsedFn # type: ignore
 
 def build_select(  # pylint: disable=too-many-arguments
     table_name: str,

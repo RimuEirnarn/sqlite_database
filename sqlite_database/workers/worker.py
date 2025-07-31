@@ -1,6 +1,6 @@
 """Worker thread"""
 
-# pylint: disable=ungrouped-imports
+# pylint: disable=ungrouped-imports,possibly-used-before-assignment,too-few-public-methods,no-name-in-module,no-member
 
 from sys import version_info
 from concurrent.futures import Future
