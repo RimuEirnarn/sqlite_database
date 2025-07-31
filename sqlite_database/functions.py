@@ -3,7 +3,7 @@
 from typing import NamedTuple, Any
 from random import randint
 
-from .utils import check_one
+from .utils import check_one # type: ignore
 
 # It was moved here, so users don't just import anything from query builder.
 

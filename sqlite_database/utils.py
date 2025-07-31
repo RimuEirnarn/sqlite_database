@@ -1,4 +1,5 @@
 """Core database utility"""
+# pylint: disable=useless-parent-delegation
 
 # This module must not import anything from this package except errors.
 
@@ -8,31 +9,142 @@ from re import compile as re_compile
 from re import escape as re_escape
 from sqlite3 import Cursor, connect
 from string import punctuation
-from typing import Any, Iterable
+from typing import Any, Generic, Iterable, Iterator, Mapping, TypeVar, TypeAlias
 
-from .typings import Queries
 from .errors import SecurityError
 
 
+T = TypeVar("T")
 _INVALID_STR = punctuation.replace("_", "")
 _re_valid = re_compile(f"[{re_escape(_INVALID_STR)}]+")
 
 _SQLITE_KEYWORDS = {
-    "ABORT", "ACTION", "ADD", "AFTER", "ALL", "ALTER","ANALYZE","AND","AS",
-    "ASC","ATTACH","AUTOINCREMENT","BEFORE","BEGIN","BETWEEN","BY","CASCADE",
-    "CASE","CAST","CHECK","COLLATE","COLUMN","COMMIT","CONFLICT","CONSTRAINT",
-    "CREATE","CROSS","CURRENT_DATE","CURRENT_TIME","CURRENT_TIMESTAMP","DATABASE",
-    "DEFAULT","DEFERRABLE","DEFERRED","DELETE","DESC","DETACH","DISTINCT","DROP",
-    "EACH","ELSE","END","ESCAPE","EXCEPT","EXCLUSIVE","EXISTS","EXPLAIN","FAIL","FOR",
-    "FOREIGN","FROM","FULL","GLOB","GROUP","HAVING","IF","IGNORE","IMMEDIATE","IN",
-    "INDEX","INDEXED","INITIALLY","INNER","INSERT","INSTEAD","INTERSECT","INTO","IS",
-    "ISNULL","JOIN","KEY","LEFT","LIKE","LIMIT","MATCH","NATURAL","NO","NOT","NOTNULL",
-    "NULL","OF","OFFSET","ON","OR","ORDER","OUTER","PLAN","PRAGMA","PRIMARY","QUERY",
-    "RAISE","RECURSIVE","REFERENCES","REGEXP","REINDEX","RELEASE","RENAME","REPLACE",
-    "RESTRICT","RIGHT","ROLLBACK","ROW","SAVEPOINT","SELECT","SET","TABLE","TEMP","TEMPORARY",
-    "THEN","TO","TRANSACTION","TRIGGER","UNION","UNIQUE","UPDATE","USING","VACUUM","VALUES",
-    "VIEW","VIRTUAL","WHEN","WHERE","WITH","WITHOUT",
+    "ABORT",
+    "ACTION",
+    "ADD",
+    "AFTER",
+    "ALL",
+    "ALTER",
+    "ANALYZE",
+    "AND",
+    "AS",
+    "ASC",
+    "ATTACH",
+    "AUTOINCREMENT",
+    "BEFORE",
+    "BEGIN",
+    "BETWEEN",
+    "BY",
+    "CASCADE",
+    "CASE",
+    "CAST",
+    "CHECK",
+    "COLLATE",
+    "COLUMN",
+    "COMMIT",
+    "CONFLICT",
+    "CONSTRAINT",
+    "CREATE",
+    "CROSS",
+    "CURRENT_DATE",
+    "CURRENT_TIME",
+    "CURRENT_TIMESTAMP",
+    "DATABASE",
+    "DEFAULT",
+    "DEFERRABLE",
+    "DEFERRED",
+    "DELETE",
+    "DESC",
+    "DETACH",
+    "DISTINCT",
+    "DROP",
+    "EACH",
+    "ELSE",
+    "END",
+    "ESCAPE",
+    "EXCEPT",
+    "EXCLUSIVE",
+    "EXISTS",
+    "EXPLAIN",
+    "FAIL",
+    "FOR",
+    "FOREIGN",
+    "FROM",
+    "FULL",
+    "GLOB",
+    "GROUP",
+    "HAVING",
+    "IF",
+    "IGNORE",
+    "IMMEDIATE",
+    "IN",
+    "INDEX",
+    "INDEXED",
+    "INITIALLY",
+    "INNER",
+    "INSERT",
+    "INSTEAD",
+    "INTERSECT",
+    "INTO",
+    "IS",
+    "ISNULL",
+    "JOIN",
+    "KEY",
+    "LEFT",
+    "LIKE",
+    "LIMIT",
+    "MATCH",
+    "NATURAL",
+    "NO",
+    "NOT",
+    "NOTNULL",
+    "NULL",
+    "OF",
+    "OFFSET",
+    "ON",
+    "OR",
+    "ORDER",
+    "OUTER",
+    "PLAN",
+    "PRAGMA",
+    "PRIMARY",
+    "QUERY",
+    "RAISE",
+    "RECURSIVE",
+    "REFERENCES",
+    "REGEXP",
+    "REINDEX",
+    "RELEASE",
+    "RENAME",
+    "REPLACE",
+    "RESTRICT",
+    "RIGHT",
+    "ROLLBACK",
+    "ROW",
+    "SAVEPOINT",
+    "SELECT",
+    "SET",
+    "TABLE",
+    "TEMP",
+    "TEMPORARY",
+    "THEN",
+    "TO",
+    "TRANSACTION",
+    "TRIGGER",
+    "UNION",
+    "UNIQUE",
+    "UPDATE",
+    "USING",
+    "VACUUM",
+    "VALUES",
+    "VIEW",
+    "VIRTUAL",
+    "WHEN",
+    "WHERE",
+    "WITH",
+    "WITHOUT",
 }
+
 
 class NullObject:
     """Null object"""
@@ -59,7 +171,8 @@ class NullObject:
     def __float__(self) -> float:
         return 0.0
 
-class Sentinel: # pylint: disable=too-few-public-methods
+
+class Sentinel:  # pylint: disable=too-few-public-methods
     """A Sentinel value, has unique behavior for Table API and Model API.
 
     Pre-defined value:
@@ -69,8 +182,21 @@ class Sentinel: # pylint: disable=too-few-public-methods
     def __repr__(self) -> str:
         return "<Sentinel>"
 
-class Row(dict):
+
+class Row(Mapping[str, T], Generic[T], dict): # type: ignore
     """Attribute Dictionary"""
+
+    def __setitem__(self, key: str, value: T):
+        super().__setitem__(key, value)
+
+    def __getitem__(self, key: str) -> T:
+        return dict.__getitem__(self, key)
+
+    def __iter__(self) -> Iterator[str]:
+        return dict.__iter__(self)
+
+    def __len__(self) -> int:
+        return dict.__len__(self)
 
     def __getattr__(self, __name: str) -> Any:
         try:
@@ -143,8 +269,10 @@ class WithCursor(Cursor):
     def __repr__(self) -> str:
         return type(self).__name__
 
+
 class NoopResource:
     """No-op resource control"""
+
     def close(self):
         """Close this resource"""
 
@@ -157,16 +285,6 @@ def test_installed():
     always returns true"""
     return True
 
-def crunch(query: Queries | list[dict[str, Any]]) -> Row[str, list[Any]]:  # type: ignore
-    """Crunch queries into Row that all of its value become a list."""
-    data: dict[str, list[Any]] = Row()
-    for value in query:
-        for key, val in value.items():
-            if key not in data:
-                data[key] = []
-            data[key].append(val)
-    return data
-
 def generate_ids():
     """Generate ids for statements"""
     return str(uuid4().int)
@@ -175,6 +293,21 @@ def generate_ids():
 null = NullObject()
 Null = Sentinel()
 AttrDict = Row
+Query: TypeAlias = Row[Any]
+SquashedQueries: TypeAlias = Row[list[Any]]
+Queries: TypeAlias = list[Query] | SquashedQueries
+
+def crunch(query: Queries | list[dict[str, Any]]) -> Row[list[Any]]:
+    """Crunch queries into Row that all of its value become a list."""
+    data: Row[list[Any]] = Row()
+    for value in query:
+        for key, val in value.items(): # type: ignore
+            if key not in data:
+                data[key] = []
+            data[key].append(val)
+    return data
+
+
 
 __all__ = [
     "null",
@@ -187,5 +320,5 @@ __all__ = [
     "AttrDict",
     "NullObject",
     "sqlite_multithread_check",
-    "NoopResource"
+    "NoopResource",
 ]

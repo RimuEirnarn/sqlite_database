@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .table import Table
-    from .query_builder import Condition, OnlyColumn, Orders
+    from .query_builder.typings import Condition, OnlyColumn
+    from .typings import Orders
 
 
 class SubQuery:

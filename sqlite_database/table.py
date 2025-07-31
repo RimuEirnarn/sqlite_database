@@ -35,11 +35,10 @@ from .query_builder.table_creation import extract_single_column
 from .typings import (
     Data,
     Orders,
-    Queries,
     Query,
     # _MasterQuery,
     OnlyColumn,
-    SquashedSqueries,
+    SquashedQueries,
     JustAColumn,
 )
 
@@ -339,7 +338,7 @@ class Table: # pylint: disable=too-many-instance-attributes
         offset: int = 0,
         order: Optional[Orders] = None,
         flatten: Literal[False] = False,
-    ) -> Queries:  # type: ignore
+    ) -> list[Query]:
         pass
 
     @overload
@@ -351,7 +350,7 @@ class Table: # pylint: disable=too-many-instance-attributes
         offset: int = 0,
         order: Optional[Orders] = None,
         flatten: Literal[True] = True,
-    ) -> SquashedSqueries:
+    ) -> SquashedQueries:
         pass
 
     @overload
@@ -428,7 +427,7 @@ class Table: # pylint: disable=too-many-instance-attributes
         length: int = 10,
         order: Optional[Orders] = None,
         flatten: Literal[False] = False,
-    ) -> Generator[Queries, None, None]:  # type: ignore
+    ) -> Generator[list[Query], None, None]:
         pass
 
     @overload
@@ -452,7 +451,7 @@ class Table: # pylint: disable=too-many-instance-attributes
         length: int = 10,
         order: Optional[Orders] = None,
         flatten: Literal[True] = True,
-    ) -> Generator[SquashedSqueries, None, None]:
+    ) -> Generator[SquashedQueries, None, None]:
         pass
 
     def paginate_select(
