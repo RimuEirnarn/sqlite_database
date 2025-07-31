@@ -15,7 +15,7 @@ class BaseModelMixin:
 class ScopeMixin(BaseModelMixin):
     """Scope-related mixins"""
 
-    @classmethod # type: ignore
+    @classmethod  # type: ignore
     def active(cls: Type[BaseModelT]) -> list[BaseModelT]:  # type: ignore
         """Return any active users"""
         return cls.where(is_active=True).fetch()
@@ -24,41 +24,44 @@ class ScopeMixin(BaseModelMixin):
 class ChunkableMixin(BaseModelMixin):
     """Implement chunk related stuff"""
 
-    @classmethod  # type: ignore
-    def chunk(
+    @classmethod
+    def chunk_callback(
         cls: Type[BaseModelT],  # type: ignore
-        limit: int,
-        callback: Callable[[list[BaseModelT]], None],
+        __limit: int,
+        __callback: Callable[[list[BaseModelT]], None],
+        /,
+        **kwargs,
     ):
         """Return specified instance by the amount of limit, or execute provided callback"""
         offset = 0
         while True:
-            batch = cls.query().limit(limit).offset(offset).fetch()
+            batch = cls.where(**kwargs).limit(__limit).offset(offset).fetch()
 
             if not batch:
                 break
 
-            callback(batch)
+            __callback(batch)
 
-            if len(batch) != limit:
+            if len(batch) != __limit:
                 break
 
-            offset += limit
+            offset += __limit
 
     @classmethod  # type: ignore
-    def chunk_iter(cls: Type[BaseModelT], # type: ignore
-                   limit: int) -> Generator[list[BaseModelT], None, None]:  # type: ignore
+    def chunk(
+        cls: Type[BaseModelT], __limit: int, /, **kwargs  # type: ignore
+    ) -> Generator[list[BaseModelT], None, None]:  # type: ignore
         """Yield specifiec range instanced by the amount of limit."""
         offset = 0
         while True:
-            batch = cls.query().limit(limit).offset(offset).fetch()
+            batch = cls.where(**kwargs).limit(__limit).offset(offset).fetch()
 
             if not batch:
                 break
 
             yield batch
 
-            if len(batch) != limit:
+            if len(batch) != __limit:
                 break
 
-            offset += limit
+            offset += __limit

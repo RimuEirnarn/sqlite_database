@@ -80,7 +80,7 @@ def test_model_mixin():
         ]
     )
 
-    for posts in Posts.chunk_iter(5):
+    for posts in Posts.chunk(5, title="a"):
         assert all(map(lambda post: post.title, posts))
 
     assert Posts.active()
