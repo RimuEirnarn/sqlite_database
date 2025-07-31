@@ -62,21 +62,22 @@ def _build_select(query_params: QueryParams, depth: int = 0):
         )
     check_one(query_params.table_name)
     cond, data = extract_signature(query_params.condition, depth=depth)
-    only_ = "*"
+    what_ = "*"
     if query_params.only and isinstance(query_params.only, ParsedFn):
-        only_, _ = query_params.only.parse_sql()
+        what_, databin = query_params.only.parse_sql()
         check_iter(
             (query_params.only.name, *(a for a in query_params.only.values if a != "*"))
         )
+        data.update(databin)
     elif isinstance(query_params.only, tuple):
         generator = (
             column_name for column_name in query_params.only if check_one(column_name)
         )
-        only_ = f"{', '.join(generator)}"  # type: ignore
+        what_ = f"{', '.join(generator)}"  # type: ignore
     elif query_params.only != "*" and isinstance(query_params.only, str):
-        only_ = check_one(query_params.only)  # type: ignore
+        what_ = check_one(query_params.only)  # type: ignore
 
-    query = f"select {only_} from {query_params.table_name}"
+    query = f"select {what_} from {query_params.table_name}"
     if cond:
         query += f" {cond}"
     if query_params.order and isinstance(query_params.order, tuple):
