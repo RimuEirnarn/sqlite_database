@@ -8,7 +8,7 @@ from .utils import check_one  # type: ignore
 
 def get_uid_from_args(fn_name, args):
     """Get unique id suffix from args"""
-    hasher = md5()
+    hasher = md5(usedforsecurity=False)
     hasher.update(fn_name.encode())
     for arg in args:
         hasher.update(str(arg).encode())
