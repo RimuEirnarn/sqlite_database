@@ -19,9 +19,11 @@ permissions:
 jobs:
   deploy:
     name: Deploy to PyPI
+    if: github.events.release.prerelease == false
 
     permissions:
       id-token: write
+
     runs-on: ubuntu-latest
 
     steps:
