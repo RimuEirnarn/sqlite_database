@@ -1,7 +1,5 @@
 """Test Custom"""
 
-from random import random
-
 from sqlite_database import Database, this
 from sqlite_database.operators import in_
 from sqlite_database._debug import STATE
@@ -25,9 +23,3 @@ def test_99_99_save_report():
     """FINAL 9999 Save reports"""
     with open(file, "w", encoding="utf-8") as xfile:
         xfile.write(pstdout.getvalue())
-
-
-def test_100_pity():
-    """FINAL"""
-    # 99% success rate
-    assert random() < 0.99
