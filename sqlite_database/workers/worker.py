@@ -17,10 +17,9 @@ WorkerType: TypeAlias = Literal["thread"] | Literal["process"]
 POSSIBLE_STACKTRACE_COUNT = 6
 FEATURE_MIN_VERSION = (3, 13)
 
-if version_info > FEATURE_MIN_VERSION:
+if version_info >= FEATURE_MIN_VERSION:
     from queue import ShutDown  # type: ignore
 else:
-
     class ShutDown(RuntimeError):
         """Raised when put/get with shut-down queue."""
 
