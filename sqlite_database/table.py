@@ -55,7 +55,6 @@ class Table: # pylint: disable=too-many-instance-attributes
         parent,  # type: ignore
         table: str,
         columns: Optional[Iterable[Column]] = None,  # type: ignore
-        # aggresive_select: bool = False,
     ) -> None:
         if parent.closed:
             raise ConnectionError("Connection to database is already closed.")
@@ -71,26 +70,6 @@ class Table: # pylint: disable=too-many-instance-attributes
         self._prev_autocommit = None
         self._prev_auto = True
         self._columns: Optional[list[Column]] = list(columns) if columns else None
-
-        # if (self._columns is None and aggresive_select) and table != "sqlite_master":
-        #     self._fetch_columns()
-
-    # def __enter__(self):
-    #     self._prev_auto = self._auto
-    #     self._prev_autocommit = self._sql.isolation_level
-
-    #     self._sql.isolation_level = None
-    #     self._auto = False
-    #     self._sql.execute("BEGIN TRANSACTION")
-    #     return self
-
-    # def __exit__(self, exc_type, _, __):
-    #     if exc_type is None:
-    #         self._sql.commit()
-    #     else:
-    #         self._sql.rollback()
-    #     self._sql.isolation_level = self._prev_autocommit
-    #     self._auto = self._prev_auto
 
     def __enter__(self):
         self._prev_auto = self._auto
@@ -158,23 +137,6 @@ class Table: # pylint: disable=too-many-instance-attributes
             self.select()
         except OperationalError:
             self._deleted = True
-
-    # def _fetch_columns(self):
-    #     table = self._table
-    #     try:
-    #         query, data = build_select(
-    #             "sqlite_master", {"type": op == "table", "name": op == table}
-    #         )
-    #         cursor = self._sql.cursor()
-    #         cursor.execute(query, data)
-    #         tabl = cursor.fetchone()
-    #         if tabl is None:
-    #             raise ValueError("What the hell?")
-    #         cols = fetch_columns(_MasterQuery(**tabl))
-    #         self._columns = cols
-    #         return 0
-    #     except Exception:  # pylint: disable=broad-except
-    #         return 1
 
     def _exec(
         self,
@@ -555,16 +517,17 @@ class Table: # pylint: disable=too-many-instance-attributes
         )  # type: ignore
         with self._sql:
             cursor = self._exec(query, data)
-            data = cursor.fetchone()
+            returned = cursor.fetchone()
             if isinstance(what, ParsedFn):
-                return data[what.parse_sql()[0]]
-            if not data:
+                print(returned)
+                return returned[what.parse_sql()[0]]
+            if not returned:
                 return Row()
             if isinstance(what, tuple) and len(what) == 1:
-                return data[what]
+                return returned[what]
             if isinstance(what, str) and what != "*":
-                return data[what]
-            return data
+                return returned[what]
+            return returned
 
     def columns(self):
         """Table columns"""
