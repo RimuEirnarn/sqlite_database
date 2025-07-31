@@ -82,14 +82,3 @@ jobs:
       run: python -m build
     - name: Publish package
       uses: pypa/gh-action-pypi-publish@release/v1
-
-  fake-deploy:
-    name: (Fake) deploy to PyPI
-    if: github.event.release.prerelease == true
-    needs: [lint, pytest]
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Set info
-      run: |
-        echo "Currently in pre-release!"
