@@ -3,7 +3,7 @@
 # pylint: disable=unused-import,unused-argument,cyclic-import,protected-access
 
 from contextlib import contextmanager
-from typing import Any, Callable, Self, Type, TypeVar, overload
+from typing import Any, Callable, Self, Type, TypeVar, overload, dataclass_transform
 from dataclasses import asdict, dataclass, fields, is_dataclass, MISSING
 
 from sqlite_database.models.type_checkers import typecheck
@@ -56,7 +56,7 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
 
     @classmethod
     def create_table(cls, db: Database):
-        """Create database according to annotations and schema from `__schema__`"""
+        """Create table according to annotations and schema from `__schema__`"""
         if not is_dataclass(cls):
             raise TypeError(f"{cls.__name__} must be a dataclass")
 
@@ -378,6 +378,7 @@ class BaseModel:  # pylint: disable=too-few-public-methods,too-many-public-metho
         """Return Query Builder related to this model"""
         return QueryBuilder(cls)
 
+@dataclass_transform()
 def model(db: Database, type_checking: bool = False):
     """Initiate Model API compatible classes. Requires target to be a dataclass,
     the app automatically injects dataclass if this isn't a dataclass.
