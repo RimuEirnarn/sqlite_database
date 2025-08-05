@@ -12,7 +12,15 @@ from .. import models  # pylint: disable=unused-import
 T = TypeVar("T", bound="models.BaseModel")
 count = Function("COUNT")
 
+MGR_REQ = "Note: The database record has serious mismatch, consider doing migration."
 
+def add_excnote(exc: Exception):
+    """Add exception notes when an entry retrieved is different"""
+    msg = str(exc)
+    if "() missing" in msg or "() got" in msg:
+        exc.add_note(MGR_REQ)
+    # if "() got" in msg:
+        # exc.add_note(MGR_REQ)
 class QueryBuilder(Generic[T]):
     # pylint: disable=protected-access
     """Query builder for Model ORM"""
@@ -55,11 +63,16 @@ class QueryBuilder(Generic[T]):
         records = self._model._tbl.select(  # pylint: disable=protected-access
             self._filters, limit=self._limit, offset=self._offset, order=self._order
         )
+
         if len(records) == 0 and self._failing:
             raise NoDataReturnedError(
                 f"Model {self._model.__name__} has no data for current scope"
             )
-        return [self._model(**record) for record in records]
+        try:
+            return [self._model(**record) for record in records]
+        except TypeError as exc:
+            add_excnote(exc)
+            raise exc
 
     def fetch_one(self) -> T | None:
         """Fetch one data from table"""
@@ -71,7 +84,11 @@ class QueryBuilder(Generic[T]):
             )
         if not record:
             return None
-        return self._model(**record)
+        try:
+            return self._model(**record)
+        except TypeError as exc:
+            add_excnote(exc)
+            raise exc
 
     def patch(self, **kwargs: Any):
         """Update a data based on the filter according to passed keyword args"""
