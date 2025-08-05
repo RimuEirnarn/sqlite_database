@@ -1,5 +1,7 @@
 """Column"""
+# pylint: disable=redefined-builtin
 
+from json import dumps, loads
 from typing import Any, Self, Callable
 from .locals import _PATH, SQLACTION
 from .utils import check_one, matches
@@ -15,7 +17,7 @@ class Column:  # pylint: disable=too-many-instance-attributes
     def __init__(  # pylint: disable=too-many-arguments
         self,
         name: str,
-        type_: str,
+        type: str,
         foreign: bool = False,
         foreign_ref: str | None = None,
         primary: bool = False,
@@ -26,7 +28,7 @@ class Column:  # pylint: disable=too-many-instance-attributes
         on_update: SQLACTION = "cascade",
     ) -> None:
         self._name = check_one(name)
-        self._type = check_one(type_)
+        self._type = check_one(type)
         self._unique = unique
         self._nullable = nullable
         self._default = default
@@ -145,6 +147,25 @@ class Column:  # pylint: disable=too-many-instance-attributes
         )
         return all((item1 in self_ for item1 in other))
 
+    def to_json(self):
+        """Convert column info as JSON"""
+        return dumps({
+            "name": self.name,
+            "type": self.type,
+            "iunique": self.unique,
+            "primary": self.primary,
+            "foreign": self.foreign,
+            "foreign_ref": self.raw_source,
+            "nullable": self.nullable,
+            "default": self.default,
+            "on_delete": self.on_delete,
+            "on_update": self.on_update
+        })
+
+    @classmethod
+    def from_json(cls, json: str):
+        """Convert JSON to a column"""
+        return cls(**loads(json))
 
 class BuilderColumn:  # pylint: disable=too-many-instance-attributes
     """Builder Column -- Column Implementation using Builder Column"""
