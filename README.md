@@ -18,7 +18,7 @@
 ![CodeFactor Grade](https://img.shields.io/codefactor/grade/github/RimuEirnarn/sqlite_database)
 
 ![PyPI - Format](https://img.shields.io/pypi/format/sqlite-database)
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/sqlite-database)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/sqlite_database?label=min%20python)
 ![PyPI - Implementation](https://img.shields.io/pypi/implementation/sqlite-database)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/sqlite-database?label=%28PyPI%29%20downloads)
 ![PyPI - Downloads Daily](https://img.shields.io/pypi/dd/sqlite_database?label=(PyPI)%20downloads%20daily)
