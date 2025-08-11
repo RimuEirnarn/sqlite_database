@@ -11,6 +11,7 @@ from typing import (
     Literal,
     Optional,
     overload,
+    TYPE_CHECKING
 )
 
 from sqlite_database.functions import ParsedFn, Function, count
@@ -42,6 +43,9 @@ from .typings import (
     JustAColumn,
 )
 
+if TYPE_CHECKING:
+    from .database import Database
+
 # Let's add a little bit of 'black' magic here.
 _null = Function("__NULL__")()
 _tx_stack = ContextVar("_tx_stack", default=[])
@@ -52,13 +56,14 @@ class Table: # pylint: disable=too-many-instance-attributes
 
     def __init__(
         self,
-        parent,  # type: ignore
+        parent: "Database",  # type: ignore
         table: str,
         columns: Optional[Iterable[Column]] = None,  # type: ignore
     ) -> None:
         if parent.closed:
             raise ConnectionError("Connection to database is already closed.")
         self._parent_repr = repr(parent)
+        self._db = parent
         self._sql: Connection = parent.sql
         # pylint: disable-next=protected-access
         self._sql_path = parent._path
@@ -627,6 +632,6 @@ constraint is enabled."
         return self.select(what=count("*"))
 
     def __repr__(self) -> str:
-        return f"<{type(self).__name__}({self._table}) -> {self._parent_repr}>"
+        return f"<{type(self).__name__}({self._table}) -> {self._db!r}>"
 
 __all__ = ["Table"]
