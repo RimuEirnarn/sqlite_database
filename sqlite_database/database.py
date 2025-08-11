@@ -17,6 +17,7 @@ from .column import BuilderColumn, Column
 from .query_builder.table_creation import extract_table_creations
 from .table import Table
 from .errors import DatabaseExistsError, DatabaseMissingError
+from .index import Index
 
 Columns = Iterable[Column] | Iterable[BuilderColumn]
 
@@ -155,6 +156,19 @@ class Database: # pylint: disable=too-many-instance-attributes
             "select name from sqlite_master where type='table' and name=?", (table,)
         )
         return cursor.fetchone() is not None
+
+    def create_index(self, index: Index):
+        """Create an index"""
+        with self.sql as dbcursor:
+            dbcursor.execute(index.build_sql())
+
+    def delete_index(self, name: str | Index, exists_ok: bool = False):
+        """Drop an index"""
+        _name = name.index_name if isinstance(name, Index) else name
+        check_one(_name)
+        with self.sql as dbcursor:
+            if_ok = "if exists" if exists_ok else ""
+            dbcursor.execute(f"drop index {if_ok} {_name}")
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__} {id(self)}>"

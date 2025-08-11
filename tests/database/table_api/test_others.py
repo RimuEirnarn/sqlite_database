@@ -6,7 +6,7 @@ from random import randint
 from pytest import raises
 from sqlite_database import Database, integer, text
 from sqlite_database.workers import DatabaseWorker
-from sqlite_database.index import Index, create_index, drop_index
+from sqlite_database.index import Index
 
 from ..setup import setup_database_fns, setup_database, count
 
@@ -86,6 +86,6 @@ def test_index():
     db = Database(":memory:")
     t = db.create_table("t", [integer("a"), text("b")])
     index = Index('testindex').target('t').columns('a', 'b')
-    assert create_index(db, index) is None, "Index should be created"
+    assert db.create_index(index) is None, "Index should be created"
     t.select_one()
-    assert drop_index(db, index) is None, "Index should be destroyed"
+    assert db.delete_index(index) is None, "Index should be destroyed"

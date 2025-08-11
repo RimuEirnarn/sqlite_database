@@ -2,7 +2,6 @@
 
 from json import dumps
 from .utils import check_one, check_iter
-from .database import Database
 
 class Index:
     """Index"""
@@ -80,16 +79,3 @@ class Index:
                 "unique": self._unique,
             }
         )
-
-def create_index(db: Database, index: Index):
-    """Create an index"""
-    with db.sql as dbcursor:
-        dbcursor.execute(index.build_sql())
-
-def drop_index(db: Database, name: str | Index, exists_ok: bool = False):
-    """Drop an index"""
-    _name = name.index_name if isinstance(name, Index) else name
-    check_one(_name)
-    with db.sql as dbcursor:
-        if_ok = "if exists" if exists_ok else ""
-        dbcursor.execute(f"drop index {if_ok} {_name}")
