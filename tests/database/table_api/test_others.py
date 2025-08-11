@@ -2,13 +2,14 @@
 
 from sqlite3 import OperationalError
 from random import randint
-import sys
 
-from pytest import mark, raises
-from sqlite_database import Database, integer
+from pytest import raises
+from sqlite_database import Database, integer, text
 from sqlite_database.workers import DatabaseWorker
+from sqlite_database.index import Index, create_index, drop_index
 
 from ..setup import setup_database_fns, setup_database, count
+
 
 def test_function_count():
     """Test 0800 Count(*) usage"""
@@ -66,13 +67,25 @@ def test_vacuum():
     t.commit()
     db.vacuum()
 
+
 # @mark.skipif(sys.version_info < (3, 13), reason="Worker feature is exclusive in 3.13")
 def test_worker():
     """Test worker"""
 
     db = DatabaseWorker(":memory:")
-    t = db.create_table("t", [integer('a')])
-    t.insert({'a': 1})
+    t = db.create_table("t", [integer("a")])
+    t.insert({"a": 1})
     t.commit()
-    assert t.select_one({'a': 1}) is not None
+    assert t.select_one({"a": 1}) is not None
     db.close()
+
+
+def test_index():
+    """Test index"""
+
+    db = Database(":memory:")
+    t = db.create_table("t", [integer("a"), text("b")])
+    index = Index('testindex').target('t').columns('a', 'b')
+    assert create_index(db, index) is None, "Index should be created"
+    t.select_one()
+    assert drop_index(db, index) is None, "Index should be destroyed"

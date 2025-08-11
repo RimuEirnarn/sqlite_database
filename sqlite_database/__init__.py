@@ -8,14 +8,14 @@ from .column import Column, text, integer, blob, real
 from .signature import op
 from .operators import this
 from .table import Table
-
+from .index import Index
 
 def test_installed():
     """Is the module installed?"""
     return True
 
 
-__version__ = "0.7.12-beta1"
+__version__ = "0.7.12-beta2"
 __all__ = [
     "Database",
     "Table",
@@ -35,5 +35,6 @@ __all__ = [
     "Unique",
     "model",
     "hook",
-    "validate"
+    "validate",
+    "Index"
 ]
