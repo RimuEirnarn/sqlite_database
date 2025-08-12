@@ -86,6 +86,8 @@ def test_index():
     db = Database(":memory:")
     t = db.create_table("t", [integer("a"), text("b")])
     index = Index('testindex').target('t').columns('a', 'b')
-    assert db.create_index(index) is None, "Index should be created"
+    assert db.create_index(index.index_name,
+                           index.index_target,
+                           index.index_columns) is None, "Index should be created"
     t.select_one()
     assert db.delete_index(index) is None, "Index should be destroyed"

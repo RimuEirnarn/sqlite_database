@@ -158,8 +158,8 @@ class Database: # pylint: disable=too-many-instance-attributes
         return cursor.fetchone() is not None
 
     def create_index(self, name: str,
-                     columns: tuple[str, ...],
                      target: str,
+                     columns: tuple[str, ...],
                      unique: bool = False):
         """Create an index"""
         with self.sql as dbcursor:
