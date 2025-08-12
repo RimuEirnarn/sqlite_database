@@ -157,10 +157,13 @@ class Database: # pylint: disable=too-many-instance-attributes
         )
         return cursor.fetchone() is not None
 
-    def create_index(self, index: Index):
+    def create_index(self, name: str,
+                     columns: tuple[str, ...],
+                     target: str,
+                     unique: bool = False):
         """Create an index"""
         with self.sql as dbcursor:
-            dbcursor.execute(index.build_sql())
+            dbcursor.execute(Index(name, target, columns, unique).build_sql())
 
     def delete_index(self, name: str | Index, exists_ok: bool = False):
         """Drop an index"""
